@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.neocat.organization.infra.jdbc.MembershipMapper">
+    <insert id="add">
+        INSERT INTO nc_org_member (org_id, account_id) VALUES (#{orgId}, #{accountId})
+        ON DUPLICATE KEY UPDATE account_id = VALUES(account_id)
+    </insert>
+    <delete id="remove">
+        DELETE FROM nc_org_member WHERE org_id = #{orgId} AND account_id = #{accountId}
+    </delete>
+    <select id="membersOf" resultType="java.lang.Long">
+        SELECT account_id FROM nc_org_member WHERE org_id = #{orgId}
+    </select>
+    <select id="orgsOf" resultType="java.lang.Long">
+        SELECT org_id FROM nc_org_member WHERE account_id = #{accountId}
+    </select>
+    <delete id="removeAllOf">
+        DELETE FROM nc_org_member WHERE account_id = #{accountId}
+    </delete>
+</mapper>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 大盘与卡片 SQL（对应 05-mysql-schema.sql §4） -->
+<mapper namespace="com.neocat.dashboard.infra.jdbc.DashboardMapper">
+    <select id="countCards" resultType="long">
+        SELECT COUNT(*) FROM nc_card WHERE dashboard_id = #{dashboardId}
+    </select>
+
+    <resultMap id="dashboardRow" type="com.neocat.dashboard.infra.jdbc.DashboardRepositoryAdapter$DashboardRow">
+        <id property="id" column="id"/>
+        <result property="orgId" column="org_id"/>
+        <result property="name" column="name"/>
+        <result property="orderNo" column="order_no"/>
+    </resultMap>
+
+    <resultMap id="cardRow" type="com.neocat.dashboard.infra.jdbc.DashboardRepositoryAdapter$CardRow">
+        <id property="id" column="id"/>
+        <result property="dashboardId" column="dashboard_id"/>
+        <result property="service" column="service"/>
+        <result property="targetKind" column="target_kind"/>
+        <result property="targetType" column="target_type"/>
+        <result property="targetName" column="target_name"/>
+        <result property="metricName" column="metric_name"/>
+        <result property="metricLabels" column="metric_labels"/>
+        <result property="instanceScope" column="instance_scope"/>
+        <result property="formula" column="formula"/>
+        <result property="formulaUnit" column="formula_unit"/>
+        <result property="timeRange" column="time_range"/>
+        <result property="orderNo" column="order_no"/>
+    </resultMap>
+
+    <select id="selectDashboard" resultMap="dashboardRow">
+        SELECT id, org_id, name, order_no FROM nc_dashboard WHERE id = #{id}
+    </select>
+
+    <select id="selectDashboardsByOrg" resultMap="dashboardRow">
+        SELECT id, org_id, name, order_no FROM nc_dashboard WHERE org_id = #{orgId} ORDER BY order_no, id
+    </select>
+
+    <insert id="insertDashboard" parameterType="com.neocat.dashboard.infra.jdbc.DashboardRepositoryAdapter$DashboardRow"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO nc_dashboard (org_id, name, order_no, created_at)
+        VALUES (#{orgId}, #{name}, #{orderNo}, NOW(3))
+    </insert>
+
+    <update id="updateDashboard" parameterType="com.neocat.dashboard.infra.jdbc.DashboardRepositoryAdapter$DashboardRow">
+        UPDATE nc_dashboard SET name = #{name}, order_no = #{orderNo} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteDashboard">
+        DELETE FROM nc_dashboard WHERE id = #{id}
+    </delete>
+
+    <select id="selectCard" resultMap="cardRow">
+        SELECT id, dashboard_id, service, target_kind, target_type, target_name, metric_name,
+               metric_labels, instance_scope, formula, formula_unit, time_range, order_no
+        FROM nc_card WHERE id = #{id}
+    </select>
+
+    <select id="selectCardsByDashboard" resultMap="cardRow">
+        SELECT id, dashboard_id, service, target_kind, target_type, target_name, metric_name,
+               metric_labels, instance_scope, formula, formula_unit, time_range, order_no
+        FROM nc_card WHERE dashboard_id = #{dashboardId} ORDER BY order_no, id
+    </select>
+
+    <insert id="insertCard" parameterType="com.neocat.dashboard.infra.jdbc.DashboardRepositoryAdapter$CardRow"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO nc_card (dashboard_id, service, target_kind, target_type, target_name, metric_name,
+                             metric_labels, instance_scope, formula, formula_unit, time_range, order_no, created_at)
+        VALUES (#{dashboardId}, #{service}, #{targetKind}, #{targetType}, #{targetName}, #{metricName},
+                #{metricLabels}, #{instanceScope}, #{formula}, #{formulaUnit}, #{timeRange}, #{orderNo}, NOW(3))
+    </insert>
+
+    <update id="updateCard" parameterType="com.neocat.dashboard.infra.jdbc.DashboardRepositoryAdapter$CardRow">
+        UPDATE nc_card
+        SET service     = #{service},
+            target_kind = #{targetKind},
+            target_type = #{targetType},
+            target_name = #{targetName},
+            metric_name = #{metricName},
+            metric_labels = #{metricLabels},
+            instance_scope = #{instanceScope},
+            formula     = #{formula},
+            formula_unit = #{formulaUnit},
+            time_range  = #{timeRange},
+            order_no    = #{orderNo},
+            updated_at  = NOW(3)
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteCard">
+        DELETE FROM nc_card WHERE id = #{id}
+    </delete>
+
+    <select id="selectThresholdLines" resultType="com.neocat.dashboard.infra.jdbc.DashboardMapper$ThresholdLineRow">
+        SELECT direction, value FROM nc_card_threshold_line WHERE card_id = #{cardId} ORDER BY id
+    </select>
+
+    <delete id="deleteThresholdLines">
+        DELETE FROM nc_card_threshold_line WHERE card_id = #{cardId}
+    </delete>
+
+    <insert id="insertThresholdLine">
+        INSERT INTO nc_card_threshold_line (card_id, direction, value)
+        VALUES (#{cardId}, #{direction}, #{value})
+    </insert>
+
+</mapper>

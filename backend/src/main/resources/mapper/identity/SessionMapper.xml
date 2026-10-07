@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.neocat.identity.infra.jdbc.SessionMapper">
+    <resultMap id="sessionRow" type="com.neocat.identity.infra.jdbc.SessionRepositoryAdapter$SessionRow">
+        <id property="id" column="id"/>
+        <result property="accountId" column="account_id"/>
+        <result property="expiresAt" column="expires_at"/>
+    </resultMap>
+    <select id="selectById" resultMap="sessionRow">
+        SELECT id, account_id, expires_at FROM nc_session WHERE id = #{id}
+    </select>
+    <insert id="insert">
+        INSERT INTO nc_session (id, account_id, expires_at, last_seen_at, created_at)
+        VALUES (#{id}, #{accountId}, #{expiresAt}, #{at}, #{at})
+    </insert>
+    <update id="touchIfValid">
+        UPDATE nc_session SET last_seen_at = #{at}, expires_at = GREATEST(expires_at, #{expiresAt})
+        WHERE id = #{id} AND expires_at > #{at} AND last_seen_at &lt;= #{at}
+    </update>
+    <delete id="deleteById">DELETE FROM nc_session WHERE id = #{id}</delete>
+    <delete id="deleteByAccountId">DELETE FROM nc_session WHERE account_id = #{accountId}</delete>
+</mapper>

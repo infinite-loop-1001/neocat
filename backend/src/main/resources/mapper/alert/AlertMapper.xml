@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  告警 SQL（对应 05-mysql-schema.sql §5）
+  重要：一期不存在告警触发历史表，只有规则、条件、收件人与滑动窗口点。
+-->
+<mapper namespace="com.neocat.alert.infra.jdbc.AlertMapper">
+
+    <resultMap id="ruleRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertRuleRow">
+        <id property="id" column="id"/>
+        <result property="scope" column="scope"/>
+        <result property="orgId" column="org_id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="targetKind" column="target_kind"/>
+        <result property="reportKind" column="report_kind"/>
+        <result property="targetService" column="target_service"/>
+        <result property="targetType" column="target_type"/>
+        <result property="targetName" column="target_name"/>
+        <result property="targetMetricLabels" column="target_metric_labels"/>
+        <result property="formulaStats" column="formula_stats"/>
+        <result property="targetStat" column="target_stat"/>
+        <result property="channels" column="channels"/>
+        <result property="targetCardId" column="target_card_id"/>
+        <result property="combinator" column="combinator"/>
+        <result property="windowPoints" column="window_points"/>
+        <result property="enabled" column="enabled"/>
+        <result property="invalid" column="invalid"/>
+        <result property="stateSince" column="state_since"/>
+    </resultMap>
+
+    <resultMap id="conditionRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertConditionRow">
+        <result property="stat" column="stat"/>
+        <result property="comparator" column="comparator"/>
+        <result property="threshold" column="threshold"/>
+    </resultMap>
+
+    <resultMap id="recipientRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertRecipientRow">
+        <result property="accountId" column="account_id"/>
+        <result property="channel" column="channel"/>
+    </resultMap>
+
+    <resultMap id="windowPointRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertWindowPointRow">
+        <result property="pointMinute" column="point_minute"/>
+        <result property="satisfied" column="satisfied"/>
+    </resultMap>
+
+    <sql id="ruleColumns">
+        id, scope, org_id, name, description, target_kind, report_kind, target_service, target_type, target_name,
+        target_metric_labels, formula_stats, target_stat, channels,
+        target_card_id, combinator, window_points, enabled, invalid, state_since
+    </sql>
+
+    <select id="selectRule" resultMap="ruleRow">
+        SELECT <include refid="ruleColumns"/> FROM nc_alert_rule WHERE id = #{id}
+    </select>
+
+    <select id="selectAllRules" resultMap="ruleRow">
+        SELECT <include refid="ruleColumns"/> FROM nc_alert_rule ORDER BY id
+    </select>
+
+    <!-- 调度只取已启用规则；失效规则不参与判定（PRD 06 §8） -->
+    <select id="selectEnabledRules" resultMap="ruleRow">
+        SELECT <include refid="ruleColumns"/> FROM nc_alert_rule WHERE enabled = 1 ORDER BY id
+    </select>
+
+    <select id="selectRulesByOrg" resultMap="ruleRow">
+        SELECT <include refid="ruleColumns"/> FROM nc_alert_rule WHERE org_id = #{orgId} ORDER BY id
+    </select>
+
+    <insert id="insertRule" parameterType="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertRuleRow"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO nc_alert_rule (scope, org_id, name, description, target_kind, report_kind, target_service, target_type,
+                                   target_name, target_metric_labels, formula_stats, target_stat, channels, target_card_id, combinator, window_points,
+                                   enabled, invalid, state_since, created_at)
+        VALUES (#{scope}, #{orgId}, #{name}, #{description}, #{targetKind}, #{reportKind}, #{targetService}, #{targetType},
+                #{targetName}, #{targetMetricLabels}, #{formulaStats}, #{targetStat}, #{channels}, #{targetCardId}, #{combinator}, #{windowPoints},
+                #{enabled}, #{invalid}, #{stateSince}, NOW(3))
+    </insert>
+
+    <update id="updateRule" parameterType="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertRuleRow">
+        UPDATE nc_alert_rule
+        SET scope           = #{scope},
+            org_id          = #{orgId},
+            name            = #{name},
+            description     = #{description},
+            target_kind     = #{targetKind},
+            report_kind     = #{reportKind},
+            target_service  = #{targetService},
+            target_type     = #{targetType},
+            target_name     = #{targetName},
+            target_metric_labels = #{targetMetricLabels},
+            formula_stats   = #{formulaStats},
+            target_stat     = #{targetStat},
+            channels        = #{channels},
+            target_card_id  = #{targetCardId},
+            combinator      = #{combinator},
+            window_points   = #{windowPoints},
+            enabled         = #{enabled},
+            invalid         = #{invalid},
+            state_since     = #{stateSince},
+            updated_at      = NOW(3)
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteRule">
+        DELETE FROM nc_alert_rule WHERE id = #{id}
+    </delete>
+
+    <select id="selectConditions" resultMap="conditionRow">
+        SELECT stat, comparator, threshold FROM nc_alert_condition WHERE rule_id = #{ruleId} ORDER BY id
+    </select>
+
+    <insert id="insertCondition">
+        INSERT INTO nc_alert_condition (rule_id, stat, comparator, threshold)
+        VALUES (#{ruleId}, #{stat}, #{comparator}, #{threshold})
+    </insert>
+
+    <delete id="deleteConditions">
+        DELETE FROM nc_alert_condition WHERE rule_id = #{ruleId}
+    </delete>
+
+    <select id="selectRecipients" resultMap="recipientRow">
+        SELECT account_id, channel FROM nc_alert_recipient WHERE rule_id = #{ruleId} ORDER BY channel, account_id
+    </select>
+
+    <insert id="insertRecipient">
+        INSERT INTO nc_alert_recipient (rule_id, account_id, channel)
+        VALUES (#{ruleId}, #{accountId}, #{channel})
+    </insert>
+
+    <delete id="deleteRecipients">
+        DELETE FROM nc_alert_recipient WHERE rule_id = #{ruleId}
+    </delete>
+
+    <select id="selectWindowPoints" resultMap="windowPointRow">
+        SELECT point_minute, satisfied FROM nc_alert_window_state
+        WHERE rule_id = #{ruleId} ORDER BY point_minute
+    </select>
+
+    <insert id="insertWindowPoint">
+        INSERT INTO nc_alert_window_state (rule_id, point_minute, satisfied)
+        VALUES (#{ruleId}, #{pointMinute}, 1)
+    </insert>
+
+    <delete id="deleteWindowPoints">
+        DELETE FROM nc_alert_window_state WHERE rule_id = #{ruleId}
+    </delete>
+
+</mapper>

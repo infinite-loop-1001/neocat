@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.neocat.organization.infra.jdbc.EffectiveLeafMapper">
+    <delete id="deleteByAccount">
+        DELETE FROM nc_effective_leaf WHERE account_id = #{accountId}
+    </delete>
+    <insert id="insert">
+        INSERT INTO nc_effective_leaf (account_id, org_id) VALUES (#{accountId}, #{orgId})
+    </insert>
+    <select id="leavesOf" resultType="java.lang.Long">
+        SELECT org_id FROM nc_effective_leaf WHERE account_id = #{accountId}
+    </select>
+    <select id="membersOf" resultType="java.lang.Long">
+        SELECT account_id FROM nc_effective_leaf WHERE org_id = #{orgId}
+    </select>
+    <delete id="removeOrg">
+        DELETE FROM nc_effective_leaf WHERE org_id = #{orgId}
+    </delete>
+</mapper>

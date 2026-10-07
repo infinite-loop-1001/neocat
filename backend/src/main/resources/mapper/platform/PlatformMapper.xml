@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 平台档案与通道配置 SQL（对应 05-mysql-schema.sql §0） -->
+<mapper namespace="com.neocat.platform.infra.PlatformMapper">
+
+    <resultMap id="platformRow" type="com.neocat.platform.infra.PlatformRepositoryAdapter$PlatformRow">
+        <result property="initialized" column="initialized"/>
+        <result property="timezone" column="timezone"/>
+        <result property="slowUrlMs" column="slow_url_ms"/>
+        <result property="slowSqlMs" column="slow_sql_ms"/>
+        <result property="slowCallMs" column="slow_call_ms"/>
+        <result property="slowCacheMs" column="slow_cache_ms"/>
+        <result property="initializedAt" column="initialized_at"/>
+    </resultMap>
+
+    <resultMap id="channelRow" type="com.neocat.platform.infra.PlatformRepositoryAdapter$ChannelRow">
+        <id property="channel" column="channel"/>
+        <result property="enabled" column="enabled"/>
+        <result property="configJson" column="config_json"/>
+    </resultMap>
+
+    <!-- 单行表：id 恒为 1 -->
+    <select id="selectProfile" resultMap="platformRow">
+        SELECT initialized, timezone, slow_url_ms, slow_sql_ms, slow_call_ms, slow_cache_ms, initialized_at
+        FROM nc_platform_profile
+        WHERE id = 1
+    </select>
+
+    <update id="updateProfile" parameterType="com.neocat.platform.infra.PlatformRepositoryAdapter$PlatformRow">
+        UPDATE nc_platform_profile
+        SET initialized   = #{initialized},
+            timezone      = #{timezone},
+            slow_url_ms   = #{slowUrlMs},
+            slow_sql_ms   = #{slowSqlMs},
+            slow_call_ms  = #{slowCallMs},
+            slow_cache_ms = #{slowCacheMs},
+            initialized_at = #{initializedAt}
+        WHERE id = 1
+    </update>
+
+    <select id="selectChannels" resultMap="channelRow">
+        SELECT channel, enabled, config_json FROM nc_channel_config ORDER BY channel
+    </select>
+
+    <insert id="upsertChannel" parameterType="com.neocat.platform.infra.PlatformRepositoryAdapter$ChannelRow">
+        INSERT INTO nc_channel_config (channel, enabled, config_json)
+        VALUES (#{channel}, #{enabled}, #{configJson})
+        ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), config_json = VALUES(config_json)
+    </insert>
+
+</mapper>

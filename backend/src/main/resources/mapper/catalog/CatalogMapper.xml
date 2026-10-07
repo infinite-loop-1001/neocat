@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 服务与实例目录 SQL（对应 05-mysql-schema.sql 的 nc_service / nc_instance） -->
+<mapper namespace="com.neocat.catalog.infra.CatalogMapper">
+
+    <resultMap id="serviceRow" type="com.neocat.catalog.infra.CatalogRepositoryAdapter$ServiceRow">
+        <id property="name" column="name"/>
+        <result property="firstSeenAt" column="first_seen_at"/>
+        <result property="lastSeenAt" column="last_seen_at"/>
+    </resultMap>
+
+    <resultMap id="instanceRow" type="com.neocat.catalog.infra.CatalogRepositoryAdapter$InstanceRow">
+        <result property="serviceName" column="service_name"/>
+        <result property="instanceId" column="instance_id"/>
+        <result property="firstSeenAt" column="first_seen_at"/>
+        <result property="lastSeenAt" column="last_seen_at"/>
+    </resultMap>
+
+    <!-- 首次上报创建，后续只刷新 last_seen_at：保证发现是幂等的 -->
+    <insert id="upsertService">
+        INSERT INTO nc_service (name, first_seen_at, last_seen_at)
+        VALUES (#{name}, #{at}, #{at})
+        ON DUPLICATE KEY UPDATE last_seen_at = VALUES(last_seen_at)
+    </insert>
+
+    <select id="selectService" resultMap="serviceRow">
+        SELECT name, first_seen_at, last_seen_at FROM nc_service WHERE name = #{name}
+    </select>
+
+    <select id="selectAllServices" resultMap="serviceRow">
+        SELECT name, first_seen_at, last_seen_at FROM nc_service ORDER BY name
+    </select>
+
+    <insert id="upsertInstance">
+        INSERT INTO nc_instance (service_name, instance_id, first_seen_at, last_seen_at)
+        VALUES (#{serviceName}, #{instanceId}, #{at}, #{at})
+        ON DUPLICATE KEY UPDATE last_seen_at = VALUES(last_seen_at)
+    </insert>
+
+    <select id="selectInstance" resultMap="instanceRow">
+        SELECT service_name, instance_id, first_seen_at, last_seen_at
+        FROM nc_instance
+        WHERE service_name = #{serviceName} AND instance_id = #{instanceId}
+    </select>
+
+    <select id="selectInstances" resultMap="instanceRow">
+        SELECT service_name, instance_id, first_seen_at, last_seen_at
+        FROM nc_instance
+        WHERE service_name = #{serviceName}
+        ORDER BY instance_id
+    </select>
+
+</mapper>

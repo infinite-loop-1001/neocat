@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package neocat.ingest.v1;
+
+option java_package = "com.neocat.protocol.ingest.v1";
+option java_multiple_files = true;
+option java_outer_classname = "IngestProtocol";
+
+// ============================================================================
+// NeoCat 上报协议 v1（对应 docs/neocat-technical-design/04-ingest-protocol.md）
+//
+// 设计约束：
+//   - 一棵 MessageTree 的 message_id 是全局唯一标识，也是树级幂等键；
+//   - 报表时间桶使用节点 timestamp（事件发生时间），不使用服务端接收时间；
+//   - node_id 只需在树内唯一；
+//   - Metric 标签键由上报方自定，平台不预注册。
+// ============================================================================
+
+// ── 请求 ──────────────────────────────────────────────────────────────────
+
+message IngestRequest {
+  string protocol_version = 1;   // 当前唯一取值 "1.0"
+  repeated MessageTree trees = 2;
+}
+
+message MessageTree {
+  string service_name      = 1;  // 服务唯一标识；同名即同一服务
+  string instance_id       = 2;  // 通常为 IP，不强制格式
+  string message_id        = 3;  // 全局唯一；树级幂等键
+  string root_message_id   = 4;  // 跨服务 Trace 根；无上游时应等于 message_id
+  string parent_message_id = 5;  // 上游树；可为空
+  int64  tree_timestamp    = 6;  // 树内最早节点事件时间（epoch millis）
+  repeated Node nodes      = 7;
+}
+
+message Node {
+  string node_id        = 1;  // 树内唯一
+  Kind   kind           = 2;
+  string category       = 3;  // URL / SQL / CALL / CACHE / RPC / business / jvm / 指标名
+  string name           = 4;
+  string status         = 5;  // "0" 表示成功；其他值（含 "ERROR"）为非成功
+  int64  timestamp      = 6;  // 事件时间（epoch millis）——报表时间桶依据
+  int64  duration_ms    = 7;  // 仅 TRANSACTION / REMOTE_CALL 有意义
+  string parent_node_id = 8;  // 树内父节点；可空
+
+  MetricValue   metric      = 9;   // kind = METRIC
+  Heartbeat     heartbeat   = 10;  // kind = HEARTBEAT（JVM）
+  RemoteCall    remote_call = 11;  // kind = REMOTE_CALL
+  ExceptionInfo exception   = 12;  // kind = TRANSACTION 非成功时填写
+
+  map<string, string> tags = 13;   // 任意附加标签
+}
+
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  TRANSACTION      = 1;   // 该 kind 的 category 决定 Problem 慢类归属
+  EVENT            = 2;   // 无耗时语义：不产出分位
+  HEARTBEAT        = 3;   // 仅 JVM
+  METRIC           = 4;
+  REMOTE_CALL      = 5;   // 产生依赖边，不依赖下游是否上报
+}
+
+message MetricValue {
+  string name                = 1;
+  double value               = 2;
+  map<string, string> labels = 3;
+}
+
+message Heartbeat {
+  optional int64 heap_used_bytes = 1;
+  optional int64 heap_max_bytes  = 2;
+  optional int64 gc_count        = 3;
+  optional int64 gc_time_ms      = 4;
+  optional int64 thread_count    = 5;
+  optional int64 young_used_bytes = 6;
+  optional int64 young_committed_bytes = 7;
+  optional int64 young_max_bytes = 8;
+  optional int64 old_used_bytes = 9;
+  optional int64 old_committed_bytes = 10;
+  optional int64 old_max_bytes = 11;
+  optional int64 metaspace_used_bytes = 12;
+  optional int64 metaspace_committed_bytes = 13;
+  optional int64 metaspace_max_bytes = 14;
+  optional int64 young_gc_count = 15;
+  optional int64 young_gc_time_ms = 16;
+  optional int64 old_gc_count = 17;
+  optional int64 old_gc_time_ms = 18;
+  optional int64 full_gc_count = 19;
+  optional int64 full_gc_time_ms = 20;
+  // Old writers lacked scalar presence: absent base fields meant zero.
+  bool presence_aware = 21;
+}
+
+message RemoteCall {
+  string downstream_service = 1;
+  string downstream_address = 2;
+  string call_type          = 3;  // RPC / HTTP / MQ ...
+  string status             = 4;  // "0" 成功
+}
+
+message ExceptionInfo {
+  string exception_name    = 1;  // Problem 异常聚合键
+  string exception_message = 2;  // 仅保留在取样与原始树
+  string stack_trace       = 3;
+}
+
+// ── 响应 ──────────────────────────────────────────────────────────────────
+
+message IngestResponse {
+  Status status          = 1;
+  string code            = 2;  // OK / DUPLICATE / QUEUE_FULL；拒绝时为十进制数字字符串（如 60002）
+  int32  accepted_trees  = 3;
+  int32  duplicate_trees = 4;
+  int32  dropped_trees   = 5;
+  int32  rejected_trees  = 6;
+  string message         = 7;
+}
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  ACCEPTED           = 1;  // 已接受处理尝试；不代表报表已完成
+  DUPLICATE          = 2;  // 幂等命中
+  DROPPED            = 3;  // 队列满，业务不阻塞
+  REJECTED           = 4;  // 校验失败或过期
+}

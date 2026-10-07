@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  账号表 SQL（对应 docs/neocat-technical-design/05-mysql-schema.sql 的 nc_account）
+  说明：用户名一期不可修改，因此 update 不含 username 列。
+-->
+<mapper namespace="com.neocat.identity.infra.jdbc.AccountMapper">
+
+    <resultMap id="accountRow" type="com.neocat.identity.infra.jdbc.AccountRepositoryAdapter$AccountRow">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="role" column="role"/>
+        <result property="status" column="status"/>
+        <result property="mustChangePassword" column="must_change_password"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="accountRow">
+        SELECT id, username, password_hash, role, status, must_change_password, created_at, updated_at
+        FROM nc_account
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByUsername" resultMap="accountRow">
+        SELECT id, username, password_hash, role, status, must_change_password, created_at, updated_at
+        FROM nc_account
+        WHERE username = #{username}
+    </select>
+
+    <select id="selectAll" resultMap="accountRow">
+        SELECT id, username, password_hash, role, status, must_change_password, created_at, updated_at
+        FROM nc_account
+        ORDER BY id
+    </select>
+
+    <insert id="insert" parameterType="com.neocat.identity.infra.jdbc.AccountRepositoryAdapter$AccountRow"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO nc_account (username, password_hash, role, status, must_change_password, created_at)
+        VALUES (#{username}, #{passwordHash}, #{role}, #{status}, #{mustChangePassword}, NOW(3))
+    </insert>
+
+    <update id="update" parameterType="com.neocat.identity.infra.jdbc.AccountRepositoryAdapter$AccountRow">
+        UPDATE nc_account
+        SET password_hash        = #{passwordHash},
+            role                 = #{role},
+            status               = #{status},
+            must_change_password = #{mustChangePassword},
+            updated_at           = NOW(3)
+        WHERE id = #{id}
+    </update>
+
+</mapper>

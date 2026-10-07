@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 组织树 SQL（对应 05-mysql-schema.sql 的 nc_org_node） -->
+<mapper namespace="com.neocat.organization.infra.jdbc.OrgNodeMapper">
+
+    <resultMap id="orgRow" type="com.neocat.organization.infra.jdbc.OrgNodeRepositoryAdapter$OrgNodeRow">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="parentId" column="parent_id"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="orgRow">
+        SELECT id, name, parent_id FROM nc_org_node WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultMap="orgRow">
+        SELECT id, name, parent_id FROM nc_org_node ORDER BY id
+    </select>
+
+    <select id="selectChildren" resultMap="orgRow">
+        SELECT id, name, parent_id FROM nc_org_node WHERE parent_id = #{parentId} ORDER BY id
+    </select>
+
+    <insert id="insert" parameterType="com.neocat.organization.infra.jdbc.OrgNodeRepositoryAdapter$OrgNodeRow"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO nc_org_node (name, parent_id, created_at)
+        VALUES (#{name}, #{parentId}, NOW(3))
+    </insert>
+
+    <update id="update" parameterType="com.neocat.organization.infra.jdbc.OrgNodeRepositoryAdapter$OrgNodeRow">
+        UPDATE nc_org_node SET name = #{name} WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM nc_org_node WHERE id = #{id}
+    </delete>
+
+</mapper>

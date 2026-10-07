@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 最近访问服务 SQL（对应 05-mysql-schema.sql 的 nc_access_history） -->
+<mapper namespace="com.neocat.identity.infra.jdbc.AccessHistoryMapper">
+
+    <!--
+      主键 (account_id, service_name) 保证同一服务只保留最新一次访问时间，
+      因此「最近访问服务」列表天然去重。
+    -->
+    <insert id="upsert">
+        INSERT INTO nc_access_history (account_id, service_name, accessed_at)
+        VALUES (#{accountId}, #{serviceName}, #{accessedAt})
+        ON DUPLICATE KEY UPDATE accessed_at = VALUES(accessed_at)
+    </insert>
+
+    <select id="selectRecentServices" resultType="java.lang.String">
+        SELECT service_name
+        FROM nc_access_history
+        WHERE account_id = #{accountId}
+        ORDER BY accessed_at DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>
