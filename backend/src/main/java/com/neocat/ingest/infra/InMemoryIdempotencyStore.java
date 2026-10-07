@@ -5,8 +5,8 @@ import com.neocat.ingest.domain.idempotency.IdempotencyStore;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
 
 /**
  * 进程内幂等窗口实现（技术方案 01-architecture.md §6、07 §1.2）。
@@ -52,7 +52,7 @@ public class InMemoryIdempotencyStore implements IdempotencyStore {
     @Override
     public String fingerprintOf(String messageId) {
         Entry entry = entries.get(messageId);
-        if (entry == null) {
+        if (Objects.isNull(entry)) {
             return null;
         }
         if (!entry.getExpiresAt().isAfter(clock.instant())) {

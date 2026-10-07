@@ -49,7 +49,7 @@ public class RecipientService {
     // rules: 处理内部领域事件涉及到领域内部逻辑时需要调用 DomainService, handler 只做逻辑的编排
     /** 处理账号/组织事件，返回被修改的规则。 */
     public List<AlertRule> onEvent(RecipientEvent event) {
-        if (event == null) {
+        if (Objects.isNull(event)) {
             return List.of();
         }
         if (event instanceof RecipientEvent.UserDisabled disabled) {
@@ -75,7 +75,7 @@ public class RecipientService {
      * 规则本身不因收件人清空而关闭。
      */
     public List<Long> effectiveRecipients(AlertRule rule) {
-        if (rule == null || rule.getRecipients() == null) {
+        if (Objects.isNull(rule) || Objects.isNull(rule.getRecipients())) {
             return List.of();
         }
         List<Long> result = new ArrayList<>();
@@ -83,7 +83,7 @@ public class RecipientService {
             if (!gateway.isEnabled(accountId)) {
                 continue;
             }
-            if (rule.isOrganization() && rule.getOrgId() != null
+            if (rule.isOrganization() && Objects.nonNull(rule.getOrgId())
                     && !gateway.isEffectiveMember(accountId, rule.getOrgId())) {
                 continue;
             }
@@ -113,7 +113,7 @@ public class RecipientService {
     }
     /** 校验收件人选择合法：账号必须启用；组织告警还必须是该叶子的有效成员。 */
     public void validateSelection(AlertRule rule, List<Long> recipients) {
-        if (recipients == null || recipients.isEmpty()) {
+        if (Objects.isNull(recipients) || recipients.isEmpty()) {
             return;
         }
         // rules: 遍历容器的时候不要单独 for 循环做可能高耗时的业务逻辑 (如 rpc, 数据库操作), 尽量使用批量处理
@@ -121,7 +121,7 @@ public class RecipientService {
             if (!gateway.isEnabled(accountId)) {
                 throw new IllegalArgumentException("收件人必须是启用状态的账号：" + accountId);
             }
-            if (rule.isOrganization() && rule.getOrgId() != null
+            if (rule.isOrganization() && Objects.nonNull(rule.getOrgId())
                     && !gateway.isEffectiveMember(accountId, rule.getOrgId())) {
                 throw new IllegalArgumentException("组织告警的收件人必须是该叶子的有效成员：" + accountId);
             }
@@ -133,7 +133,7 @@ public class RecipientService {
     private List<AlertRule> removeFromAll(long accountId) {
         List<AlertRule> changed = new ArrayList<>();
         for (AlertRule rule : repository.findAll()) {
-            if (rule.getRecipients() == null || !rule.getRecipients().contains(accountId)) {
+            if (Objects.isNull(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
                 continue;
             }
             List<Long> remaining = rule.getRecipients().stream().filter(id -> id != accountId).toList();
@@ -146,7 +146,7 @@ public class RecipientService {
         List<AlertRule> changed = new ArrayList<>();
         for (AlertRule rule : repository.byOrg(orgId)) {
             // fixme: 抽一个公共方法在当前类里
-            if (rule.getRecipients() == null || !rule.getRecipients().contains(accountId)) {
+            if (Objects.isNull(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
                 continue;
             }
             List<Long> remaining = rule.getRecipients().stream().filter(id -> id != accountId).toList();
@@ -166,7 +166,7 @@ public class RecipientService {
     }
     // rules: List 去重使用 stream 流, 不要单独再写一个函数
     private List<Long> distinct(List<Long> recipients) {
-        if (recipients == null) {
+        if (Objects.isNull(recipients)) {
             return List.of();
         }
         Set<Long> unique = new LinkedHashSet<>(recipients);

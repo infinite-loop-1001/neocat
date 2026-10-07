@@ -2,6 +2,8 @@ package com.neocat.query.domain.series;
 
 import com.neocat.query.domain.stat.Stat;
 
+import java.util.Objects;
+
 /**
  * 数据质量判定（PRD 00 §6、PRD 03 §5、PRD 06 §6）。
  *
@@ -29,7 +31,7 @@ import com.neocat.query.domain.stat.Stat;
 public class QualityResolver {
 
     public Quality resolve(QualityInput input) {
-        if (input == null) {
+        if (Objects.isNull(input)) {
             return Quality.NO_DATA;
         }
         if (input.isDropped()) {

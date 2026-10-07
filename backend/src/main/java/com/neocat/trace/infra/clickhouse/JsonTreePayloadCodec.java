@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 树内容的 JSON 编解码（技术方案 06 §5：{@code payload} 列）。
@@ -39,7 +40,7 @@ public class JsonTreePayloadCodec implements RawTreeQuery.TreePayloadCodec {
     }
     @Override
     public List<TraceNode> decode(String payload) {
-        if (payload == null || payload.isBlank()) {
+        if (Objects.isNull(payload) || payload.isBlank()) {
             return List.of();
         }
         try {
@@ -82,7 +83,7 @@ public class JsonTreePayloadCodec implements RawTreeQuery.TreePayloadCodec {
                         : Map.of());
     }
     private static String str(Object value) {
-        return value == null ? "" : String.valueOf(value);
+        return Objects.isNull(value) ? "" : String.valueOf(value);
     }
     private static long num(Object value) {
         return value instanceof Number number ? number.longValue() : 0L;

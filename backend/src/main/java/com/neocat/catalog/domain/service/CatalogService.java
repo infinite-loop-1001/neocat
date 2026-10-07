@@ -8,6 +8,7 @@ import com.neocat.catalog.domain.report.TimeRange;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 服务与实例自动发现（PRD 02 §5）。
@@ -37,17 +38,17 @@ public class CatalogService {
     }
     /** 合法身份校验通过后立即执行；幂等。 */
     public ServiceEntry ensureService(String serviceName, Instant at) {
-        if (serviceName == null || serviceName.isBlank()) {
+        if (Objects.isNull(serviceName) || serviceName.isBlank()) {
             throw new IllegalArgumentException("serviceName 不能为空");
         }
         return repository.upsertService(serviceName, at);
     }
     /** 实例在服务下唯一；幂等。 */
     public InstanceEntry ensureInstance(String serviceName, String instanceId, Instant at) {
-        if (serviceName == null || serviceName.isBlank()) {
+        if (Objects.isNull(serviceName) || serviceName.isBlank()) {
             throw new IllegalArgumentException("serviceName 不能为空");
         }
-        if (instanceId == null || instanceId.isBlank()) {
+        if (Objects.isNull(instanceId) || instanceId.isBlank()) {
             throw new IllegalArgumentException("instanceId 不能为空");
         }
         return repository.upsertInstance(serviceName, instanceId, at);

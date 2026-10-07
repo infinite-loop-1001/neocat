@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
 
 /**
  * 进程内当前小时报表（技术方案 01-architecture.md §6.5）。
@@ -52,7 +53,7 @@ public class InMemoryHourlyReportStore implements HourlyReportStore {
     @Override
     public MinuteBucket bucket(SeriesKey key, Instant minuteStart) {
         Map<Instant, MinuteBucket> byMinute = buckets.get(key);
-        return byMinute == null ? null : byMinute.get(minuteStart.truncatedTo(ChronoUnit.MINUTES));
+        return Objects.isNull(byMinute) ? null : byMinute.get(minuteStart.truncatedTo(ChronoUnit.MINUTES));
     }
     @Override
     public Set<SeriesKey> seriesKeys() {

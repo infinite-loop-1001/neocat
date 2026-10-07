@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Objects;
 
 /**
  * 基于进程内当前小时报表的读取实现（技术方案 01-architecture.md §6.5）。
@@ -62,7 +63,7 @@ public class HourlyReportDataPort implements ReportDataPort {
     public List<AggregatedRow> rows(String kind, String service, String type, String name,
                                     Instant from, Instant to, Granularity granularity,
                                     List<String> instances) {
-        List<String> targets = (instances == null || instances.isEmpty())
+        List<String> targets = (Objects.isNull(instances) || instances.isEmpty())
                 ? List.of(SeriesKey.ALL)
                 : instances;
 
@@ -77,12 +78,12 @@ public class HourlyReportDataPort implements ReportDataPort {
             }
             String seriesName = key.getKind() == com.neocat.analysis.domain.bucket.SeriesKind.METRIC
                     ? key.getMetricLabels() : key.getName();
-            if (name != null && !name.equals(seriesName)) {
+            if (Objects.nonNull(name) && !name.equals(seriesName)) {
                 continue;
             }
             for (Bucket bucket : bucketList) {
                 AggregatedRow row = fold(key, bucket, granularity);
-                if (row != null) {
+                if (Objects.nonNull(row)) {
                     rows.add(row);
                 }
             }
@@ -107,10 +108,10 @@ public class HourlyReportDataPort implements ReportDataPort {
         AggregatedRow folded = null;
         for (int i = 0; i < minuteCount; i++) {
             MinuteBucket minute = store.bucket(key, bucket.getStart().plusSeconds(i * 60L));
-            if (minute == null || (minute.count() == 0 && minute.valueCount() == 0)) {
+            if (Objects.isNull(minute) || (minute.count() == 0 && minute.valueCount() == 0)) {
                 continue;
             }
-            if (folded == null) {
+            if (Objects.isNull(folded)) {
                 // 恒定锚定目标桶起点：调用方按桶起点对齐
                 folded = new AggregatedRow(key, bucket.getStart(), AggregationLevel.MINUTE, 0);
             }
@@ -124,7 +125,7 @@ public class HourlyReportDataPort implements ReportDataPort {
             folded.setDistribution(folded.distribution().merge(minute.distribution()));
         }
 
-        if (folded == null) {
+        if (Objects.isNull(folded)) {
             // 无行 = 缺口来源；不制造 count=0 的行
             return null;
         }
@@ -187,7 +188,7 @@ public class HourlyReportDataPort implements ReportDataPort {
     }
     @Override
     public boolean mergedIntoOther(String service, String metricName, String labels, Instant hourStart) {
-        return metadata != null && metadata.entries(hourStart, hourStart.plusSeconds(3600)).stream().anyMatch(e ->
+        return Objects.nonNull(metadata) && metadata.entries(hourStart, hourStart.plusSeconds(3600)).stream().anyMatch(e ->
                 e.getService().equals(service) && e.getMetric().equals(metricName) && e.getCanonicalLabels().equals(labels) && e.isMerged());
     }
 
@@ -200,14 +201,14 @@ public class HourlyReportDataPort implements ReportDataPort {
         if (!key.getKind().name().equalsIgnoreCase(kind)) {
             return false;
         }
-        return type == null || type.equals(key.getType());
+        return Objects.isNull(type) || type.equals(key.getType());
     }
     /** 该序列在 [from, to) 内是否存在非空分钟桶。 */
     private boolean hasDataInRange(SeriesKey key, Instant from, Instant to) {
         Instant cursor = from.truncatedTo(ChronoUnit.MINUTES);
         while (cursor.isBefore(to)) {
             MinuteBucket bucket = store.bucket(key, cursor);
-            if (bucket != null && (bucket.count() > 0 || bucket.valueCount() > 0)) {
+            if (Objects.nonNull(bucket) && (bucket.count() > 0 || bucket.valueCount() > 0)) {
                 return true;
             }
             cursor = cursor.plusSeconds(60);
@@ -221,4 +222,3 @@ public class HourlyReportDataPort implements ReportDataPort {
         return com.neocat.analysis.domain.bucket.SeriesKind.valueOf(kind.toUpperCase(java.util.Locale.ROOT));
     }
 }
-

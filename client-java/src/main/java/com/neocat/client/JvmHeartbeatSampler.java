@@ -14,7 +14,7 @@ public final class JvmHeartbeatSampler {
             if (field.getNumber() > 20) continue;
             String key = alias(field.getName());
             String raw = values.get(key);
-            if (raw == null) continue;
+            if (Objects.isNull(raw)) continue;
             try {
                 long value = Long.parseLong(raw);
                 if (value >= 0) builder.setField(field, value);
@@ -48,9 +48,9 @@ public final class JvmHeartbeatSampler {
         for (MemoryPoolMXBean pool : pools) {
             try {
                 String partition = partition(pool.getName());
-                if (partition == null || !pool.isValid()) continue;
+                if (Objects.isNull(partition) || !pool.isValid()) continue;
                 MemoryUsage usage = pool.getUsage();
-                if (usage != null) partitions.computeIfAbsent(partition, k -> new ArrayList<>()).add(usage);
+                if (Objects.nonNull(usage)) partitions.computeIfAbsent(partition, k -> new ArrayList<>()).add(usage);
             } catch (RuntimeException ignored) { }
         }
         partitions.forEach((key, usages) -> {
@@ -67,7 +67,7 @@ public final class JvmHeartbeatSampler {
                 if (count >= 0) totalCount += count;
                 if (time >= 0) totalTime += time;
                 String kind = collectorKind(collector.getName());
-                if (kind != null) {
+                if (Objects.nonNull(kind)) {
                     if (count >= 0) result.merge(kind + "GcCount", Long.toString(count), JvmHeartbeatSampler::sum);
                     if (time >= 0) result.merge(kind + "GcTime", Long.toString(time), JvmHeartbeatSampler::sum);
                 }

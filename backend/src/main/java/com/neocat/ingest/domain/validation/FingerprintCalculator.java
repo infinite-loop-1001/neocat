@@ -13,6 +13,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.Objects;
 
 /**
  * 树内容指纹计算（PRD 02 §6.1）。
@@ -66,13 +67,13 @@ public class FingerprintCalculator {
         return sb.toString();
     }
     private String fingerprintMetric(MetricValue metric) {
-        if (metric == null) {
+        if (Objects.isNull(metric)) {
             return NULL;
         }
         return safe(metric.getName()) + "=" + metric.getValue() + "[" + canonicalMap(metric.getLabels()) + "]";
     }
     private String fingerprintHeartbeat(HeartbeatValue hb) {
-        if (hb == null) {
+        if (Objects.isNull(hb)) {
             return NULL;
         }
         // Preserve the persisted legacy fingerprint when all five original fields are present.
@@ -85,21 +86,21 @@ public class FingerprintCalculator {
                 })));
     }
     private String fingerprintRemoteCall(RemoteCallValue call) {
-        if (call == null) {
+        if (Objects.isNull(call)) {
             return NULL;
         }
         return safe(call.getDownstreamService()) + "," + safe(call.getDownstreamAddress())
                 + "," + safe(call.getCallType()) + "," + safe(call.getStatus());
     }
     private String fingerprintException(ExceptionValue ex) {
-        if (ex == null) {
+        if (Objects.isNull(ex)) {
             return NULL;
         }
         return safe(ex.getExceptionName()) + "," + safe(ex.getExceptionMessage()) + "," + safe(ex.getStackTrace());
     }
     /** 按键名字典序拼接，消除 Map 迭代顺序差异。 */
     private String canonicalMap(Map<String, String> map) {
-        if (map == null || map.isEmpty()) {
+        if (Objects.isNull(map) || map.isEmpty()) {
             return "";
         }
         TreeMap<String, String> sorted = new TreeMap<>(map);
@@ -108,7 +109,7 @@ public class FingerprintCalculator {
         return sb.toString();
     }
     private String safe(String value) {
-        return value == null ? NULL : value;
+        return Objects.isNull(value) ? NULL : value;
     }
     private String sha256Hex(String payload) {
         try {

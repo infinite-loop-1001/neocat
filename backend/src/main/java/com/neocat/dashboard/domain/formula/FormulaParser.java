@@ -5,6 +5,7 @@ import com.neocat.query.domain.stat.Stat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * 公式解析与单位校验（PRD 05 §4，技术方案 02 §9.2）。
@@ -49,7 +50,7 @@ public class FormulaParser {
 
 
         public boolean valid() {
-            return formula != null && error == null;
+            return Objects.nonNull(formula) && Objects.isNull(error);
         }
 
         public static ParseOutcome ok(Formula formula) {
@@ -61,7 +62,7 @@ public class FormulaParser {
         }
     }
     public ParseOutcome parse(String expression) {
-        if (expression == null || expression.isBlank()) {
+        if (Objects.isNull(expression) || expression.isBlank()) {
             return ParseOutcome.fail(FORMULA_INVALID);
         }
         try {
@@ -80,7 +81,7 @@ public class FormulaParser {
     }
     /** 对已解析的公式复核单位（解析期已校验，此处供外部单独调用）。 */
     public String validateUnits(Formula formula) {
-        if (formula == null) {
+        if (Objects.isNull(formula)) {
             return FORMULA_INVALID;
         }
         try {
@@ -124,7 +125,7 @@ public class FormulaParser {
             return inner;
         }
         String token = cursor.peek();
-        if (token == null) {
+        if (Objects.isNull(token)) {
             throw new InvalidFormulaException();
         }
         if (isAggregate(token) && cursor.peekNextIs("(")) {
@@ -134,7 +135,7 @@ public class FormulaParser {
             }
             String statToken = cursor.next();
             Stat stat = tryParseStat(statToken);
-            if (stat == null) {
+            if (Objects.isNull(stat)) {
                 throw new InvalidFormulaException();
             }
             if (!cursor.accept(")")) {
@@ -148,7 +149,7 @@ public class FormulaParser {
             return new Formula.Constant(Double.parseDouble(token));
         }
         Stat stat = tryParseStat(token);
-        if (stat == null) {
+        if (Objects.isNull(stat)) {
             throw new InvalidFormulaException();
         }
         cursor.next();
@@ -224,7 +225,7 @@ public class FormulaParser {
         };
     }
     private Stat tryParseStat(String token) {
-        if (token == null) {
+        if (Objects.isNull(token)) {
             return null;
         }
         return switch (token.toLowerCase(Locale.ROOT)) {
@@ -245,7 +246,7 @@ public class FormulaParser {
         };
     }
     private boolean isNumber(String token) {
-        if (token == null || token.isEmpty()) {
+        if (Objects.isNull(token) || token.isEmpty()) {
             return false;
         }
         char first = token.charAt(0);
@@ -277,7 +278,7 @@ public class FormulaParser {
 
         String next() {
             String token = peek();
-            if (token == null) {
+            if (Objects.isNull(token)) {
                 throw new InvalidFormulaException();
             }
             previous = token;
@@ -302,5 +303,4 @@ public class FormulaParser {
         }
     }
 }
-
 

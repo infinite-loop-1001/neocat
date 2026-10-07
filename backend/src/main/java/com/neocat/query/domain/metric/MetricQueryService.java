@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Objects;
 
 /**
  * Metric 查询（PRD 04 §2–5，链路 21）。
@@ -59,7 +60,7 @@ public class MetricQueryService {
             }
 
             AggregatedRow row = byBucket.get(start);
-            if (row == null) {
+            if (Objects.isNull(row)) {
                 points.add(new Point(start, end, null, Quality.NO_DATA, covered));
                 continue;
             }
@@ -75,7 +76,7 @@ public class MetricQueryService {
     }
     /** 该小时对该标签组合是否被并入 other。 */
     public boolean mergedIntoOther(Long bucketStart, Set<Long> mergedHours) {
-        return bucketStart != null && mergedHours != null && mergedHours.contains(bucketStart);
+        return Objects.nonNull(bucketStart) && Objects.nonNull(mergedHours) && mergedHours.contains(bucketStart);
     }
 
     // ── 内部 ─────────────────────────────────────────────────
@@ -101,7 +102,7 @@ public class MetricQueryService {
     private Map<Long, AggregatedRow> indexByBucket(List<AggregatedRow> rows,
                                                    String service, String metricName, String labels) {
         Map<Long, AggregatedRow> byBucket = new HashMap<>();
-        if (rows == null) {
+        if (Objects.isNull(rows)) {
             return byBucket;
         }
         for (AggregatedRow row : rows) {
@@ -114,19 +115,19 @@ public class MetricQueryService {
     }
     /** 行的序列身份是否与查询目标一致。 */
     private boolean matchesIdentity(AggregatedRow row, String service, String metricName, String labels) {
-        if (service != null && !service.equals(row.key().getService())) {
+        if (Objects.nonNull(service) && !service.equals(row.key().getService())) {
             return false;
         }
-        if (metricName != null && !metricName.equals(row.key().getType())) {
+        if (Objects.nonNull(metricName) && !metricName.equals(row.key().getType())) {
             return false;
         }
-        if (labels != null && !labels.equals(row.key().getMetricLabels())) {
+        if (Objects.nonNull(labels) && !labels.equals(row.key().getMetricLabels())) {
             return false;
         }
         return true;
     }
     private Quality qualityOf(AggregatedRow row, Double value) {
-        if (value == null) {
+        if (Objects.isNull(value)) {
             return Quality.NO_DATA;
         }
         if (row.count() == 0) {

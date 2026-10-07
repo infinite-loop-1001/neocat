@@ -1,5 +1,7 @@
 package com.neocat.trace.domain.tree;
 
+import java.util.Objects;
+
 /**
  * Trace 关系记录（技术方案 06 §6）。
  *
@@ -42,9 +44,8 @@ public class TraceRelation {
     }
 
     public boolean hasParent() {
-        return parentMessageId != null && !parentMessageId.isBlank();
+        return Objects.nonNull(parentMessageId) && !parentMessageId.isBlank();
     }
 }
-
 
 

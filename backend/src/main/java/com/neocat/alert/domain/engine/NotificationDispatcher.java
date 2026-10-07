@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 通知分发（PRD 06 §10、§11）。
@@ -56,7 +57,7 @@ public class NotificationDispatcher {
      * @throws IllegalArgumentException 通道未配置或列表为空
      */
     public void validateChannels(List<AlertChannel> channels) {
-        if (channels == null || channels.isEmpty()) {
+        if (Objects.isNull(channels) || channels.isEmpty()) {
             throw new IllegalArgumentException("规则必须指定至少一个通知通道");
         }
         for (AlertChannel channel : channels) {
@@ -83,10 +84,10 @@ public class NotificationDispatcher {
      * @return 实际发送成功的通知；无有效收件人时为空列表
      */
     public List<AlertNotification> dispatch(AlertRule rule, List<Long> effectiveRecipients, long triggeredAt) {
-        if (rule == null || effectiveRecipients == null || effectiveRecipients.isEmpty()) {
+        if (Objects.isNull(rule) || Objects.isNull(effectiveRecipients) || effectiveRecipients.isEmpty()) {
             return List.of();
         }
-        if (rule.getChannels() == null || rule.getChannels().isEmpty()) {
+        if (Objects.isNull(rule.getChannels()) || rule.getChannels().isEmpty()) {
             return List.of();
         }
 

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Component
 public class ReportCardInputSource implements CardInputSource {
@@ -36,7 +37,7 @@ public class ReportCardInputSource implements CardInputSource {
             Map<String, Double> raw = reports.values(card.getTargetKind(), card.getService(), card.getTargetType(),
                     name, Instant.ofEpochMilli(boundary[0]), Instant.ofEpochMilli(boundary[1]),
                     stats.stream().map(Enum::name).toList(),
-                    card.getInstanceScope() == null ? List.of() : card.getInstanceScope());
+                    Objects.isNull(card.getInstanceScope()) ? List.of() : card.getInstanceScope());
             Map<Stat, Double> values = new LinkedHashMap<>();
             for (Stat stat : stats) {
                 values.put(stat, raw.get(stat.name()));

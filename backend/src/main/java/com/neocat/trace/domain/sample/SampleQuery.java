@@ -1,5 +1,7 @@
 package com.neocat.trace.domain.sample;
 
+import java.util.Objects;
+
 /**
  * 取样查询条件（PRD 03 §11）。
  *
@@ -53,26 +55,25 @@ public class SampleQuery {
         return new SampleQuery(service, category, name, null, from, to, null, DEFAULT_LIMIT);
     }
     public boolean matches(com.neocat.trace.domain.tree.TraceTree tree, com.neocat.trace.domain.tree.TraceNode node) {
-        if (service != null && !service.equals(tree.getServiceName())) {
+        if (Objects.nonNull(service) && !service.equals(tree.getServiceName())) {
             return false;
         }
-        if (instance != null && !instance.equals(tree.getInstanceId())) {
+        if (Objects.nonNull(instance) && !instance.equals(tree.getInstanceId())) {
             return false;
         }
         if (node.getTimestamp() < from || node.getTimestamp() >= to) {
             return false;
         }
-        if (problemCategory != null) {
+        if (Objects.nonNull(problemCategory)) {
             return problemCategory.equalsIgnoreCase(node.getCategory())
                     || problemCategory.equalsIgnoreCase(node.getKind());
         }
-        if (category != null && !category.equalsIgnoreCase(node.getCategory())) {
+        if (Objects.nonNull(category) && !category.equalsIgnoreCase(node.getCategory())) {
             return false;
         }
-        return name == null || name.equals(node.getName());
+        return Objects.isNull(name) || name.equals(node.getName());
     }
 }
-
 
 
 

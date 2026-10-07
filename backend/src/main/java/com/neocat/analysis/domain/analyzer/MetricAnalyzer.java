@@ -12,6 +12,7 @@ import com.neocat.ingest.domain.tree.NodeKind;
 import com.neocat.ingest.domain.tree.RawNode;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Metric 分析器（PRD 04 §1–4，链路 21）。
@@ -63,16 +64,16 @@ public class MetricAnalyzer implements Analyzer {
                 continue;
             }
             MetricValue metric = node.getMetric();
-            if (metric == null) {
+            if (Objects.isNull(metric)) {
                 continue;
             }
             Instant eventTime = Instant.ofEpochMilli(node.getTimestamp());
             String labels = MetricLabels.canonicalize(metric.getLabels());
-            String metricName = metric.getName() == null ? node.getName() : metric.getName();
+            String metricName = Objects.isNull(metric.getName()) ? node.getName() : metric.getName();
 
             String owner = rank.record(tree.getServiceName(), metricName, labels, eventTime);
             store.addValue(SeriesKey.metric(tree.getServiceName(), metricName, owner), eventTime, metric.getValue());
-            if (metadata != null) metadata.record(tree.getServiceName(), metricName, metric.getLabels(), owner, eventTime);
+            if (Objects.nonNull(metadata)) metadata.record(tree.getServiceName(), metricName, metric.getLabels(), owner, eventTime);
         }
     }
 }

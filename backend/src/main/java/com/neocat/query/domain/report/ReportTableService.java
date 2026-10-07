@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Type / Name 表查询（PRD 03 §7.1、§7.2、§8、§9）。
@@ -53,10 +54,10 @@ public class ReportTableService {
 
     private List<ReportRow> table(String kind, List<AggregatedRow> rows, String typeFilter,
                                   long coveredSeconds) {
-        if (rows == null || rows.isEmpty()) {
+        if (Objects.isNull(rows) || rows.isEmpty()) {
             return List.of();
         }
-        boolean byName = typeFilter != null;
+        boolean byName = Objects.nonNull(typeFilter);
         StatCalculator calculator = new StatCalculator();
 
         Map<String, List<AggregatedRow>> grouped = new LinkedHashMap<>();

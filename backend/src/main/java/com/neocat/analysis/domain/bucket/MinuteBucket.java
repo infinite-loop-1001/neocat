@@ -1,5 +1,7 @@
 package com.neocat.analysis.domain.bucket;
 
+import java.util.Objects;
+
 /**
  * 内存分钟桶（技术方案 01 §6.5）。
  *
@@ -134,7 +136,7 @@ public class MinuteBucket {
     }
     public synchronized void addValue(double value, java.time.Instant eventTime) {
         addValue(value);
-        if (valueLastTime == null || eventTime.isAfter(valueLastTime)
+        if (Objects.isNull(valueLastTime) || eventTime.isAfter(valueLastTime)
                 || (eventTime.equals(valueLastTime) && value > valueLast)) {
             valueLast = value;
             valueLastTime = eventTime;
@@ -170,7 +172,6 @@ public class MinuteBucket {
         return valueCount == 0 ? null : valueSum / valueCount;
     }
 }
-
 
 
 

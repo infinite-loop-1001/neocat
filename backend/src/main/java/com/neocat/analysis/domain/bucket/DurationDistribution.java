@@ -1,6 +1,7 @@
 package com.neocat.analysis.domain.bucket;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * 耗时分位分布：16 段对数分箱 + 低基数精确值双轨（技术方案 01 §6.7、06 §10.1.1）。
@@ -48,7 +49,7 @@ public class DurationDistribution {
         segments[segmentOf(value)]++;
         total++;
         if (exactMode) {
-            if (exactValues != null && exactCount < exactValues.length) {
+            if (Objects.nonNull(exactValues) && exactCount < exactValues.length) {
                 exactValues[exactCount++] = value;
             } else {
                 // 超过上限：退化为纯分箱模式
@@ -69,7 +70,7 @@ public class DurationDistribution {
     }
     /** 精确值快照；非精确模式或未记录时返回空数组。 */
     public long[] exactValues() {
-        if (!exactMode || exactValues == null || exactCount == 0) {
+        if (!exactMode || Objects.isNull(exactValues) || exactCount == 0) {
             return new long[0];
         }
         return Arrays.copyOf(exactValues, exactCount);
@@ -81,7 +82,7 @@ public class DurationDistribution {
      */
     public DurationDistribution merge(DurationDistribution other) {
         DurationDistribution merged = new DurationDistribution(
-                exactMode && other.exactMode && exactValues != null && other.exactValues != null
+                exactMode && other.exactMode && Objects.nonNull(exactValues) && Objects.nonNull(other.exactValues)
                         ? exactValues.length + other.exactValues.length
                         : 0);
         System.arraycopy(segments, 0, merged.segments, 0, SEGMENTS);
@@ -113,7 +114,7 @@ public class DurationDistribution {
      */
     public static DurationDistribution fromSegments(long[] persistedSegments) {
         DurationDistribution distribution = new DurationDistribution(0);
-        if (persistedSegments == null) {
+        if (Objects.isNull(persistedSegments)) {
             return distribution;
         }
         System.arraycopy(persistedSegments, 0, distribution.segments, 0,
@@ -127,12 +128,12 @@ public class DurationDistribution {
      * 复制当前分布（含精确值模式），用于跨桶聚合时不修改源对象。
      */
     public DurationDistribution copy() {
-        DurationDistribution copy = new DurationDistribution(exactValues == null ? 0 : exactValues.length);
+        DurationDistribution copy = new DurationDistribution(Objects.isNull(exactValues) ? 0 : exactValues.length);
         System.arraycopy(segments, 0, copy.segments, 0, SEGMENTS);
         copy.total = total;
         copy.exactCount = exactCount;
         copy.exactMode = exactMode;
-        if (exactMode && exactValues != null) {
+        if (exactMode && Objects.nonNull(exactValues)) {
             System.arraycopy(exactValues, 0, copy.exactValues, 0, exactCount);
         }
         return copy;
@@ -148,7 +149,7 @@ public class DurationDistribution {
             return null;
         }
         double clamped = Math.max(0.0d, Math.min(1.0d, p));
-        if (exactMode && exactValues != null && exactCount > 0) {
+        if (exactMode && Objects.nonNull(exactValues) && exactCount > 0) {
             long[] sorted = Arrays.copyOf(exactValues, exactCount);
             Arrays.sort(sorted);
             int index = (int) Math.ceil(clamped * sorted.length) - 1;
@@ -195,4 +196,3 @@ public class DurationDistribution {
         return Math.min(SEGMENTS - 1, index);
     }
 }
-

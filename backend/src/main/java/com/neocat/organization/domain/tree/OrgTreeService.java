@@ -47,16 +47,16 @@ public class OrgTreeService {
     @org.springframework.transaction.annotation.Transactional
     @com.neocat.common.locking.MySqlLocked("metadata")
     public OrgNode createNode(String name, Long parentId) {
-        if (parentId != null && java.util.Objects.isNull(nodes.findById(parentId))) {
+        if (Objects.nonNull(parentId) && java.util.Objects.isNull(nodes.findById(parentId))) {
             throw new ResourceNotFoundException(PARENT_ORG_NOT_FOUND, parentId);
         }
         requireUniqueName(name, parentId, null);
-        if (parentId != null && nodes.childrenOf(parentId).isEmpty()
+        if (Objects.nonNull(parentId) && nodes.childrenOf(parentId).isEmpty()
                 && (resources.hasDashboards(parentId) || resources.hasAlertRules(parentId))) {
             throw new com.neocat.common.error.exception.BusinessRuleException(LEAF_HAS_RESOURCES);
         }
         OrgNode created = nodes.create(name, parentId);
-        if (parentId != null && membershipService != null) membershipService.recomputeAll();
+        if (Objects.nonNull(parentId) && Objects.nonNull(membershipService)) membershipService.recomputeAll();
         return created;
     }
     /** §5.1 改名：同父下名称唯一，且节点必须存在。 */

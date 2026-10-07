@@ -21,7 +21,10 @@ function codeOnly(text) {
 function report(file, text, index, message) {
   errors.push(`${path.relative(root, file)}:${text.slice(0, index).split('\n').length} ${message}`);
 }
-const javaFiles = ['backend', 'client-java'].flatMap(module => files(path.join(root, module, 'src'), '.java'));
+const javaFiles = [
+  ...['backend', 'client-java'].flatMap(module => files(path.join(root, module, 'src'), '.java')),
+  ...files(path.join(root, 'scripts'), '.java'),
+];
 for (const file of javaFiles) {
   const text = fs.readFileSync(file, 'utf8');
   const code = codeOnly(text);

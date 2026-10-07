@@ -30,7 +30,7 @@ public class MySqlDistributedLock {
     }
 
     public <T> T execute(String key, Supplier<T> operation) {
-        if (key == null || key.isBlank() || key.length() > 128) {
+        if (Objects.isNull(key) || key.isBlank() || key.length() > 128) {
             throw new IllegalArgumentException("锁键必须为 1–128 个字符");
         }
         Objects.requireNonNull(operation);

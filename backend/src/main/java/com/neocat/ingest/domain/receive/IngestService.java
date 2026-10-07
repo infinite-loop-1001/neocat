@@ -15,6 +15,7 @@ import com.neocat.common.time.clock.ClockProvider;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.function.Supplier;
+import java.util.Objects;
 
 /**
  * 上报接收编排（PRD 02 §4、§5、§8；技术方案 04 §5.2）。
@@ -89,7 +90,7 @@ public class IngestService {
     public IngestResult accept(IngestBatch batch, int payloadBytes) {
         ValidationOutcome batchCheck = validator.validateBatch(batch, payloadBytes);
         if (!batchCheck.isValid()) {
-            return IngestResult.rejected(batchCheck.getCode(), batch == null || batch.getTrees() == null
+            return IngestResult.rejected(batchCheck.getCode(), Objects.isNull(batch) || Objects.isNull(batch.getTrees())
                     ? 0 : batch.getTrees().size());
         }
 
@@ -110,8 +111,8 @@ public class IngestService {
                 sawRejection = true;
                 rejectionCode = treeCheck.getCode();
                 quality.record(QualityType.MALFORMED,
-                        tree == null ? null : tree.getServiceName(),
-                        tree == null ? null : tree.getMessageId(),
+                        Objects.isNull(tree) ? null : tree.getServiceName(),
+                        Objects.isNull(tree) ? null : tree.getMessageId(),
                         treeCheck.getMessage(), now);
                 continue;
             }
@@ -157,7 +158,7 @@ public class IngestService {
         }
         if (sawRejection) {
             return new IngestResult(IngestStatus.REJECTED,
-                    rejectionCode == null ? ErrorCode.MALFORMED_TREE.name() : rejectionCode,
+                    Objects.isNull(rejectionCode) ? ErrorCode.MALFORMED_TREE.name() : rejectionCode,
                     accepted, duplicate, dropped, rejected);
         }
         if (sawDrop) {
@@ -193,7 +194,6 @@ public class IngestService {
 
     }
 }
-
 
 
 

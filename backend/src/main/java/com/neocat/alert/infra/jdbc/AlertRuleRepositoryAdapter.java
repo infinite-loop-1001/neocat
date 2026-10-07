@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 告警规则与窗口状态的 MyBatis 适配器
@@ -61,7 +62,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         row.setTargetType(rule.getTarget().getType());
         row.setTargetName(rule.getTarget().getName());
         row.setTargetMetricLabels(rule.getTarget().getMetricLabels());
-        row.setFormulaStats(rule.getTarget().getFormulaStats() == null ? "" :
+        row.setFormulaStats(Objects.isNull(rule.getTarget().getFormulaStats()) ? "" :
                 rule.getTarget().getFormulaStats().stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
         row.setTargetStat(rule.getConditions().get(0).getStat().name());
         row.setChannels(rule.getChannels().stream().map(Enum::name)
@@ -71,11 +72,11 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         row.setWindowPoints(rule.getWindowPoints());
         row.setEnabled(rule.isEnabled());
         row.setInvalid(rule.isInvalid());
-        row.setStateSince(rule.getStateSince() == null
+        row.setStateSince(Objects.isNull(rule.getStateSince())
                 ? null
                 : java.sql.Timestamp.from(Instant.ofEpochMilli(rule.getStateSince())));
 
-        if (row.getId() == null) {
+        if (Objects.isNull(row.getId())) {
             mapper.insertRule(row);
         } else {
             mapper.updateRule(row);
@@ -95,8 +96,8 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
             }
         }
 
-        if (resources != null) {
-            if (prior != null && prior.getOrgId() != null && !prior.getOrgId().equals(rule.getOrgId())) {
+        if (Objects.nonNull(resources)) {
+            if (Objects.nonNull(prior) && Objects.nonNull(prior.getOrgId()) && !prior.getOrgId().equals(rule.getOrgId())) {
                 resources.removeAlertRule(prior.getOrgId(), rule.getId());
             }
             if (rule.isOrganization()) {
@@ -109,7 +110,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
     @Override
     public AlertRule findById(long ruleId) {
         AlertRuleRow row = mapper.selectRule(ruleId);
-        return row == null ? null : toDomain(row);
+        return Objects.isNull(row) ? null : toDomain(row);
     }
     @Override
     public List<AlertRule> findAll() {
@@ -133,7 +134,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         mapper.deleteRecipients(ruleId);
         mapper.deleteWindowPoints(ruleId);
         mapper.deleteRule(ruleId);
-        if (resources != null && existing != null && existing.getOrgId() != null) {
+        if (Objects.nonNull(resources) && Objects.nonNull(existing) && Objects.nonNull(existing.getOrgId())) {
             resources.removeAlertRule(existing.getOrgId(), ruleId);
         }
     }
@@ -160,19 +161,19 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         }
         List<AlertRecipientRow> recipients = mapper.selectRecipients(row.getId());
         List<Long> recipientIds = recipients.stream().map(AlertRecipientRow::getAccountId).distinct().toList();
-        List<AlertChannel> channels = row.getChannels() == null || row.getChannels().isBlank()
+        List<AlertChannel> channels = Objects.isNull(row.getChannels()) || row.getChannels().isBlank()
                 ? List.of() : java.util.Arrays.stream(row.getChannels().split(","))
                 .map(AlertChannel::valueOf).toList();
 
         AlertTarget target = new AlertTarget(
                 AlertTargetKind.valueOf(row.getTargetKind()),
-                row.getTargetCardId() == null ? 0 : row.getTargetCardId(),
+                Objects.isNull(row.getTargetCardId()) ? 0 : row.getTargetCardId(),
                 row.getTargetService(),
                 row.getReportKind(),
                 row.getTargetType(),
                 row.getTargetName(),
                 row.getTargetMetricLabels(),
-                row.getFormulaStats() == null || row.getFormulaStats().isBlank() ? List.of() :
+                Objects.isNull(row.getFormulaStats()) || row.getFormulaStats().isBlank() ? List.of() :
                         java.util.Arrays.stream(row.getFormulaStats().split(",")).map(Stat::parse).toList());
 
         return new AlertRule(
@@ -189,7 +190,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
                 channels,
                 row.isEnabled(),
                 row.isInvalid(),
-                row.getStateSince() == null ? null : row.getStateSince().toInstant().toEpochMilli());
+                Objects.isNull(row.getStateSince()) ? null : row.getStateSince().toInstant().toEpochMilli());
     }
     /** 规则行。 */
     public static class AlertRuleRow {
@@ -435,13 +436,6 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         }
     }
 }
-
-
-
-
-
-
-
 
 
 

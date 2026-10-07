@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Objects;
 
 /**
  * 基于 {@link ArrayBlockingQueue} 的有界丢队列。
@@ -47,7 +48,7 @@ public class BoundedDropQueueFactory implements QueueFactory {
             T first = timeoutMillis <= 0
                     ? queue.poll()
                     : queue.poll(timeoutMillis, TimeUnit.MILLISECONDS);
-            if (first == null) {
+            if (Objects.isNull(first)) {
                 return batch;
             }
             batch.add(first);

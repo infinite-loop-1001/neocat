@@ -10,11 +10,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.time.Clock;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
 
 /**
  * 告警分钟判定调度（PRD 06 §5、§11，链路 30）。
@@ -84,9 +84,9 @@ public class AlertEvaluationJob {
     public void evaluateAt(long minuteEpochMillis) {
         for (AlertRule rule : repository.enabledRules()) {
             try {
-                long baseline = rule.getStateSince() == null ? minuteEpochMillis : rule.getStateSince();
+                long baseline = Objects.isNull(rule.getStateSince()) ? minuteEpochMillis : rule.getStateSince();
                 AlertWindowState state = windowStates.compute(rule.getId(), (id, existing) ->
-                        existing == null || existing.getBaselineAt() < baseline
+                        Objects.isNull(existing) || existing.getBaselineAt() < baseline
                                 ? AlertWindowState.empty(id, baseline) : existing);
                 var result = engine.onMinute(rule, state, minuteEpochMillis);
                 windowStates.put(rule.getId(), result.getState());

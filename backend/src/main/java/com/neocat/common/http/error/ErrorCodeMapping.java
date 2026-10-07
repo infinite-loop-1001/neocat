@@ -3,6 +3,7 @@ package com.neocat.common.http.error;
 import com.neocat.common.error.ErrorCode;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 错误码 → HTTP 状态映射（技术方案 03-api-contract.md §1.1）。
@@ -77,11 +78,11 @@ public class ErrorCodeMapping {
     private ErrorCodeMapping() {
     }
     public static int statusOf(ErrorCode code) {
-        if (code == null) {
+        if (Objects.isNull(code)) {
             return 500;
         }
         Integer status = STATUS.get(code);
-        if (status == null) {
+        if (Objects.isNull(status)) {
             throw new IllegalStateException("未映射错误码：" + code);
         }
         return status;

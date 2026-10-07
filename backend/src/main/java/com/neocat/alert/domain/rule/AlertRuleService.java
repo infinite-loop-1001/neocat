@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 /**
  * 告警规则用例（PRD 06 §2、§3、§8）。
  *
@@ -63,11 +65,11 @@ public class AlertRuleService {
     // ── 校验 ─────────────────────────────────────────────────
 
     private void validate(AlertRule draft) {
-        if (draft == null) {
+        if (Objects.isNull(draft)) {
             throw new IllegalArgumentException("规则不能为空");
         }
         // rules: 容器的比较使用 Apache 的 CollectionUtils 判断
-        if (draft.getConditions() == null || draft.getConditions().isEmpty()) {
+        if (Objects.isNull(draft.getConditions()) || draft.getConditions().isEmpty()) {
             throw new IllegalArgumentException("至少需要一个比较条件");
         }
         if (draft.getWindowPoints() < 1) {
@@ -76,10 +78,10 @@ public class AlertRuleService {
         if (draft.getWindowPoints() > MAX_WINDOW_POINTS) {
             throw new IllegalArgumentException("窗口长度超过上限 " + MAX_WINDOW_POINTS);
         }
-        if (draft.getTarget() == null) {
+        if (Objects.isNull(draft.getTarget())) {
             throw new IllegalArgumentException("必须指定告警目标");
         }
-        if (draft.getScope() == AlertScope.ORGANIZATION && draft.getOrgId() == null) {
+        if (draft.getScope() == AlertScope.ORGANIZATION && Objects.isNull(draft.getOrgId())) {
             throw new IllegalArgumentException("组织告警必须指定所属叶子组织");
         }
     }

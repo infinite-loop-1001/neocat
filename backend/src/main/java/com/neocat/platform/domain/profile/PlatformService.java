@@ -13,6 +13,7 @@ import com.neocat.common.error.exception.BusinessRuleException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
 
 import static com.neocat.common.error.ErrorCode.ALREADY_INITIALIZED;
 import static com.neocat.common.error.ErrorCode.PASSWORD_TOO_SHORT;
@@ -51,7 +52,7 @@ public class PlatformService {
         if (initialized()) {
             throw new ConflictException(ALREADY_INITIALIZED);
         }
-        if (request.getAdminPassword() == null || request.getAdminPassword().length() < MIN_PASSWORD_LENGTH) {
+        if (Objects.isNull(request.getAdminPassword()) || request.getAdminPassword().length() < MIN_PASSWORD_LENGTH) {
             throw new ValidationException(PASSWORD_TOO_SHORT, MIN_PASSWORD_LENGTH);
         }
         superAdmins.createSuperAdmin(request.getAdminUsername(), request.getAdminPassword());

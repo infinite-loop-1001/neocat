@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Objects;
 
 /** Writes quality events to the same ClickHouse table used by the report query. */
 @Component
@@ -29,7 +30,7 @@ public class JdbcQualityEventSink implements QualityEventSink {
                 INSERT INTO neocat.nc_quality_event
                 (event_time, event_type, service, message_id, detail, count)
                 VALUES (?, ?, ?, ?, ?, 1)
-                """, Timestamp.from(at), type.name(), serviceName == null ? "" : serviceName,
-                messageId == null ? "" : messageId, detail == null ? "" : detail);
+                """, Timestamp.from(at), type.name(), Objects.isNull(serviceName) ? "" : serviceName,
+                Objects.isNull(messageId) ? "" : messageId, Objects.isNull(detail) ? "" : detail);
     }
 }

@@ -1,5 +1,7 @@
 package com.neocat.organization.domain.tree;
 
+import java.util.Objects;
+
 /**
  * 组织节点（PRD 01 §5）：组织是树，允许多个根节点；只有叶子能拥有大盘。
  */
@@ -21,6 +23,6 @@ public class OrgNode {
     }
 
     public boolean isRoot() {
-        return parentId == null;
+        return Objects.isNull(parentId);
     }
 }

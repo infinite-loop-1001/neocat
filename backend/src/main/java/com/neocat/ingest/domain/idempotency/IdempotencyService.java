@@ -1,7 +1,8 @@
 package com.neocat.ingest.domain.idempotency;
 
 import java.time.Duration;
-import java.util.Optional;
+import java.util.Objects;
+
 import com.neocat.common.config.IngestConfig;
 
 /**
@@ -25,7 +26,7 @@ public class IdempotencyService {
         this.historical = historical;
     }
     public IdempotencyDecision decide(String messageId, String fingerprint) {
-        if (messageId == null || messageId.isBlank()) {
+        if (Objects.isNull(messageId) || messageId.isBlank()) {
             throw new IllegalArgumentException("messageId 不能为空");
         }
         String cached = store.fingerprintOf(messageId);

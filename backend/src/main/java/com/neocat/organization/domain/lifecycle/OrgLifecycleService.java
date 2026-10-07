@@ -14,6 +14,7 @@ import com.neocat.common.error.exception.ResourceNotFoundException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Objects;
 
 import static com.neocat.common.error.ErrorCode.CONFIRM_NAME_MISMATCH;
 import static com.neocat.common.error.ErrorCode.HAS_CHILDREN;
@@ -65,7 +66,7 @@ public class OrgLifecycleService {
             throw new BusinessRuleException(LEAF_HAS_RESOURCES);
         }
         OrgNode created = nodes.create(name, parentId);
-        if (membershipService != null) membershipService.recomputeAll();
+        if (Objects.nonNull(membershipService)) membershipService.recomputeAll();
         return created;
     }
     /** §5.3 删除前的影响预览：组织名、大盘数、卡片数、组织告警数、有效成员数。 */
@@ -126,7 +127,7 @@ public class OrgLifecycleService {
     private Set<Long> leavesOf(long orgId) {
         Set<Long> leaves = new HashSet<>();
         List<OrgNode> all = nodes.findAll();
-        if (all.stream().noneMatch(n -> n.getParentId() != null && n.getParentId() == orgId)) {
+        if (all.stream().noneMatch(n -> Objects.nonNull(n.getParentId()) && n.getParentId() == orgId)) {
             // 自身已是叶子
             if (java.util.Objects.nonNull(nodes.findById(orgId))) {
                 leaves.add(orgId);
@@ -134,12 +135,11 @@ public class OrgLifecycleService {
             return leaves;
         }
         for (OrgNode child : all) {
-            if (child.getParentId() != null && child.getParentId() == orgId) {
+            if (Objects.nonNull(child.getParentId()) && child.getParentId() == orgId) {
                 leaves.addAll(leavesOf(child.getId()));
             }
         }
         return leaves;
     }
 }
-
 

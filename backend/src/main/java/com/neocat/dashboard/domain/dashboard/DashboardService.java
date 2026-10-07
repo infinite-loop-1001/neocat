@@ -12,7 +12,7 @@ import com.neocat.common.error.exception.ResourceNotFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 
 import static com.neocat.common.error.ErrorCode.DASHBOARD_NOT_FOUND;
 import static com.neocat.common.error.ErrorCode.NOT_LEAF;
@@ -107,7 +107,7 @@ public class DashboardService {
         Dashboard dashboard = requireAccessible(accountId, dashboardId);
         List<Card> removed = dashboards.cardsOf(dashboard.getId());
         dashboards.delete(dashboard.getId());
-        if (cardEvents != null) {
+        if (Objects.nonNull(cardEvents)) {
             FormulaParser parser = new FormulaParser();
             for (Card card : removed) {
                 var parsed = parser.parse(card.getFormula());

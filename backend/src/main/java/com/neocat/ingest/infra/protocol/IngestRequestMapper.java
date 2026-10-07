@@ -15,6 +15,7 @@ import com.neocat.protocol.ingest.v1.Kind;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.neocat.common.error.ErrorCode.MALFORMED_TREE;
 import static com.neocat.common.error.ErrorCode.UNSUPPORTED_VERSION;
@@ -33,7 +34,7 @@ public class IngestRequestMapper {
     private IngestRequestMapper() {
     }
     public static IngestBatch toBatch(IngestRequest request) {
-        if (request == null) {
+        if (Objects.isNull(request)) {
             throw new IngestException(MALFORMED_TREE, "请求体为空");
         }
         if (!IngestBatch.SUPPORTED_VERSION.equals(request.getProtocolVersion())) {
@@ -121,9 +122,9 @@ public class IngestRequestMapper {
     }
     /** protobuf 的 string 默认为空串；必填字段的空串在此转为 null，交由校验链统一拒绝。 */
     private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value;
+        return Objects.isNull(value) || value.isBlank() ? null : value;
     }
     private static String emptyToNull(String value) {
-        return value == null || value.isEmpty() ? null : value;
+        return Objects.isNull(value) || value.isEmpty() ? null : value;
     }
 }

@@ -2,6 +2,8 @@ package com.neocat.alert.domain.rule;
 
 import com.neocat.query.domain.stat.Stat;
 
+import java.util.Objects;
+
 /**
  * 比较条件（PRD 06 §2）。
  *
@@ -36,7 +38,7 @@ public class Condition {
      * 因为它既不高于也不低于任何阈值（PRD 06 §6）。
      */
     public boolean matches(Double value) {
-        if (value == null) {
+        if (Objects.isNull(value)) {
             return false;
         }
         return switch (comparator) {

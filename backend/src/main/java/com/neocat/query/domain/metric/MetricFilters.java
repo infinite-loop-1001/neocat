@@ -16,7 +16,7 @@ public class MetricFilters {
         this.values = values;
     }
     public static MetricFilters parse(String raw, ObjectMapper json) {
-        if (raw == null || raw.isBlank()) return new MetricFilters(Map.of());
+        if (Objects.isNull(raw) || raw.isBlank()) return new MetricFilters(Map.of());
         if (raw.length() > 16384) throw invalid();
         try {
             com.fasterxml.jackson.databind.JsonNode root = json.reader()

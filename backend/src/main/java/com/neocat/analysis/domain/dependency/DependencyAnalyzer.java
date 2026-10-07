@@ -11,6 +11,7 @@ import com.neocat.ingest.domain.tree.RawNode;
 import com.neocat.ingest.domain.tree.RemoteCallValue;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * 依赖分析器（PRD 02 §9、PRD 04 §6–7，链路 22）。
@@ -53,12 +54,12 @@ public class DependencyAnalyzer implements Analyzer {
                 continue;
             }
             RemoteCallValue call = node.getRemoteCall();
-            if (call == null || call.getDownstreamService() == null || call.getDownstreamService().isBlank()) {
+            if (Objects.isNull(call) || Objects.isNull(call.getDownstreamService()) || call.getDownstreamService().isBlank()) {
                 continue;
             }
             String upstream = tree.getServiceName();
             String downstream = call.getDownstreamService();
-            if (upstream == null || upstream.equals(downstream)) {
+            if (Objects.isNull(upstream) || upstream.equals(downstream)) {
                 // 自调用不是跨服务依赖
                 continue;
             }

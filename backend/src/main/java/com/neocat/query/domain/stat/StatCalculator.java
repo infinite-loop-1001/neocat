@@ -4,6 +4,7 @@ import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.DurationDistribution;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 统计项计算（PRD 03 §3、§4；技术方案 03 §8.1）。
@@ -28,7 +29,7 @@ import java.util.List;
 public class StatCalculator {
 
     public Double compute(List<AggregatedRow> rows, Stat stat, long coveredSeconds) {
-        if (rows == null || rows.isEmpty()) {
+        if (Objects.isNull(rows) || rows.isEmpty()) {
             // 序列不存在：缺数，不是零
             return null;
         }
@@ -76,13 +77,13 @@ public class StatCalculator {
                 durationMin = Math.min(durationMin, row.durationMin());
                 durationMax = Math.max(durationMax, row.durationMax());
             }
-            merged = merged == null ? row.distribution().copy() : merged.merge(row.distribution());
+            merged = Objects.isNull(merged) ? row.distribution().copy() : merged.merge(row.distribution());
         }
 
         return new Merged(count, failCount, durationSum,
                 durationMin == Long.MAX_VALUE ? 0L : durationMin,
                 durationMax == Long.MIN_VALUE ? 0L : durationMax,
-                merged == null ? new DurationDistribution() : merged);
+                Objects.isNull(merged) ? new DurationDistribution() : merged);
     }
     /**
      * 合并后的中间结果：分子、极值与已合并的分布。
@@ -115,6 +116,5 @@ public class StatCalculator {
 
     }
 }
-
 
 

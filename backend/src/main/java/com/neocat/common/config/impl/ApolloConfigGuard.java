@@ -14,6 +14,7 @@ import org.springframework.core.env.Environment;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 启动期必需配置校验。
@@ -52,7 +53,7 @@ public final class ApolloConfigGuard {
         List<String> problems = new ArrayList<>();
         for (String key : FRAMEWORK_KEYS) {
             String value = environment.getProperty(key);
-            if (value == null || (!ALLOW_EMPTY.contains(key) && value.isBlank())) {
+            if (Objects.isNull(value) || (!ALLOW_EMPTY.contains(key) && value.isBlank())) {
                 problems.add("缺少必需配置：" + key);
             }
         }
@@ -71,7 +72,7 @@ public final class ApolloConfigGuard {
     private static void validateField(Environment environment, Field field, List<String> problems) {
         String key = placeholderKey(field);
         String raw = environment.getProperty(key);
-        if (raw == null || raw.isBlank()) {
+        if (Objects.isNull(raw) || raw.isBlank()) {
             problems.add("缺少必需配置：" + key);
             return;
         }
@@ -96,7 +97,7 @@ public final class ApolloConfigGuard {
     }
 
     private static void validateServerPort(String port, List<String> problems) {
-        if (port == null || port.isBlank()) {
+        if (Objects.isNull(port) || port.isBlank()) {
             return;
         }
         try {
@@ -110,7 +111,7 @@ public final class ApolloConfigGuard {
     }
 
     private static void validateTimezone(String zone, List<String> problems) {
-        if (zone == null || zone.isBlank()) {
+        if (Objects.isNull(zone) || zone.isBlank()) {
             return;
         }
         try {

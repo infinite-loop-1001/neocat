@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
 
 /**
  * 组织树仓储的 MyBatis 适配器（表 {@code nc_org_node}）。
@@ -40,7 +41,7 @@ public class OrgNodeRepositoryAdapter implements OrgNodeRepository {
     @Override
     public OrgNode findById(long id) {
         var row = mapper.selectById(id);
-        return row == null ? null : toDomain(row);
+        return Objects.isNull(row) ? null : toDomain(row);
     }
     @Override
     public List<OrgNode> findAll() {

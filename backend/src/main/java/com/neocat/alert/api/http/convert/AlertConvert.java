@@ -8,6 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 告警 HTTP 契约与领域模型之间的转换（PRD 06 §1、§2、§4）。
@@ -23,18 +24,17 @@ public interface AlertConvert {
 
     /** 新建规则草稿；未给出的字段按原入口行为取默认值。 */
     default AlertRule rule(AlertDraft draft, AlertScope scope) {
-        // rules: 判空使用 Objects.isNull() 或者 Objects.nonNull()
         return AlertRule.draft(scope, draft.getOrgId(),
-                draft.getName() == null ? "未命名规则" : draft.getName(),
-                draft.getDescription() == null ? "" : draft.getDescription(),
-                draft.getTarget() == null ? AlertTarget.rawMetric("", "TRANSACTION", null, null) : target(draft.getTarget()),
-                draft.getCombinator() == null ? Combinator.AND : Combinator.valueOf(draft.getCombinator()),
+                Objects.isNull(draft.getName()) ? "未命名规则" : draft.getName(),
+                Objects.isNull(draft.getDescription()) ? "" : draft.getDescription(),
+                Objects.isNull(draft.getTarget()) ? AlertTarget.rawMetric("", "TRANSACTION", null, null) : target(draft.getTarget()),
+                Objects.isNull(draft.getCombinator()) ? Combinator.AND : Combinator.valueOf(draft.getCombinator()),
                 draft.getWindowPoints(),
                 // rules: 禁止使用 List.of(), 因为他返回的是一个不可变 List, 使用 Apache common 包的 CollectionUtils 创建空
                 //  容器, 包括单不限于 List, Set, Map 等等
-                draft.getConditions() == null ? List.of() : conditions(draft.getConditions()),
-                draft.getRecipients() == null ? List.of() : draft.getRecipients(),
-                draft.getChannels() == null ? List.of() : channels(draft.getChannels()));
+                Objects.isNull(draft.getConditions()) ? List.of() : conditions(draft.getConditions()),
+                Objects.isNull(draft.getRecipients()) ? List.of() : draft.getRecipients(),
+                Objects.isNull(draft.getChannels()) ? List.of() : channels(draft.getChannels()));
     }
 
     /** 条件列表：统计项与比较符在边界处解析为枚举。 */
@@ -54,7 +54,7 @@ public interface AlertConvert {
     // question: 为什么这里要直接引用 query.domain 模块的值对象?
     // rules: 这里用枚举 code 判断呢, 不要用常量值判断
     default AlertTarget target(TargetDraft draft) {
-        List<Stat> stats = draft.getFormulaStats() == null ? List.of() : draft.getFormulaStats().stream().map(Stat::parse).toList();
+        List<Stat> stats = Objects.isNull(draft.getFormulaStats()) ? List.of() : draft.getFormulaStats().stream().map(Stat::parse).toList();
         return "CARD_RESULT".equalsIgnoreCase(draft.getKind())
                 ? AlertTarget.cardResult(draft.getCardId(), draft.getService(), draft.getReportKind(), draft.getType(), draft.getName(), stats)
                 : AlertTarget.rawMetric(draft.getService(), draft.getReportKind(), draft.getType(), draft.getName());

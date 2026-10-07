@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
 
 /**
  * Metric 小时内排名（技术方案 01-architecture.md §6.4、06 §4）。
@@ -75,7 +76,7 @@ public class InMemoryMetricHourRank implements MetricHourRank {
     @Override
     public Set<String> promotedLabels(String service, String metricName, Instant hourStart) {
         HourState state = hours.get(groupKey(service, metricName, hourOf(hourStart)));
-        if (state == null) {
+        if (Objects.isNull(state)) {
             return Set.of();
         }
         synchronized (state) {
@@ -85,7 +86,7 @@ public class InMemoryMetricHourRank implements MetricHourRank {
     @Override
     public boolean mergedIntoOther(String service, String metricName, String canonicalLabels, Instant hourStart) {
         HourState state = hours.get(groupKey(service, metricName, hourOf(hourStart)));
-        if (state == null) {
+        if (Objects.isNull(state)) {
             return false;
         }
         synchronized (state) {

@@ -1,6 +1,7 @@
 package com.neocat.query.domain.report;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 机器维度视图（PRD 03 §7.3、§10）。
@@ -41,12 +42,12 @@ public class MachineView {
     }
 
     public boolean hasSelection() {
-        return selected != null && !selected.isEmpty();
+        return Objects.nonNull(selected) && !selected.isEmpty();
     }
     /** 数量类对账：Top N + other 应等于全量。 */
     public long reconciledTotal() {
         long sum = top.stream().mapToLong(MachineRow::getTotal).sum();
-        if (other != null) {
+        if (Objects.nonNull(other)) {
             sum += other.getTotal();
         }
         return sum;
@@ -55,4 +56,3 @@ public class MachineView {
         return all.stream().mapToLong(MachineRow::getTotal).sum();
     }
 }
-

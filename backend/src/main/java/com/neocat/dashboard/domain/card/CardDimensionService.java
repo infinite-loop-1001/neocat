@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 卡片维度下钻（PRD 05 §6、§7，技术方案 02 §9.3）。
@@ -18,11 +19,11 @@ public class CardDimensionService {
     public CardDimensionView view(Card card, CardDrillRequest request,
                                   List<CardPoint> aggregated,
                                   Map<String, List<CardPoint>> byInstance) {
-        if (card == null || request == null) {
+        if (Objects.isNull(card) || Objects.isNull(request)) {
             throw new IllegalArgumentException("card 与 request 不能为空");
         }
-        List<CardPoint> aggregate = aggregated == null ? List.of() : List.copyOf(aggregated);
-        List<ThresholdLine> lines = request.getThresholdLines() == null ? List.of() : request.getThresholdLines();
+        List<CardPoint> aggregate = Objects.isNull(aggregated) ? List.of() : List.copyOf(aggregated);
+        List<ThresholdLine> lines = Objects.isNull(request.getThresholdLines()) ? List.of() : request.getThresholdLines();
 
         // 聚合模式：不返回任何机器明细
         if (request.aggregateMode() && request.getTopN() <= 0) {
@@ -49,16 +50,16 @@ public class CardDimensionService {
      */
     private List<CardDimensionView.MachineSeries> selectSeries(CardDrillRequest request,
                                                               Map<String, List<CardPoint>> byInstance) {
-        if (byInstance == null || byInstance.isEmpty()) {
+        if (Objects.isNull(byInstance) || byInstance.isEmpty()) {
             return List.of();
         }
         List<CardDimensionView.MachineSeries> candidates = new ArrayList<>();
         byInstance.forEach((instance, points) -> {
-            if (instance == null || AGGREGATE_INSTANCE.equals(instance)) {
+            if (Objects.isNull(instance) || AGGREGATE_INSTANCE.equals(instance)) {
                 return;
             }
             candidates.add(new CardDimensionView.MachineSeries(instance,
-                    points == null ? List.of() : List.copyOf(points)));
+                    Objects.isNull(points) ? List.of() : List.copyOf(points)));
         });
 
         if (!request.aggregateMode()) {
@@ -83,7 +84,7 @@ public class CardDimensionService {
     /** 首个可用值，用作 Top N 排序依据。 */
     private double firstValue(CardDimensionView.MachineSeries series) {
         for (CardPoint point : series.getPoints()) {
-            if (point.getValue() != null) {
+            if (Objects.nonNull(point.getValue())) {
                 return point.getValue();
             }
         }

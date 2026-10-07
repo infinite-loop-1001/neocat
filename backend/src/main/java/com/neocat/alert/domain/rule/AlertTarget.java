@@ -7,6 +7,7 @@ import lombok.ToString;
 import org.springframework.modulith.NamedInterface;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 告警目标（PRD 06 §1、§8）。
@@ -74,12 +75,11 @@ public class AlertTarget {
     }
     /** 目标身份：同服务同指标对象视为同一目标。 */
     public String identity() {
-        return service + "|" + reportKind + "|" + (type == null ? "" : type)
-                + "|" + (name == null ? "" : name)
-                + "|" + (metricLabels == null ? "" : metricLabels);
+        return service + "|" + reportKind + "|" + (Objects.isNull(type) ? "" : type)
+                + "|" + (Objects.isNull(name) ? "" : name)
+                + "|" + (Objects.isNull(metricLabels) ? "" : metricLabels);
     }
 }
-
 
 
 

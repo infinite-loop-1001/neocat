@@ -14,6 +14,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.Objects;
 
 /**
  * 当前小时报表的落库读取（技术方案 01-architecture.md §6.5、06 §9）。
@@ -47,7 +48,7 @@ public class MinuteBucketReader implements com.neocat.analysis.domain.bucket.Min
 
         for (SeriesKey key : store.seriesKeys()) {
             MinuteBucket bucket = store.bucket(key, minute);
-            if (bucket == null || (bucket.count() == 0 && bucket.valueCount() == 0)) {
+            if (Objects.isNull(bucket) || (bucket.count() == 0 && bucket.valueCount() == 0)) {
                 // 无数据不落库：避免用 count=0 的行伪装「确认无调用」
                 continue;
             }

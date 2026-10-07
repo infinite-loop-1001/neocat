@@ -1,6 +1,7 @@
 package com.neocat.ingest.domain.tree;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 一棵本地 MessageTree（PRD 02 §2、技术方案 04 §2）。
@@ -43,10 +44,9 @@ public class MessageTree {
     }
 
     public boolean hasParent() {
-        return parentMessageId != null && !parentMessageId.isBlank();
+        return Objects.nonNull(parentMessageId) && !parentMessageId.isBlank();
     }
 }
-
 
 
 

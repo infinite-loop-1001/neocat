@@ -4,10 +4,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 /**
  * 原始树与 Trace 关系的 JDBC 实现（技术方案 06 §5–6）。
@@ -85,7 +84,7 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
         Integer count = jdbc.queryForObject("""
                 SELECT count() FROM neocat.nc_trace_relation WHERE message_id = ?
                 """, Integer.class, messageId);
-        return count != null && count > 0;
+        return count > 0;
     }
     @Override
     public TraceRelationRow selectRelation(String messageId) {

@@ -7,7 +7,7 @@ import com.neocat.identity.domain.account.Role;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.util.Optional;
+import java.util.Objects;
 
 /**
  * 账号仓储的 MyBatis 适配器（表 {@code nc_account}）。
@@ -29,12 +29,12 @@ public class AccountRepositoryAdapter implements AccountRepository {
     @Override
     public Account findById(long id) {
         var row = mapper.selectById(id);
-        return row == null ? null : toDomain(row);
+        return Objects.isNull(row) ? null : toDomain(row);
     }
     @Override
     public Account findByUsername(String username) {
         var row = mapper.selectByUsername(username);
-        return row == null ? null : toDomain(row);
+        return Objects.isNull(row) ? null : toDomain(row);
     }
     @Override
     public java.util.List<Account> findAll() {
@@ -151,7 +151,7 @@ public class AccountRepositoryAdapter implements AccountRepository {
                 Role.valueOf(row.getRole()),
                 AccountStatus.valueOf(row.getStatus()),
                 row.isMustChangePassword(),
-                row.getCreatedAt() == null ? Instant.EPOCH : row.getCreatedAt());
+                Objects.isNull(row.getCreatedAt()) ? Instant.EPOCH : row.getCreatedAt());
     }
     private static AccountRow toRow(Account account) {
         AccountRow row = new AccountRow();
@@ -164,7 +164,6 @@ public class AccountRepositoryAdapter implements AccountRepository {
         return row;
     }
 }
-
 
 
 

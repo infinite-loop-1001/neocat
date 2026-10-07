@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * ClickHouse 桶写入（技术方案 06 §1–3、§9）。
@@ -70,7 +71,7 @@ public class JdbcReportBucketSink implements com.neocat.analysis.domain.bucket.R
      * 批量写入。分布以 {@code long[]} 直接映射到 ClickHouse 的 {@code Array(UInt64)}。
      */
     private void write(String table, String bucketColumn, List<AggregatedRow> rows) {
-        if (rows == null || rows.isEmpty()) {
+        if (Objects.isNull(rows) || rows.isEmpty()) {
             return;
         }
         String sql = """
@@ -87,11 +88,11 @@ public class JdbcReportBucketSink implements com.neocat.analysis.domain.bucket.R
         List<Object[]> batch = rows.stream().map(row -> new Object[]{
                 row.key().getService(),
                 row.key().getKind().name(),
-                row.key().getType() == null ? "" : row.key().getType(),
-                row.key().getName() == null ? "" : row.key().getName(),
+                Objects.isNull(row.key().getType()) ? "" : row.key().getType(),
+                Objects.isNull(row.key().getName()) ? "" : row.key().getName(),
                 row.key().getInstance(),
-                row.key().getProblemCategory() == null ? "" : row.key().getProblemCategory(),
-                row.key().getMetricLabels() == null ? "" : row.key().getMetricLabels(),
+                Objects.isNull(row.key().getProblemCategory()) ? "" : row.key().getProblemCategory(),
+                Objects.isNull(row.key().getMetricLabels()) ? "" : row.key().getMetricLabels(),
                 row.level() == AggregationLevel.DAY || row.level() == AggregationLevel.WEEK || row.level() == AggregationLevel.MONTH
                         ? java.sql.Date.valueOf(row.bucketStart().atZone(zone.get()).toLocalDate()) : java.sql.Timestamp.from(row.bucketStart()),
                 row.count(),
@@ -103,7 +104,7 @@ public class JdbcReportBucketSink implements com.neocat.analysis.domain.bucket.R
                 row.valueCount(),
                 toArrayLiteral(row.distribution().segments()),
                  row.coveredSeconds(), row.valueLast(),
-                 row.valueLastTime() == null ? null : java.sql.Timestamp.from(row.valueLastTime()),
+                 Objects.isNull(row.valueLastTime()) ? null : java.sql.Timestamp.from(row.valueLastTime()),
                  row.level() == AggregationLevel.MINUTE || row.level() == AggregationLevel.HOUR ? snapshotSource : "global-rollup-v1",
                  row.level() == AggregationLevel.MINUTE || row.level() == AggregationLevel.HOUR ? version : globalVersion,
                  row.valueCountMissing() || row.key().getKind() == com.neocat.analysis.domain.bucket.SeriesKind.METRIC && row.valueCount() == 0 ? 1 : 0
@@ -171,7 +172,7 @@ public class JdbcReportBucketSink implements com.neocat.analysis.domain.bucket.R
         Integer count = jdbc.queryForObject(
                 "SELECT count() FROM neocat.%s WHERE %s < ?".formatted(table, bucketColumn),
                 Integer.class, java.sql.Timestamp.from(threshold));
-        if (count == null || count == 0) {
+        if (Objects.isNull(count) || count == 0) {
             return 0;
         }
         jdbc.update("ALTER TABLE neocat.%s DELETE WHERE %s < ?".formatted(table, bucketColumn),
@@ -244,7 +245,7 @@ public class JdbcReportBucketSink implements com.neocat.analysis.domain.bucket.R
             row.addValue(rs.getDouble("total_value"), rs.getLong("total_value_count"));
             row.markValueCountMissing(rs.getBoolean("count_missing"));
             java.sql.Timestamp lastTime = rs.getTimestamp("last_sample_time");
-            row.mergeLastValue((Double) rs.getObject("last_value"), lastTime == null ? null : lastTime.toInstant());
+            row.mergeLastValue((Double) rs.getObject("last_value"), Objects.isNull(lastTime) ? null : lastTime.toInstant());
             row.setDistribution(com.neocat.analysis.domain.bucket.DurationDistribution
                     .fromSegments(distributionOf(rs)));
             return row;
@@ -263,5 +264,4 @@ public class JdbcReportBucketSink implements com.neocat.analysis.domain.bucket.R
         }
     }
 }
-
 

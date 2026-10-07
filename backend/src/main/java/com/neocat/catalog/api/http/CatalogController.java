@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 服务目录接口（技术方案 03-api-contract.md §4.1）。
@@ -59,8 +60,8 @@ public class CatalogController {
         return ResponseEntity.ok(catalog.instancesWithData(service, parseKind(kind), range(from, to)));
     }
     private TimeRange range(Long from, Long to) {
-        Instant end = to == null ? clock.instant() : Instant.ofEpochMilli(to);
-        Instant start = from == null ? end.minusSeconds(3600) : Instant.ofEpochMilli(from);
+        Instant end = Objects.isNull(to) ? clock.instant() : Instant.ofEpochMilli(to);
+        Instant start = Objects.isNull(from) ? end.minusSeconds(3600) : Instant.ofEpochMilli(from);
         return new TimeRange(start, end);
     }
     private ReportKind parseKind(String kind) {

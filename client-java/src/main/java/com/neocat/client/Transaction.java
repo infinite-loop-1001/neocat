@@ -1,5 +1,7 @@
 package com.neocat.client;
 
+import java.util.Objects;
+
 /**
  * 一次本地事务记录（对应协议 TRANSACTION 节点）。
  *
@@ -47,7 +49,7 @@ public class Transaction {
     /** 记录异常：异常名成为 Problem 的聚合键（PRD 03 §9）。 */
     public void setException(Throwable exception) {
         this.exception = exception;
-        if (this.status == null || SUCCESS.equals(this.status)) {
+        if (Objects.isNull(this.status) || SUCCESS.equals(this.status)) {
             this.status = FAILURE;
         }
     }
@@ -60,7 +62,7 @@ public class Transaction {
         completed = true;
         duration = Math.max(0, System.currentTimeMillis() - start);
         try {
-            cat.enqueueTransaction(type, name, status == null ? SUCCESS : status, duration, exception);
+            cat.enqueueTransaction(type, name, Objects.isNull(status) ? SUCCESS : status, duration, exception);
         } catch (Throwable ignored) {
             // 记录失败绝不影响业务
         }
@@ -86,7 +88,6 @@ public class Transaction {
         return completed;
     }
 }
-
 
 
 

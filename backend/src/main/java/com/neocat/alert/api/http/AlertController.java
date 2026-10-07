@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /** 告警 HTTP 入口：保存自动关闭，预览不发送、不落历史、不改变窗口。 */
 // rules: 使用 springDoc 添加接口文档
@@ -68,12 +69,12 @@ public class AlertController {
         RequestActor account = RequestActor.current(request);
         List<AlertRule> rules;
         // rules: controller 不做逻辑处理, 只进行参数判断和向下调用和出入参数转换
-        if (orgId != null) {
+        if (Objects.nonNull(orgId)) {
             // question: 这里的权限判断能不能放到权限拦截器里做 & 或者通过权限 aop 做
             //  另外就是个人权限信息能不能通过 aop 在执行请求前先把当前人的权限信息提前注入到上下文里?
             requireOrgMember(account.getId(), orgId);
             rules = repository.byOrg(orgId);
-        } else if (scope == null) {
+        } else if (Objects.isNull(scope)) {
             rules = repository.findAll();
         } else {
             rules = repository.findAll().stream()
@@ -103,12 +104,12 @@ public class AlertController {
         RequestActor account = RequestActor.current(request);
         AlertScope scope = scope(draft);
         if (scope == AlertScope.ORGANIZATION) {
-            if (draft.getOrgId() == null) {
+            if (Objects.isNull(draft.getOrgId())) {
                 throw new ValidationException(ErrorCode.ALERT_ORG_REQUIRED);
             }
             requireOrgMember(account.getId(), draft.getOrgId());
         }
-        List<AlertChannel> channels = draft.getChannels() == null ? List.of()
+        List<AlertChannel> channels = Objects.isNull(draft.getChannels()) ? List.of()
                 : draft.getChannels().stream().map(AlertChannel::valueOf).toList();
         AlertRule rule = convert.rule(draft, scope);
         // rules: 这类业务校验下沉到 service 处理逻辑
@@ -123,7 +124,7 @@ public class AlertController {
     ) {
         RequestActor account = RequestActor.current(request);
         AlertScope scope = scope(draft);
-        if (scope == AlertScope.ORGANIZATION && draft.getOrgId() != null) {
+        if (scope == AlertScope.ORGANIZATION && Objects.nonNull(draft.getOrgId())) {
             requireOrgMember(account.getId(), draft.getOrgId());
         }
         // fixme: 这里要由 AlterRuleService 处理
@@ -152,7 +153,7 @@ public class AlertController {
     }
 
     private AlertScope scope(AlertDraft draft) {
-        return draft.getScope() == null ? AlertScope.SERVICE : AlertScope.valueOf(draft.getScope());
+        return Objects.isNull(draft.getScope()) ? AlertScope.SERVICE : AlertScope.valueOf(draft.getScope());
     }
 
     private void requireOrgMember(long accountId, long orgId) {

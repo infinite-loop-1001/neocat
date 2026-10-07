@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
 
 /**
  * 机器维度视图构建（PRD 03 §7.3、§10；技术方案 03 §4.3）。
@@ -45,7 +46,7 @@ public class MachineViewBuilder {
                 .toList();
 
         // 手动勾选模式：只返回选中机器，不补 other
-        if (selected != null && !selected.isEmpty()) {
+        if (Objects.nonNull(selected) && !selected.isEmpty()) {
             List<MachineRow> selectedRows = sorted.stream()
                     .filter(row -> selected.contains(row.key().getInstance()))
                     .map(row -> toMachineRow(row, calculator, stat, coveredSeconds))
@@ -72,13 +73,13 @@ public class MachineViewBuilder {
 
     /** 排除全机器聚合行。 */
     private List<AggregatedRow> filterMachineRows(List<AggregatedRow> rows) {
-        if (rows == null) {
+        if (Objects.isNull(rows)) {
             return List.of();
         }
         List<AggregatedRow> machines = new ArrayList<>();
         for (AggregatedRow row : rows) {
             String instance = row.key().getInstance();
-            if (instance == null || SeriesKeyHelper.ALL.equals(instance)) {
+            if (Objects.isNull(instance) || SeriesKeyHelper.ALL.equals(instance)) {
                 continue;
             }
             machines.add(row);
@@ -116,7 +117,7 @@ public class MachineViewBuilder {
     }
     private double contribution(AggregatedRow row, StatCalculator calculator, Stat stat, long coveredSeconds) {
         Double value = calculator.compute(List.of(row), stat, coveredSeconds);
-        return value == null ? Double.NEGATIVE_INFINITY : value;
+        return Objects.isNull(value) ? Double.NEGATIVE_INFINITY : value;
     }
     private Double contributionOf(StatCalculator.Merged merged, Stat stat, long coveredSeconds) {
         return new StatCalculator().computeFrom(merged, stat, coveredSeconds);

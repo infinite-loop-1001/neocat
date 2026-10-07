@@ -11,6 +11,7 @@ import com.neocat.common.config.IngestConfig;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Objects;
 
 /**
  * 上报校验链（技术方案 04 §4）。
@@ -29,12 +30,12 @@ public class TreeValidator {
 
     /** 批次级校验：协议版本、批次树数、批次字节。 */
     public ValidationOutcome validateBatch(IngestBatch batch, int payloadBytes) {
-        if (batch == null || batch.getProtocolVersion() == null
+        if (Objects.isNull(batch) || Objects.isNull(batch.getProtocolVersion())
                 || !IngestBatch.SUPPORTED_VERSION.equals(batch.getProtocolVersion())) {
             return ValidationOutcome.reject(ValidationOutcome.UNSUPPORTED_VERSION,
-                    "不支持的协议版本：" + (batch == null ? null : batch.getProtocolVersion()));
+                    "不支持的协议版本：" + (Objects.isNull(batch) ? null : batch.getProtocolVersion()));
         }
-        if (batch.getTrees() == null || batch.getTrees().isEmpty()) {
+        if (Objects.isNull(batch.getTrees()) || batch.getTrees().isEmpty()) {
             return ValidationOutcome.reject(ValidationOutcome.BATCH_TOO_LARGE, "批次不能为空");
         }
         if (batch.getTrees().size() > IngestConfig.MAX_TREES_PER_BATCH) {
@@ -49,14 +50,14 @@ public class TreeValidator {
     }
     /** 单树校验：必填字段、字段长度、节点数量、节点唯一性、数值合法性。 */
     public ValidationOutcome validateTree(MessageTree tree) {
-        if (tree == null) {
+        if (Objects.isNull(tree)) {
             return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "MessageTree 为空");
         }
         ValidationOutcome required = validateRequiredFields(tree);
         if (!required.isValid()) {
             return required;
         }
-        if (tree.getNodes() == null || tree.getNodes().isEmpty()) {
+        if (Objects.isNull(tree.getNodes()) || tree.getNodes().isEmpty()) {
             return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "树内节点不能为空");
         }
         if (tree.getNodes().size() > IngestConfig.MAX_NODES_PER_TREE) {
@@ -78,10 +79,10 @@ public class TreeValidator {
         if (isBlankOrTooLong(tree.getMessageId())) {
             return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "messageId 非法");
         }
-        if (tree.getRootMessageId() != null && tree.getRootMessageId().length() > MAX_FIELD_LENGTH) {
+        if (Objects.nonNull(tree.getRootMessageId()) && tree.getRootMessageId().length() > MAX_FIELD_LENGTH) {
             return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "rootMessageId 过长");
         }
-        if (tree.getParentMessageId() != null && tree.getParentMessageId().length() > MAX_FIELD_LENGTH) {
+        if (Objects.nonNull(tree.getParentMessageId()) && tree.getParentMessageId().length() > MAX_FIELD_LENGTH) {
             return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "parentMessageId 过长");
         }
         return ValidationOutcome.ok();
@@ -89,7 +90,7 @@ public class TreeValidator {
     private ValidationOutcome validateNodes(MessageTree tree) {
         Set<String> seenNodeIds = new HashSet<>();
         for (RawNode node : tree.getNodes()) {
-            if (node == null) {
+            if (Objects.isNull(node)) {
                 return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "节点为空");
             }
             if (isBlankOrTooLong(node.getNodeId())) {
@@ -99,7 +100,7 @@ public class TreeValidator {
                 return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE,
                         "nodeId 在树内重复：" + node.getNodeId());
             }
-            if (node.getKind() == null) {
+            if (Objects.isNull(node.getKind())) {
                 return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "节点类型缺失");
             }
             if (node.getDurationMs() < 0) {
@@ -116,7 +117,7 @@ public class TreeValidator {
     }
     private ValidationOutcome validateMetric(RawNode node) {
         MetricValue metric = node.getMetric();
-        if (metric == null) {
+        if (Objects.isNull(metric)) {
             return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "Metric 节点缺少数值");
         }
         if (Double.isNaN(metric.getValue()) || Double.isInfinite(metric.getValue())) {
@@ -126,6 +127,6 @@ public class TreeValidator {
         return ValidationOutcome.ok();
     }
     private boolean isBlankOrTooLong(String value) {
-        return value == null || value.isBlank() || value.length() > MAX_FIELD_LENGTH;
+        return Objects.isNull(value) || value.isBlank() || value.length() > MAX_FIELD_LENGTH;
     }
 }

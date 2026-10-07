@@ -7,6 +7,8 @@ import com.neocat.ingest.domain.receive.IngestStatus;
 import com.neocat.protocol.ingest.v1.IngestResponse;
 import com.neocat.protocol.ingest.v1.Status;
 
+import java.util.Objects;
+
 /**
  * 接收结果 → Protobuf 响应（技术方案 04-ingest-protocol.md §5）。
  *
@@ -42,7 +44,7 @@ public class IngestResponseMapper {
             return 503;
         }
         ErrorCode code = parseCode(result.getCode());
-        if (code == null) return 400;
+        if (Objects.isNull(code)) return 400;
         return switch (code) {
             case ID_CONFLICT -> 409;
             case TREE_EXPIRED -> 422;
@@ -67,7 +69,7 @@ public class IngestResponseMapper {
     }
     @org.springframework.lang.Nullable
     private static ErrorCode parseCode(String code) {
-        if (code == null) return null;
+        if (Objects.isNull(code)) return null;
         try {
             return ErrorCode.valueOf(code);
         } catch (IllegalArgumentException ignored) {
@@ -76,7 +78,7 @@ public class IngestResponseMapper {
     }
     private static String wireCode(String code) {
         ErrorCode error = parseCode(code);
-        return error == null ? (code == null ? "OK" : code) : Integer.toString(error.code());
+        return Objects.isNull(error) ? (Objects.isNull(code) ? "OK" : code) : Integer.toString(error.code());
     }
     /** 复用核心错误到上报响应，便于统一异常处理。 */
     public static IngestResponse fromError(NeocatException error, int trees) {

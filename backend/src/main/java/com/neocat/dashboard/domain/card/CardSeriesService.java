@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 卡片序列组装（PRD 05 §5，技术方案 02 §9.2）。
@@ -94,7 +95,7 @@ public class CardSeriesService {
         result.put("cardId", card.getId());
         result.put("formula", card.getFormula());
         result.put("unit", unit);
-        result.put("thresholdLines", card.getThresholdLines() == null ? List.of() : card.getThresholdLines());
+        result.put("thresholdLines", Objects.isNull(card.getThresholdLines()) ? List.of() : card.getThresholdLines());
         result.put("points", rendered);
         result.put("gaps", gaps);
         result.put("undefined", undefined);

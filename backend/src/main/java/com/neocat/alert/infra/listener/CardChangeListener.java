@@ -28,7 +28,7 @@ public class CardChangeListener {
     public void on(CardChange event) {
         for (AlertRule rule : rules.byOrg(event.getOrgId())) {
             AlertTarget target = rule.getTarget();
-            if (target == null) {
+            if (Objects.isNull(target)) {
                 continue;
             }
             if (target.isCardResult() && target.getCardId() == event.getCardId()) {

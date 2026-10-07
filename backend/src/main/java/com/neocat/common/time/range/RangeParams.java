@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * `range` 查询参数解析（技术方案 03-api-contract.md §4.1）。
@@ -32,7 +33,7 @@ public class RangeParams {
      * @return 解析结果；无法识别时返回 {@code RECENT_1H}
      */
     public static RangeSpec parse(String raw, Instant now) {
-        String value = raw == null ? "" : raw.trim();
+        String value = Objects.isNull(raw) ? "" : raw.trim();
 
         int colon = value.indexOf(':');
         if (colon > 0) {

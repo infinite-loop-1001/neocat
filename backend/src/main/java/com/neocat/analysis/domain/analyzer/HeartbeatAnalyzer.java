@@ -10,6 +10,7 @@ import com.neocat.ingest.domain.tree.NodeKind;
 import com.neocat.ingest.domain.tree.RawNode;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Heartbeat 分析器（PRD 02 §9、PRD 03 §10）。
@@ -44,13 +45,13 @@ public class HeartbeatAnalyzer implements Analyzer {
                 continue;
             }
             HeartbeatValue hb = node.getHeartbeat();
-            if (hb == null) {
+            if (Objects.isNull(hb)) {
                 continue;
             }
             Instant eventTime = Instant.ofEpochMilli(node.getTimestamp());
             for (JvmMetric metric : JvmMetric.values()) {
                 Long value = hb.getValues().get(metric.seriesName());
-                if (value != null && value >= 0) record(tree, eventTime, metric, value);
+                if (Objects.nonNull(value) && value >= 0) record(tree, eventTime, metric, value);
             }
         }
     }

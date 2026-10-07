@@ -7,6 +7,8 @@ import com.neocat.platform.domain.profile.PlatformProfileRepository;
 import com.neocat.platform.domain.profile.SlowThresholds;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 public class PlatformReadService implements PlatformReadModel {
     private final PlatformProfileRepository profiles;
@@ -29,6 +31,6 @@ public class PlatformReadService implements PlatformReadModel {
     public boolean channelEnabled(String channel) {
         ChannelType type = ChannelType.valueOf(channel);
         return channels.findAll().stream().anyMatch(c -> c.getType() == type && c.isEnabled()
-                && c.getConfig() != null && !c.getConfig().isBlank());
+                && Objects.nonNull(c.getConfig()) && !c.getConfig().isBlank());
     }
 }

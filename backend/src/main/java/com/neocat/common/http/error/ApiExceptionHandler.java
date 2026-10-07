@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Objects;
+
 /**
  * 统一异常处理（技术方案 03-api-contract.md §1.1）。
  *
@@ -26,13 +28,13 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> handleBadRequest(RuntimeException error) {
         return ResponseEntity.status(400)
                 .body(ApiError.of(ErrorCode.INVALID_PARAM,
-                        ErrorCode.INVALID_PARAM.message(error.getMessage() == null ? "请求参数" : error.getMessage())));
+                        ErrorCode.INVALID_PARAM.message(Objects.isNull(error.getMessage()) ? "请求参数" : error.getMessage())));
     }
     @ExceptionHandler(java.util.NoSuchElementException.class)
     public ResponseEntity<ApiError> handleNotFound(java.util.NoSuchElementException error) {
         return ResponseEntity.status(404)
                 .body(ApiError.of(ErrorCode.NOT_FOUND,
-                        ErrorCode.NOT_FOUND.message(error.getMessage() == null ? "资源" : error.getMessage())));
+                        ErrorCode.NOT_FOUND.message(Objects.isNull(error.getMessage()) ? "资源" : error.getMessage())));
     }
     /** 兜底：不把内部细节返回给调用方。 */
     @ExceptionHandler(Exception.class)

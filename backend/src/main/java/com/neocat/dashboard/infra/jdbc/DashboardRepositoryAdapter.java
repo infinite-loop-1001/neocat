@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
 
 /**
  * 大盘与卡片的 MyBatis 适配器（表 {@code nc_dashboard} / {@code nc_card} / {@code nc_card_threshold_line}）。
@@ -48,13 +49,13 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         row.setOrgId(dashboard.getOrgId());
         row.setName(dashboard.getName());
         row.setOrderNo(dashboard.getOrderNo());
-        if (row.getId() == null) {
+        if (Objects.isNull(row.getId())) {
             mapper.insertDashboard(row);
         } else {
             mapper.updateDashboard(row);
         }
         Dashboard saved = new Dashboard(row.getId(), row.getOrgId(), row.getName(), row.getOrderNo());
-        if (resources != null) {
+        if (Objects.nonNull(resources)) {
             resources.dashboard(saved.getOrgId(), saved.getId(), saved.getName());
         }
         return saved;
@@ -62,7 +63,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
     @Override
     public Dashboard findById(long id) {
         var row = mapper.selectDashboard(id);
-        return row == null ? null : toDashboard(row);
+        return Objects.isNull(row) ? null : toDashboard(row);
     }
     @Override
     public List<Dashboard> byOrg(long orgId) {
@@ -81,7 +82,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
             mapper.deleteCard(card.getId());
         }
         mapper.deleteDashboard(dashboardId);
-        if (resources != null) {
+        if (Objects.nonNull(resources)) {
             resources.removeDashboard(existing.getOrgId(), dashboardId);
         }
     }
@@ -100,7 +101,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         row.setTargetName(card.getTargetName());
         row.setMetricName("METRIC".equals(card.getTargetKind()) ? card.getTargetType() : null);
         row.setMetricLabels(toJson(card.getMetricLabels()));
-        row.setInstanceScope(toJson(card.getInstanceScope() == null ? List.of() : card.getInstanceScope()));
+        row.setInstanceScope(toJson(Objects.isNull(card.getInstanceScope()) ? List.of() : card.getInstanceScope()));
         row.setFormula(card.getFormula());
         var parsed = new FormulaParser().parse(card.getFormula());
         if (!parsed.valid()) {
@@ -109,7 +110,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         row.setFormulaUnit(parsed.getFormula().unit().name());
         row.setTimeRange(card.getTimeRange());
         row.setOrderNo(card.getOrderNo());
-        if (row.getId() == null) {
+        if (Objects.isNull(row.getId())) {
             mapper.insertCard(row);
         } else {
             mapper.updateCard(row);
@@ -118,7 +119,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
                 card.getTargetType(), card.getTargetName(), card.getMetricLabels(), card.getInstanceScope(),
                 card.getFormula(), card.getTimeRange(), card.getOrderNo(), card.getThresholdLines());
         mapper.deleteThresholdLines(saved.getId());
-        if (saved.getThresholdLines() != null) {
+        if (Objects.nonNull(saved.getThresholdLines())) {
             for (ThresholdLine line : saved.getThresholdLines()) {
                 mapper.insertThresholdLine(saved.getId(), line.getDirection().name(), line.getValue());
             }
@@ -129,7 +130,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
     @Override
     public Card findCard(long cardId) {
         var row = mapper.selectCard(cardId);
-        return row == null ? null : toCard(row);
+        return Objects.isNull(row) ? null : toCard(row);
     }
     @Override
     public List<Card> cardsOf(long dashboardId) {
@@ -147,7 +148,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         updateCardCount(existing.getDashboardId());
     }
     private void updateCardCount(long dashboardId) {
-        if (resources != null) {
+        if (Objects.nonNull(resources)) {
             Dashboard dashboard = Optional.ofNullable(findById(dashboardId)).orElseThrow();
             resources.cardCount(dashboard.getOrgId(), dashboardId, mapper.countCards(dashboardId));
         }
@@ -161,7 +162,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
     private Card toCard(CardRow row) {
         return new Card(row.getId(), row.getDashboardId(), row.getService(), row.getTargetKind(),
                 row.getTargetType(), row.getTargetName(), fromJson(row.getMetricLabels(), String.class),
-                row.getInstanceScope() == null ? List.of() :
+                Objects.isNull(row.getInstanceScope()) ? List.of() :
                         fromJson(row.getInstanceScope(), new TypeReference<List<String>>() {}),
                 row.getFormula(), row.getTimeRange(), row.getOrderNo(),
                 mapper.selectThresholdLines(row.getId()).stream()
@@ -169,7 +170,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
                         .toList());
     }
     private static String toJson(Object value) {
-        if (value == null) return null;
+        if (Objects.isNull(value)) return null;
         try {
             return JSON.writeValueAsString(value);
         } catch (JsonProcessingException e) {
@@ -177,7 +178,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         }
     }
     private static <T> T fromJson(String value, Class<T> type) {
-        if (value == null) return null;
+        if (Objects.isNull(value)) return null;
         try {
             return JSON.readValue(value, type);
         } catch (JsonProcessingException e) {
@@ -350,16 +351,6 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 
 

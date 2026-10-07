@@ -6,6 +6,7 @@ import com.neocat.query.api.internal.SeriesDataLookup;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Component
 public class SeriesDataLookupService implements SeriesDataLookup {
@@ -16,7 +17,7 @@ public class SeriesDataLookupService implements SeriesDataLookup {
     }
     @Override
     public boolean hasData(String service, String kind, String instance, Instant from, Instant to) {
-        if (instance != null) {
+        if (Objects.nonNull(instance)) {
             return reports.instancesWithData(kind, service, from, to).contains(instance);
         }
         return !reports.typesOf(kind, service, from, to).isEmpty();

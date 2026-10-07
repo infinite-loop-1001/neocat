@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.Objects;
 
 /**
  * 卡片求值器（PRD 05 §4、§5，技术方案 02 §9.2）。
@@ -36,14 +37,14 @@ public class CardEvaluator {
      * 对单个桶求值。
      */
     public CardPoint evaluate(Formula formula, Map<Stat, Double> inputs, long bucketStart, long bucketEnd) {
-        if (formula == null) {
+        if (Objects.isNull(formula)) {
             return new CardPoint(bucketStart, bucketEnd, null, CardPointOutcome.GAP, List.of());
         }
 
         Set<String> missing = new LinkedHashSet<>();
         for (Stat stat : formula.referencedStats()) {
-            Double value = inputs == null ? null : inputs.get(stat);
-            if (value == null) {
+            Double value = Objects.isNull(inputs) ? null : inputs.get(stat);
+            if (Objects.isNull(value)) {
                 missing.add(displayOf(stat));
             }
         }
@@ -63,18 +64,18 @@ public class CardEvaluator {
      * 校验卡片目标与公式：一个服务 + 一个指标对象，公式单位必须兼容。
      */
     public String validateTarget(Card card) {
-        if (card == null) {
+        if (Objects.isNull(card)) {
             return INVALID_TARGET;
         }
-        if (card.getService() == null || card.getService().isBlank()) {
+        if (Objects.isNull(card.getService()) || card.getService().isBlank()) {
             return INVALID_TARGET;
         }
-        if (card.getTargetKind() == null || card.getTargetKind().isBlank()) {
+        if (Objects.isNull(card.getTargetKind()) || card.getTargetKind().isBlank()) {
             return INVALID_TARGET;
         }
-        boolean hasObject = (card.getTargetType() != null && !card.getTargetType().isBlank())
-                || (card.getTargetName() != null && !card.getTargetName().isBlank())
-                || (card.getMetricLabels() != null && !card.getMetricLabels().isBlank());
+        boolean hasObject = (Objects.nonNull(card.getTargetType()) && !card.getTargetType().isBlank())
+                || (Objects.nonNull(card.getTargetName()) && !card.getTargetName().isBlank())
+                || (Objects.nonNull(card.getMetricLabels()) && !card.getMetricLabels().isBlank());
         if (!hasObject) {
             return INVALID_TARGET;
         }
@@ -141,7 +142,7 @@ public class CardEvaluator {
 
 
         static EvalResult of(Double computed) {
-            return new EvalResult(computed == null ? 0.0d : computed, false);
+            return new EvalResult(Objects.isNull(computed) ? 0.0d : computed, false);
         }
 
         static EvalResult zeroDivisor() {

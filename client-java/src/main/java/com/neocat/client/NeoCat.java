@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -110,14 +111,14 @@ public final class NeoCat {
                 .setMetric(MetricValue.newBuilder()
                         .setName(name)
                         .setValue(value)
-                        .putAllLabels(labels == null ? Map.of() : labels)
+                        .putAllLabels(Objects.isNull(labels) ? Map.of() : labels)
                         .build())
                 .build();
         enqueue(node);
     }
 
     public void logHeartbeat(Map<String, String> tags) {
-        Map<String, String> t = tags == null ? Map.of() : tags;
+        Map<String, String> t = Objects.isNull(tags) ? Map.of() : tags;
         Node node = baseNode(Kind.HEARTBEAT, "jvm", "jvm", "0")
                 .setHeartbeat(JvmHeartbeatSampler.payload(t))
                 .build();
@@ -132,8 +133,8 @@ public final class NeoCat {
 
     /** 设置后续记录的 Trace 关联；传空字符串表示清除。 */
     public void attachTrace(String rootMessageId, String parentMessageId) {
-        this.traceRoot = rootMessageId == null ? "" : rootMessageId;
-        this.traceParent = parentMessageId == null ? "" : parentMessageId;
+        this.traceRoot = Objects.isNull(rootMessageId) ? "" : rootMessageId;
+        this.traceParent = Objects.isNull(parentMessageId) ? "" : parentMessageId;
     }
 
     // ── 观测 ─────────────────────────────────────────────────
@@ -204,9 +205,9 @@ public final class NeoCat {
         return Node.newBuilder()
                 .setNodeId(UUID.randomUUID().toString())
                 .setKind(kind)
-                .setCategory(category == null ? "" : category)
-                .setName(name == null ? "" : name)
-                .setStatus(status == null ? Transaction.SUCCESS : status)
+                .setCategory(Objects.isNull(category) ? "" : category)
+                .setName(Objects.isNull(name) ? "" : name)
+                .setStatus(Objects.isNull(status) ? Transaction.SUCCESS : status)
                 .setTimestamp(System.currentTimeMillis());
     }
 
@@ -215,10 +216,10 @@ public final class NeoCat {
                             Throwable exception) {
         Node.Builder builder = baseNode(Kind.TRANSACTION, type, name, status)
                 .setDurationMs(Math.max(0L, durationMs));
-        if (exception != null) {
+        if (Objects.nonNull(exception)) {
             builder.setException(ExceptionInfo.newBuilder()
                     .setExceptionName(exception.getClass().getName())
-                    .setExceptionMessage(exception.getMessage() == null ? "" : exception.getMessage())
+                    .setExceptionMessage(Objects.isNull(exception.getMessage()) ? "" : exception.getMessage())
                     .setStackTrace(stackTraceOf(exception))
                     .build());
         }
@@ -232,8 +233,8 @@ public final class NeoCat {
                 .setDurationMs(Math.max(0L, durationMs))
                 .setRemoteCall(RemoteCall.newBuilder()
                         .setDownstreamService(downstreamService)
-                        .setCallType(callType == null ? "" : callType)
-                        .setStatus(status == null ? Transaction.SUCCESS : status)
+                        .setCallType(Objects.isNull(callType) ? "" : callType)
+                        .setStatus(Objects.isNull(status) ? Transaction.SUCCESS : status)
                         .build())
                 .build();
         enqueue(node);
@@ -256,8 +257,8 @@ public final class NeoCat {
                 .setServiceName(serviceName)
                 .setInstanceId(instanceId)
                 .setMessageId(messageId)
-                .setRootMessageId(traceRoot == null || traceRoot.isBlank() ? messageId : traceRoot)
-                .setParentMessageId(traceParent == null ? "" : traceParent)
+                .setRootMessageId(Objects.isNull(traceRoot) || traceRoot.isBlank() ? messageId : traceRoot)
+                .setParentMessageId(Objects.isNull(traceParent) ? "" : traceParent)
                 .setTreeTimestamp(node.getTimestamp())
                 .addNodes(node);
         return builder.build();
@@ -335,7 +336,7 @@ public final class NeoCat {
     }
 
     private long parse(String raw) {
-        if (raw == null || raw.isBlank()) {
+        if (Objects.isNull(raw) || raw.isBlank()) {
             return 0L;
         }
         try {
@@ -389,8 +390,6 @@ public final class NeoCat {
         }
     }
 }
-
-
 
 
 

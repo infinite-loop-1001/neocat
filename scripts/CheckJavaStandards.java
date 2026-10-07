@@ -1,6 +1,10 @@
+import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ParenthesizedTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.JavacTask;
 import com.sun.source.util.TreePathScanner;
@@ -9,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import javax.tools.ToolProvider;
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -19,9 +24,16 @@ public final class CheckJavaStandards {
     private CheckJavaStandards() {
     }
 
+    private static boolean isNullLiteral(ExpressionTree expression) {
+        while (expression instanceof ParenthesizedTree parentheses) {
+            expression = parentheses.getExpression();
+        }
+        return expression.getKind() == Tree.Kind.NULL_LITERAL;
+    }
+
     public static void main(String[] args) throws Exception {
         var compiler = ToolProvider.getSystemJavaCompiler();
-        if (compiler == null) throw new IllegalStateException("编码规范检查需要 JDK，不支持仅 JRE");
+        if (Objects.isNull(compiler)) throw new IllegalStateException("编码规范检查需要 JDK，不支持仅 JRE");
         try (var manager = compiler.getStandardFileManager(null, null, java.nio.charset.StandardCharsets.UTF_8)) {
             var inputs = manager.getJavaFileObjectsFromStrings(Arrays.asList(args));
             var diagnostics = new DiagnosticCollector<JavaFileObject>();
@@ -40,8 +52,18 @@ public final class CheckJavaStandards {
                     }
 
                     @Override
+                    public Void visitBinary(BinaryTree binary, Void unused) {
+                        if ((binary.getKind() == Tree.Kind.EQUAL_TO || binary.getKind() == Tree.Kind.NOT_EQUAL_TO)
+                                && (isNullLiteral(binary.getLeftOperand()) || isNullLiteral(binary.getRightOperand()))) {
+                            error(trees.getSourcePositions().getStartPosition(unit, binary),
+                                    "Java 判空必须使用 Objects.isNull / Objects.nonNull，禁止直接比较 null");
+                        }
+                        return super.visitBinary(binary, unused);
+                    }
+
+                    @Override
                     public Void visitMethod(MethodTree method, Void unused) {
-                        if (method.getReturnType() != null && method.getReturnType().toString()
+                        if (Objects.nonNull(method.getReturnType()) && method.getReturnType().toString()
                                 .matches("(?:java\\.util\\.)?Optional\\s*<.*>")) {
                             error(trees.getSourcePositions().getStartPosition(unit, method), "自有函数不返回 Optional，明确制定未找到语义");
                         }
@@ -60,12 +82,12 @@ public final class CheckJavaStandards {
                                 continue;
                             }
                             // 枚举值不是需要单独空行的成员变量。
-                            if (field.getType() == null || type.getKind().name().equals("ENUM")
-                                    && field.getInitializer() != null && field.getInitializer().getKind().name().equals("NEW_CLASS")) {
+                            if (Objects.isNull(field.getType()) || type.getKind().name().equals("ENUM")
+                                    && Objects.nonNull(field.getInitializer()) && field.getInitializer().getKind().name().equals("NEW_CLASS")) {
                                 previous = null;
                                 continue;
                             }
-                            if (previous != null) {
+                            if (Objects.nonNull(previous)) {
                                 long end = trees.getSourcePositions().getEndPosition(unit, previous);
                                 long start = trees.getSourcePositions().getStartPosition(unit, field);
                                 if (start < end || !source.substring((int) end, (int) start).matches("(?s).*\\R[\\t ]*\\R.*")) {

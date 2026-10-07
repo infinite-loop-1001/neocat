@@ -12,6 +12,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Objects;
 
 import static com.neocat.common.error.ErrorCode.ORG_NOT_FOUND;
 
@@ -65,13 +66,13 @@ public class OrgMembershipService {
     @org.springframework.transaction.annotation.Transactional
     @com.neocat.common.locking.MySqlLocked("metadata")
     public void recompute(long accountId) {
-        Set<Long> previous = events == null ? Set.of() : effectiveLeaves.leavesOf(accountId);
+        Set<Long> previous = Objects.isNull(events) ? Set.of() : effectiveLeaves.leavesOf(accountId);
         Set<Long> leaves = new HashSet<>();
         for (Long orgId : memberships.orgsOf(accountId)) {
             leaves.addAll(descendantLeaves(orgId));
         }
         effectiveLeaves.replaceAll(accountId, leaves);
-        if (events != null) {
+        if (Objects.nonNull(events)) {
             for (Long orgId : previous) {
                 if (!leaves.contains(orgId)) events.publishEvent(new EffectiveMembershipChanged(accountId, orgId, false));
             }
@@ -123,7 +124,7 @@ public class OrgMembershipService {
         while (!queue.isEmpty()) {
             long current = queue.poll();
             List<OrgNode> children = all.stream()
-                    .filter(n -> n.getParentId() != null && n.getParentId() == current)
+                    .filter(n -> Objects.nonNull(n.getParentId()) && n.getParentId() == current)
                     .toList();
             if (children.isEmpty()) {
                 leaves.add(current);
@@ -143,4 +144,3 @@ public class OrgMembershipService {
         }
     }
 }
-

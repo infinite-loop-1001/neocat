@@ -4,6 +4,7 @@ import com.neocat.ingest.domain.tree.MessageTree;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 分析扇出调度（PRD 02 §9）。
@@ -39,7 +40,7 @@ public class RealtimeConsumer {
                 // 的严重错误）不应拖垮其他域的采集。
                 failures.add(new FanOutResult.DomainFailure(
                         domain,
-                        tree == null ? null : tree.getMessageId(),
+                        Objects.isNull(tree) ? null : tree.getMessageId(),
                         t.getClass().getSimpleName() + ": " + t.getMessage()));
             }
         }

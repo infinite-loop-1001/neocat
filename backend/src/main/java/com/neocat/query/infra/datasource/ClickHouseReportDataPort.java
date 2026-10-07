@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 基于 ClickHouse 的报表读取实现（技术方案 06 §10）。
@@ -73,7 +74,7 @@ public class ClickHouseReportDataPort implements ReportDataPort {
     public List<AggregatedRow> rows(String kind, String service, String type, String name,
                                     Instant from, Instant to, Granularity granularity,
                                     List<String> instances) {
-        List<String> targets = (instances == null || instances.isEmpty())
+        List<String> targets = (Objects.isNull(instances) || instances.isEmpty())
                 ? List.of(SeriesKey.ALL)
                 : instances;
 
@@ -145,7 +146,7 @@ public class ClickHouseReportDataPort implements ReportDataPort {
 
         for (AggregatedRow row : rows) {
             Bucket target = bucketContaining(targetBuckets, row.bucketStart());
-            if (target == null) {
+            if (Objects.isNull(target)) {
                 // 落在请求范围外（边界对齐导致）：保持原样，不静默丢弃
                 FoldKey identity = new FoldKey(row.key(), row.bucketStart());
                 if (!byStart.containsKey(identity)) {
@@ -156,7 +157,7 @@ public class ClickHouseReportDataPort implements ReportDataPort {
             }
             FoldKey key = new FoldKey(row.key(), target.getStart());
             AggregatedRow existing = byStart.get(key);
-            if (existing == null) {
+            if (Objects.isNull(existing)) {
                 existing = new AggregatedRow(row.key(), target.getStart(), row.level(), target.getCoveredSeconds());
                 byStart.put(key, existing);
                 result.add(existing);
@@ -218,8 +219,8 @@ public class ClickHouseReportDataPort implements ReportDataPort {
                 bucket.getType(),
                 bucket.getName(),
                 bucket.getInstance(),
-                bucket.getProblemCategory() == null ? "" : bucket.getProblemCategory(),
-                bucket.getMetricLabels() == null ? "" : bucket.getMetricLabels());
+                Objects.isNull(bucket.getProblemCategory()) ? "" : bucket.getProblemCategory(),
+                Objects.isNull(bucket.getMetricLabels()) ? "" : bucket.getMetricLabels());
 
         AggregatedRow row = new AggregatedRow(key, bucket.getBucketStart(),
                 bucket.getLevel(), bucket.getCoveredSeconds());
@@ -235,5 +236,4 @@ public class ClickHouseReportDataPort implements ReportDataPort {
         return SeriesKind.valueOf(kind.toUpperCase(java.util.Locale.ROOT));
     }
 }
-
 

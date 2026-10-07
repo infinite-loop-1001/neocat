@@ -3,6 +3,7 @@ package com.neocat.dashboard.domain.card;
 import com.neocat.query.domain.stat.Stat;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 卡片（PRD 05 §3、§4、§7）。
@@ -78,17 +79,16 @@ public class Card {
     }
     /** 卡片目标是否覆盖某个统计项（供组织告警可用目标并集计算）。 */
     public boolean references(Stat stat) {
-        return formula != null && formula.toLowerCase(java.util.Locale.ROOT)
+        return Objects.nonNull(formula) && formula.toLowerCase(java.util.Locale.ROOT)
                 .contains(stat.name().toLowerCase(java.util.Locale.ROOT).replace("_", ""));
     }
     /** 目标标识：用于判定两张卡片是否指向同一指标对象。 */
     public String targetIdentity() {
-        return service + "|" + targetKind + "|" + (targetType == null ? "" : targetType)
-                + "|" + (targetName == null ? "" : targetName)
-                + "|" + (metricLabels == null ? "" : metricLabels);
+        return service + "|" + targetKind + "|" + (Objects.isNull(targetType) ? "" : targetType)
+                + "|" + (Objects.isNull(targetName) ? "" : targetName)
+                + "|" + (Objects.isNull(metricLabels) ? "" : metricLabels);
     }
 }
-
 
 
 

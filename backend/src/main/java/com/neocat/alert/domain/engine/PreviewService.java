@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 预告警试算（PRD 06 §4）。
@@ -54,7 +55,7 @@ public class PreviewService {
             Map<Stat, Double> values = points.values(rule.getTarget(), minute, requiredStats);
 
             String missing = firstMissing(requiredStats, values);
-            if (missing != null) {
+            if (Objects.nonNull(missing)) {
                 anyUnknown = true;
                 evaluations.add(new PreviewResult.PointEvaluation(minute, false, false, missing));
                 continue;
@@ -79,7 +80,7 @@ public class PreviewService {
     // fixme: 这里逻辑需要收束到 AlterWindowStateService 里
     public boolean combine(AlertRule rule, Map<Stat, Double> values) {
         List<Condition> conditions = rule.getConditions();
-        if (conditions == null || conditions.isEmpty()) {
+        if (Objects.isNull(conditions) || conditions.isEmpty()) {
             return false;
         }
         boolean and = rule.getCombinator() == Combinator.AND;
@@ -98,10 +99,10 @@ public class PreviewService {
     // fixme: 这个逻辑应该收束成 AlterRule 聚合内部逻辑
     private List<Stat> requiredStats(AlertRule rule) {
         List<Stat> stats = new ArrayList<>();
-        if (rule.getTarget() != null && rule.getTarget().getFormulaStats() != null) {
+        if (Objects.nonNull(rule.getTarget()) && Objects.nonNull(rule.getTarget().getFormulaStats())) {
             stats.addAll(rule.getTarget().getFormulaStats());
         }
-        if (rule.getConditions() != null) {
+        if (Objects.nonNull(rule.getConditions())) {
             rule.getConditions().stream().map(Condition::getStat).filter(s -> !stats.contains(s)).forEach(stats::add);
         }
         return List.copyOf(stats);
@@ -114,7 +115,7 @@ public class PreviewService {
     // fixme: 这里逻辑需要收束到 AlterWindowStateService 里
     private String firstMissing(List<Stat> requiredStats, Map<Stat, Double> values) {
         for (Stat stat : requiredStats) {
-            if (values == null || !values.containsKey(stat) || values.get(stat) == null) {
+            if (Objects.isNull(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
                 return displayOf(stat);
             }
         }

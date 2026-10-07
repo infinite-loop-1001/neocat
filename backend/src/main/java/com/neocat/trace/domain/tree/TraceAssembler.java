@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 
 /**
  * Trace 组装（PRD 02 §10、技术方案 02 §7）。
@@ -60,7 +61,7 @@ public class TraceAssembler {
 
 
         public boolean usable() {
-            return root != null;
+            return Objects.nonNull(root);
         }
     }
     public AssemblyResult assemble(String messageId, Instant now, Duration retention) {
@@ -75,7 +76,7 @@ public class TraceAssembler {
             return new AssemblyResult(null, true, false);
         }
 
-        String rootId = seedTree.getRootMessageId() == null ? seedTree.getMessageId() : seedTree.getRootMessageId();
+        String rootId = Objects.isNull(seedTree.getRootMessageId()) ? seedTree.getMessageId() : seedTree.getRootMessageId();
         List<TraceTree> inTrace = new ArrayList<>(store.findByRootMessageId(rootId));
         if (inTrace.stream().noneMatch(t -> t.getMessageId().equals(seedTree.getMessageId()))) {
             inTrace.add(seedTree);
@@ -101,7 +102,7 @@ public class TraceAssembler {
                     continue;
                 }
                 String downstreamService = span.getName();
-                if (downstreamService == null || downstreamService.isBlank()) {
+                if (Objects.isNull(downstreamService) || downstreamService.isBlank()) {
                     continue;
                 }
                 boolean childPresent = inTrace.stream()
@@ -115,7 +116,7 @@ public class TraceAssembler {
         }
 
         TraceTreeNode root = byMessageId.get(rootId);
-        if (root == null) {
+        if (Objects.isNull(root)) {
             root = byMessageId.get(seedTree.getMessageId());
         }
         return new AssemblyResult(root, false, false);

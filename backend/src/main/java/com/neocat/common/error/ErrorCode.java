@@ -7,6 +7,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * 稳定业务错误码。各业务域占用独立万位区间；HTTP 状态另见 ErrorCodeMapping。
@@ -112,7 +113,7 @@ public enum ErrorCode {
     }
     /** 用参数填充消息模板；参数个数必须与模板占位符一致。 */
     public String message(Object... parameters) {
-        if (parameters == null || parameters.length != parameterCount) {
+        if (Objects.isNull(parameters) || parameters.length != parameterCount) {
             throw new IllegalArgumentException(name() + " 需要 " + parameterCount + " 个模板参数");
         }
         Matcher matcher = Placeholder.PATTERN.matcher(template);

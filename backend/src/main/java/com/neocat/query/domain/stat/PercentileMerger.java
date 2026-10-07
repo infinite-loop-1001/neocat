@@ -4,6 +4,7 @@ import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.DurationDistribution;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 分位合并（PRD 03 §3、PRD 04 §9，技术方案 03 §8.1）。
@@ -35,15 +36,15 @@ public class PercentileMerger {
      * 合并多行的分布，返回新的合并分布对象（不修改输入行）。
      */
     public DurationDistribution mergeDistribution(List<AggregatedRow> rows) {
-        if (rows == null || rows.isEmpty()) {
+        if (Objects.isNull(rows) || rows.isEmpty()) {
             return new DurationDistribution();
         }
         DurationDistribution merged = null;
         for (AggregatedRow row : rows) {
             DurationDistribution copy = row.distribution().copy();
-            merged = merged == null ? copy : merged.merge(copy);
+            merged = Objects.isNull(merged) ? copy : merged.merge(copy);
         }
-        return merged == null ? new DurationDistribution() : merged;
+        return Objects.isNull(merged) ? new DurationDistribution() : merged;
     }
     /** 一次算出的标准分位集合。 */
     public Percentiles percentiles(List<AggregatedRow> rows) {
@@ -87,6 +88,5 @@ public class PercentileMerger {
 
     }
 }
-
 
 

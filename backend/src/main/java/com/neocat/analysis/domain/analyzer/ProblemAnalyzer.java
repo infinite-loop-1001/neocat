@@ -10,6 +10,7 @@ import com.neocat.ingest.domain.tree.NodeKind;
 import com.neocat.ingest.domain.tree.RawNode;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Problem 分析器（PRD 02 §9、PRD 03 §9）。
@@ -76,8 +77,8 @@ public class ProblemAnalyzer implements Analyzer {
     /** 异常类：聚合键优先取异常名，缺失时退化为节点名。 */
     private void recordException(MessageTree tree, RawNode node, Instant eventTime) {
         String key = exceptionNameOf(node);
-        if (key == null || key.isBlank()) {
-            key = node.getName() == null ? "" : node.getName();
+        if (Objects.isNull(key) || key.isBlank()) {
+            key = Objects.isNull(node.getName()) ? "" : node.getName();
         }
         SeriesKey seriesKey = new SeriesKey(tree.getServiceName(), SeriesKind.PROBLEM,
                 ProblemCategory.EXCEPTION.name(), key, SeriesKey.ALL,
@@ -88,7 +89,7 @@ public class ProblemAnalyzer implements Analyzer {
     /** 慢类：按 Transaction Name 聚合，承接耗时与分位。 */
     private void recordSlow(MessageTree tree, RawNode node, Instant eventTime) {
         ProblemCategory category = ProblemCategory.slowCategoryOf(node.getCategory());
-        if (category == null) {
+        if (Objects.isNull(category)) {
             return;
         }
         if (node.getDurationMs() <= thresholdOf(category)) {
@@ -109,8 +110,7 @@ public class ProblemAnalyzer implements Analyzer {
     }
     private String exceptionNameOf(RawNode node) {
         ExceptionValue exception = node.getException();
-        return exception == null ? null : exception.getExceptionName();
+        return Objects.isNull(exception) ? null : exception.getExceptionName();
     }
 }
-
 

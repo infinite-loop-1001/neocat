@@ -12,6 +12,7 @@ import com.neocat.common.error.exception.AuthorizationException;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.Objects;
 
 /**
  * 会话守卫（PRD 01 §4.2 / §4.3）。
@@ -46,11 +47,11 @@ public class SessionGuard {
      */
     public NeocatException check(String sessionId, String endpoint, Instant at) {
         Session session = findValidSession(sessionId, at);
-        if (session == null) {
+        if (Objects.isNull(session)) {
             return new AuthenticationException(ErrorCode.UNAUTHENTICATED);
         }
         Account account = accounts.findById(session.getAccountId());
-        if (account == null || !account.enabled()) {
+        if (Objects.isNull(account) || !account.enabled()) {
             sessions.invalidate(sessionId);
             return new AuthenticationException(ErrorCode.UNAUTHENTICATED);
         }
@@ -66,18 +67,18 @@ public class SessionGuard {
      */
     public Account requireSession(String sessionId, Instant at) {
         Session session = findValidSession(sessionId, at);
-        if (session == null) {
+        if (Objects.isNull(session)) {
             throw new AuthenticationException(ErrorCode.UNAUTHENTICATED);
         }
         Account account = accounts.findById(session.getAccountId());
-        if (account == null || !account.enabled()) {
+        if (Objects.isNull(account) || !account.enabled()) {
             throw new AuthenticationException(ErrorCode.UNAUTHENTICATED);
         }
         sessions.touch(sessionId, at);
         return account;
     }
     private Session findValidSession(String sessionId, Instant at) {
-        if (sessionId == null || !sessions.isValid(sessionId, at)) {
+        if (Objects.isNull(sessionId) || !sessions.isValid(sessionId, at)) {
             return null;
         }
         // 从持久化仓储按会话 ID 读取账号归属

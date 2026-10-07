@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Objects;
 
 /** 大盘 HTTP 入口；权限仍由应用服务校验，管理员无成员旁路。 */
 @RestController
@@ -28,7 +29,7 @@ public class DashboardController {
     public ResponseEntity<List<DashboardResponse>> list(HttpServletRequest request,
                                                          @RequestParam(required = false) Long orgId) {
         RequestActor account = RequestActor.current(request);
-        List<Dashboard> found = orgId == null ? dashboards.listAll(account.getId()) : dashboards.list(account.getId(), orgId);
+        List<Dashboard> found = Objects.isNull(orgId) ? dashboards.listAll(account.getId()) : dashboards.list(account.getId(), orgId);
         return ResponseEntity.ok(found.stream().map(DashboardConvert::dashboard).toList());
     }
 

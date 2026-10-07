@@ -1,5 +1,7 @@
 package com.neocat.query.domain.report;
 
+import java.util.Objects;
+
 /**
  * Type / Name 层的表格行（PRD 03 §7.1、§7.2）。
  *
@@ -62,13 +64,12 @@ public class ReportRow {
 
     /** 该行的耗时指标是否可用（Event 无耗时，异常类 Problem 无分位）。 */
     public boolean hasDurationMetrics() {
-        return avgDuration != null || tp99 != null;
+        return Objects.nonNull(avgDuration) || Objects.nonNull(tp99);
     }
     public boolean hasPercentiles() {
-        return tp99 != null;
+        return Objects.nonNull(tp99);
     }
 }
-
 
 
 

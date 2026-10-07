@@ -1,5 +1,7 @@
 package com.neocat.query.domain.series;
 
+import java.util.Objects;
+
 /**
  * 序列上的一个数据点（技术方案 03 §4.10）。
  *
@@ -43,8 +45,7 @@ public class Point {
     }
     /** 是否可参与告警窗口比较：缺数点不可比较（PRD 06 §6）。 */
     public boolean comparable() {
-        return value != null && quality.comparable();
+        return Objects.nonNull(value) && quality.comparable();
     }
 }
-
 

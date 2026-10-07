@@ -3,6 +3,7 @@ package com.neocat.query.domain.stat;
 import org.springframework.modulith.NamedInterface;
 
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * 报表统计项（技术方案 03 §4.2）。
@@ -60,7 +61,7 @@ public enum Stat {
         return unit == StatUnit.COUNT;
     }
     public static Stat parse(String raw) {
-        if (raw == null) {
+        if (Objects.isNull(raw)) {
             throw new IllegalArgumentException("stat 不能为空");
         }
         return Stat.valueOf(raw.trim().toUpperCase(Locale.ROOT));

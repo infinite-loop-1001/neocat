@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.Objects;
 
 /**
  * 报表查询应用服务（技术方案 03-api-contract.md §4）。
@@ -158,16 +159,16 @@ public class ReportQueryService {
             return emptySeries(service, kind, type, name, target, base);
         }
         Granularity granularity = Granularity.fromSeconds(base.bucketSeconds());
-        if (bucket != null) {
+        if (Objects.nonNull(bucket)) {
             Granularity requested = Granularity.fromSeconds(bucket);
             // bucket 只接受已定义的粒度档位；非法值忽略，回落到 range 的默认粒度
-            if (requested != null) {
+            if (Objects.nonNull(requested)) {
                 granularity = requested;
             }
         }
         var resolved = ranges.resolve(new RangeSpec.Explicit(base.getFrom(), base.getTo(), granularity), zone.get());
 
-        List<String> instanceList = instances == null || instances.isBlank()
+        List<String> instanceList = Objects.isNull(instances) || instances.isBlank()
                 ? List.of()
                 : List.of(instances.split(","));
 
@@ -185,13 +186,13 @@ public class ReportQueryService {
             long start = b.getStart().toEpochMilli();
             Double value = byBucket.get(start);
             Quality q = quality.resolve(new QualityInput(
-                    value != null, value == null ? 0 : 1,
+                    Objects.nonNull(value), Objects.isNull(value) ? 0 : 1,
                     data.droppedAt(kind, service, type, name, b.getStart()),
                     "METRIC".equalsIgnoreCase(kind)
                             && data.mergedIntoOther(service, type, name, b.getStart()),
                     b.isPartial(), isCurrentBucket(b), b.getCoveredSeconds()));
             // 缺口：value 为 null；ZERO 时按统计项决定是否呈现 0
-            Double rendered = value == null ? null : value;
+            Double rendered = Objects.isNull(value) ? null : value;
             if (q == Quality.ZERO && !quality.hasValue(q, target)) {
                 rendered = null;
             }
@@ -252,7 +253,7 @@ public class ReportQueryService {
     public Map<String, Object> heartbeatSeries(String service, String metric, String range, String instances) {
         requireHeartbeatMetric(metric);
         var resolved = ranges.resolve(parseRange(range), zone.get());
-        List<String> targets = instances == null || instances.isBlank()
+        List<String> targets = Objects.isNull(instances) || instances.isBlank()
                 ? data.instancesWithData("HEARTBEAT", service, resolved.getFrom(), resolved.getTo())
                 : List.of(instances.split(","));
 
@@ -278,7 +279,7 @@ public class ReportQueryService {
             List<Map<String, Object>> points = new ArrayList<>();
             for (Bucket b : resolved.getBuckets()) {
                 AggregatedRow row = byBucket.get(b.getStart().toEpochMilli());
-                Double value = row == null ? null : row.valueLast();
+                Double value = Objects.isNull(row) ? null : row.valueLast();
                 Instant now = heartbeatNow;
                 boolean future = !b.getStart().isBefore(now);
                 boolean dropped = droppedBuckets.get(b.getStart());
@@ -288,7 +289,7 @@ public class ReportQueryService {
                 point.put("bucketEnd", b.getEnd().toEpochMilli());
                 // 缺口保持 null：不把无数据当作 0
                 point.put("value", value);
-                point.put("quality", dropped && !future ? Quality.DROPPED.name() : value == null ? Quality.NO_DATA.name()
+                point.put("quality", dropped && !future ? Quality.DROPPED.name() : Objects.isNull(value) ? Quality.NO_DATA.name()
                         : isCurrentBucket(b) ? Quality.REALTIME.name() : b.isPartial() ? Quality.PARTIAL.name() : Quality.OK.name());
                 point.put("coveredSeconds", Math.max(0, Math.min(b.getCoveredSeconds(), java.time.Duration.between(b.getStart(), now).getSeconds())));
                 points.add(point);
@@ -313,7 +314,7 @@ public class ReportQueryService {
     // ── Metric ───────────────────────────────────────────────
 
     public List<Map<String, Object>> metricList(String service, Long hour) {
-        var resolved = hour == null
+        var resolved = Objects.isNull(hour)
                 ? ranges.resolve(parseRange("RECENT_1H"), zone.get())
                 : ranges.resolve(new RangeSpec.Hour(Instant.ofEpochMilli(hour)), zone.get());
 
@@ -353,7 +354,7 @@ public class ReportQueryService {
                                             String range, Integer limit) {
         var resolved = ranges.resolve(parseRange(range), zone.get());
         return samplePort.samples(service, type, name, resolved.getFrom(), resolved.getTo(),
-                        limit == null ? com.neocat.common.config.TraceConfig.SAMPLE_ROWS : limit).stream()
+                        Objects.isNull(limit) ? com.neocat.common.config.TraceConfig.SAMPLE_ROWS : limit).stream()
                  .map(ReportQueryService::sampleToMap)
                 .toList();
     }
@@ -455,7 +456,7 @@ public class ReportQueryService {
     private Map<String, Object> momInfo(String mom, String service, String kind, String type, String name,
                                         Stat stat, RangeResolver.ResolvedRange resolved,
                                         List<String> instances) {
-        if (mom == null || mom.isBlank() || !momAligner.supported(kind)) {
+        if (Objects.isNull(mom) || mom.isBlank() || !momAligner.supported(kind)) {
             return null;
         }
         MomKind momKind = MomKind.valueOf(mom.toUpperCase(java.util.Locale.ROOT));
@@ -483,7 +484,7 @@ public class ReportQueryService {
     /** 取行的统计值；null 表示缺数，不参与相加时按「无值」处理。 */
     private Double safeValue(AggregatedRow row, Stat stat) {
         Double value = calculator.compute(List.of(row), stat, row.coveredSeconds());
-        return value == null ? null : value;
+        return Objects.isNull(value) ? null : value;
     }
     private boolean isCurrentBucket(Bucket bucket) {
         Instant now = clock.instant();
@@ -501,7 +502,6 @@ public class ReportQueryService {
 
 
 }
-
 
 
 

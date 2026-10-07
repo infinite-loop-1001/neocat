@@ -39,6 +39,22 @@ Collectors.toMap(Item::getId, Function.identity(), (left, right) -> {
 
 ## 可空返回值与工具
 
+Java 判空为强制规范：使用 `Objects.isNull(value)` / `Objects.nonNull(value)`，禁止
+`value == null`、`value != null`、`null == value`、`null != value`，包括带括号的 null。
+适用于生产代码、手写 Java 测试和 Java 检查脚本；不手工修改 MapStruct / Protobuf 等生成代码，
+也不将 Java 专用规则套用于 Groovy 或前端。使用 `java.util.Objects`，允许标准方法引用。
+
+```java
+if (Objects.isNull(value)) {
+    return fallback;
+}
+return Objects.nonNull(value) && value.isValid();
+```
+
+复合条件与三元表达式同样遵守此规则。替换必须保留原有求值次数、短路顺序、异常与默认值。
+`Objects.requireNonNull` 用于必需参数校验，不得替换成普通判空而丢失失败语义；
+非 null 的对象相等性比较不受本条影响。不为判空引入依赖。
+
 正常未找到：返回 `@Nullable T` 并用 `Objects.isNull` / `Objects.nonNull` 消费。必需存在：明确抛出已有业务异常。集合返回空集合，不返回 null。Optional 不是避免制定未找到语义的替代品；框架的 Optional 可局部消费。
 
 现有明确的 equals、isEmpty、isBlank 无需为了风格改成复杂工具调用。工具限定 JDK、Apache，避免增加依赖或掩盖领域语义。

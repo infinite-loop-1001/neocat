@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 依赖查询（PRD 04 §6、§8，链路 22）。
@@ -73,7 +74,7 @@ public class DependencyQueryService {
      */
     public List<DependencyRow> list(DependencyDirectionQuery direction, List<AggregatedRow> rows,
                                     long coveredSeconds) {
-        if (rows == null || rows.isEmpty() || direction == null) {
+        if (Objects.isNull(rows) || rows.isEmpty() || Objects.isNull(direction)) {
             return List.of();
         }
         String expectedType = direction.name().toUpperCase(Locale.ROOT);
@@ -101,6 +102,5 @@ public class DependencyQueryService {
         return result;
     }
 }
-
 
 

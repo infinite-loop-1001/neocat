@@ -1,5 +1,7 @@
 package com.neocat.identity.domain.auth;
 
+import java.util.Objects;
+
 /**
  * 登录后的落点决策（PRD 01 §4.1）。
  *
@@ -19,6 +21,6 @@ public class LoginTarget {
     public static final LoginTarget SERVICE_LIST = new LoginTarget(null);
 
     public boolean isServiceList() {
-        return targetService == null;
+        return Objects.isNull(targetService);
     }
 }

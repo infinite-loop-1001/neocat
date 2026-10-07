@@ -1,5 +1,7 @@
 package com.neocat.analysis.domain.analyzer;
 
+import java.util.Objects;
+
 /**
  * Problem 分类（PRD 03 §9）。
  *
@@ -38,7 +40,7 @@ public enum ProblemCategory {
      * <p>类型映射：URL → SLOW_URL，SQL → SLOW_SQL，CALL → SLOW_CALL，CACHE → SLOW_CACHE。
      */
     public static ProblemCategory slowCategoryOf(String transactionCategory) {
-        if (transactionCategory == null) {
+        if (Objects.isNull(transactionCategory)) {
             return null;
         }
         return switch (transactionCategory.toUpperCase(java.util.Locale.ROOT)) {

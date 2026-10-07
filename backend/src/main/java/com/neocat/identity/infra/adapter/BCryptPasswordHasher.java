@@ -3,6 +3,8 @@ package com.neocat.identity.infra.adapter;
 import com.neocat.identity.domain.auth.PasswordHasher;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.util.Objects;
+
 /**
  * BCrypt 口令哈希适配器。
  *
@@ -24,7 +26,7 @@ public class BCryptPasswordHasher implements PasswordHasher {
     }
     @Override
     public boolean matches(String rawPassword, String hash) {
-        if (rawPassword == null || hash == null) {
+        if (Objects.isNull(rawPassword) || Objects.isNull(hash)) {
             return false;
         }
         return encoder.matches(rawPassword, hash);

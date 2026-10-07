@@ -1,6 +1,7 @@
 package com.neocat.analysis.domain.bucket;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * 已持久化的一行聚合数据（对应 ClickHouse 各层级桶表的一行）。
@@ -115,8 +116,8 @@ public class AggregatedRow {
     public void markValueCountMissing(boolean missing) { valueCountMissing |= missing; }
     public Instant valueLastTime() { return valueLastTime; }
     public void mergeLastValue(Double value, Instant time) {
-        if (value == null || time == null) return;
-        if (valueLastTime == null || time.isAfter(valueLastTime)
+        if (Objects.isNull(value) || Objects.isNull(time)) return;
+        if (Objects.isNull(valueLastTime) || time.isAfter(valueLastTime)
                 || (time.equals(valueLastTime) && value > valueLast)) {
             valueLast = value;
             valueLastTime = time;
@@ -142,7 +143,6 @@ public class AggregatedRow {
         return coveredSeconds <= 0 ? null : (double) count / coveredSeconds;
     }
 }
-
 
 
 

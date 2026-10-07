@@ -15,7 +15,7 @@ import com.neocat.identity.api.internal.AccountStatusChanged;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
-import java.util.Optional;
+import java.util.Objects;
 
 import static com.neocat.common.error.ErrorCode.BAD_CREDENTIALS;
 import static com.neocat.common.error.ErrorCode.CANNOT_MODIFY_SELF;
@@ -110,13 +110,16 @@ public class AccountService {
      * <p>「从收件人移除」由 {@code AccountStatusChanged} 的订阅方（alert 模块）完成，
      * 本用例只负责账号状态与会话，并在结果中声明副作用语义。
      */
+    // rules: 除非类名称冲突, 不然不要使用全限定类名称
     @org.springframework.transaction.annotation.Transactional
     @com.neocat.common.locking.MySqlLocked("metadata")
     public AccountChangeResult disable(long accountId, Instant at) {
         Account account = requireAccount(accountId);
         Account updated = accounts.save(account.withStatus(AccountStatus.DISABLED));
         sessions.invalidateAllOf(accountId);
-        if (events != null) events.publishEvent(new AccountStatusChanged(accountId, false));
+        if (Objects.nonNull(events)) {
+            events.publishEvent(new AccountStatusChanged(accountId, false));
+        }
         return new AccountChangeResult(updated, true, false);
     }
     /** §3.4 启用：可重新登录、恢复组织成员继承资格、不恢复任何告警收件关系。 */
@@ -125,7 +128,8 @@ public class AccountService {
     public AccountChangeResult enable(long accountId, Instant at) {
         Account account = requireAccount(accountId);
         Account updated = accounts.save(account.withStatus(AccountStatus.ENABLED));
-        if (events != null) events.publishEvent(new AccountStatusChanged(accountId, true));
+        // rules: 不允许 if 和内部执行语句没有 {} 包裹, 且在同一行
+        if (Objects.nonNull(events)) events.publishEvent(new AccountStatusChanged(accountId, true));
         return new AccountChangeResult(updated, true, false);
     }
     /** §4.3 首次改密 / 重置后改密：新旧不同、新密码 ≥ 8 位、成功后清除标记。 */
@@ -160,7 +164,7 @@ public class AccountService {
     private static final long NO_ACTOR = -1L;
 
     private void requirePasswordLength(String rawPassword) {
-        if (rawPassword == null || rawPassword.length() < MIN_PASSWORD_LENGTH) {
+        if (Objects.isNull(rawPassword) || rawPassword.length() < MIN_PASSWORD_LENGTH) {
             throw new ValidationException(PASSWORD_TOO_SHORT, MIN_PASSWORD_LENGTH);
         }
     }
@@ -172,4 +176,3 @@ public class AccountService {
         return found;
     }
 }
-

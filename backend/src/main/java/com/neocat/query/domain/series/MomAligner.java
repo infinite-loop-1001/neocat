@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 环比对齐（PRD 03 §6）。
@@ -48,7 +49,7 @@ public class MomAligner {
      * Dependency 未在 PRD 中列为支持项，一期不提供。
      */
     public boolean supported(String kind) {
-        if (kind == null) {
+        if (Objects.isNull(kind)) {
             return false;
         }
         return switch (kind.toUpperCase(java.util.Locale.ROOT)) {

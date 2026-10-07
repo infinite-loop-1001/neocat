@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
 
 /**
  * 平台档案与通道配置的 MyBatis 适配器
@@ -34,7 +35,7 @@ public class PlatformRepositoryAdapter implements PlatformProfileRepository, Cha
     @Override
     public PlatformProfile load() {
         PlatformRow row = mapper.selectProfile();
-        if (row == null) {
+        if (Objects.isNull(row)) {
             return null;
         }
         SlowThresholds thresholds = new SlowThresholds(
@@ -43,7 +44,7 @@ public class PlatformRepositoryAdapter implements PlatformProfileRepository, Cha
                 row.isInitialized(),
                 ZoneId.of(row.getTimezone()),
                 thresholds,
-                row.getInitializedAt() == null ? null : row.getInitializedAt().toInstant());
+                Objects.isNull(row.getInitializedAt()) ? null : row.getInitializedAt().toInstant());
     }
     @Override
     public void save(PlatformProfile profile) {
@@ -54,7 +55,7 @@ public class PlatformRepositoryAdapter implements PlatformProfileRepository, Cha
         row.setSlowSqlMs(profile.getSlowThresholds().getSqlMs());
         row.setSlowCallMs(profile.getSlowThresholds().getCallMs());
         row.setSlowCacheMs(profile.getSlowThresholds().getCacheMs());
-        row.setInitializedAt(profile.getInitializedAt() == null
+        row.setInitializedAt(Objects.isNull(profile.getInitializedAt())
                 ? null
                 : java.sql.Timestamp.from(profile.getInitializedAt()));
         mapper.updateProfile(row);
@@ -183,7 +184,6 @@ public class PlatformRepositoryAdapter implements PlatformProfileRepository, Cha
         }
     }
 }
-
 
 
 

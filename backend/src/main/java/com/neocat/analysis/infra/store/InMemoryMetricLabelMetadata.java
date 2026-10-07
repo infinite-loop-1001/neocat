@@ -44,13 +44,13 @@ public  class InMemoryMetricLabelMetadata implements MetricLabelMetadata {
 
     @Override
     public void record(String service, String metric, Map<String, String> labels, String owner, Instant time) {
-        Map<String, String> copy = labels == null ? Map.of() : Map.copyOf(labels);
+        Map<String, String> copy = Objects.isNull(labels) ? Map.of() : Map.copyOf(labels);
         String canonical = MetricLabels.canonicalize(copy);
         Instant hour = time.truncatedTo(ChronoUnit.HOURS);
         var key = new Key(service, metric, hour, canonical);
         entries.compute(key, (k, old) -> new Entry(service, metric, hour, canonical, copy,
-                SeriesKey.OTHER_LABELS.equals(owner) || old != null && old.isMerged(),
-                old == null ? 1 : old.getVersion() + 1, source));
+                SeriesKey.OTHER_LABELS.equals(owner) || Objects.nonNull(old) && old.isMerged(),
+                Objects.isNull(old) ? 1 : old.getVersion() + 1, source));
     }
     @Override
     public List<Entry> entries(Instant from, Instant to) {
@@ -59,4 +59,3 @@ public  class InMemoryMetricLabelMetadata implements MetricLabelMetadata {
     @Override
     public void clearBefore(Instant boundary) { entries.keySet().removeIf(k -> k.getHour().isBefore(boundary)); }
 }
-

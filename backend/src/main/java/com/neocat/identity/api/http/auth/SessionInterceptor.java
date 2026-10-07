@@ -15,6 +15,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.Objects;
 
 /**
  * 会话拦截器（技术方案 03-api-contract.md §1.2、§2）。
@@ -52,7 +53,7 @@ public class SessionInterceptor implements HandlerInterceptor {
         }
 
         String sessionId = sessionIdOf(request);
-        if (sessionId == null) {
+        if (Objects.isNull(sessionId)) {
             throw new AuthenticationException(ErrorCode.UNAUTHENTICATED);
         }
 
@@ -80,18 +81,18 @@ public class SessionInterceptor implements HandlerInterceptor {
     @org.springframework.lang.Nullable
     private String sessionIdOf(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
+        if (Objects.isNull(cookies)) {
             return null;
         }
         return Arrays.stream(cookies)
                 .filter(cookie -> SESSION_COOKIE.equals(cookie.getName()))
                 .map(Cookie::getValue)
-                .filter(value -> value != null && !value.isBlank())
+                .filter(value -> Objects.nonNull(value) && !value.isBlank())
                 .findFirst().orElse(null);
     }
     /** 去掉结尾斜杠，使端点标识可精确匹配。 */
     private static String normalize(String uri) {
-        String path = uri == null ? "/" : uri;
+        String path = Objects.isNull(uri) ? "/" : uri;
         int query = path.indexOf('?');
         if (query >= 0) {
             path = path.substring(0, query);

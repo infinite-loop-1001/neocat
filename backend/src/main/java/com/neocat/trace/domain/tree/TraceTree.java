@@ -1,6 +1,7 @@
 package com.neocat.trace.domain.tree;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 一棵本地 MessageTree（含 Trace 关系与树内节点）。
@@ -47,10 +48,9 @@ public class TraceTree {
     }
 
     public boolean hasParent() {
-        return parentMessageId != null && !parentMessageId.isBlank();
+        return Objects.nonNull(parentMessageId) && !parentMessageId.isBlank();
     }
 }
-
 
 
 

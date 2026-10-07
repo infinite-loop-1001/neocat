@@ -20,6 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Objects;
 
 import static com.neocat.common.error.ErrorCode.CARD_EVALUATION_UNAVAILABLE;
 import static com.neocat.common.error.ErrorCode.CARD_NOT_FOUND;
@@ -133,7 +134,7 @@ public class CardService {
     @com.neocat.common.locking.MySqlLocked("metadata")
     public void reorder(long accountId, long dashboardId, List<Long> cardIds) {
         Dashboard dashboard = requireDashboard(accountId, dashboardId);
-        if (cardIds == null) {
+        if (Objects.isNull(cardIds)) {
             return;
         }
         int order = 0;
@@ -168,7 +169,7 @@ public class CardService {
         Dashboard dashboard = java.util.Optional.ofNullable(dashboards.findById(card.getDashboardId()))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, card.getDashboardId()));
         requireMember(accountId, dashboard.getOrgId());
-        if (seriesService == null) {
+        if (Objects.isNull(seriesService)) {
             throw new BusinessRuleException(CARD_EVALUATION_UNAVAILABLE);
         }
 
@@ -183,7 +184,7 @@ public class CardService {
     }
     /** 时间范围的默认粒度（与 PRD 03 §2.2 的快捷范围一致）。 */
     private long bucketSecondsOf(String range) {
-        return switch (range == null ? "RECENT_24H" : range.toUpperCase(java.util.Locale.ROOT)) {
+        return switch (Objects.isNull(range) ? "RECENT_24H" : range.toUpperCase(java.util.Locale.ROOT)) {
             case "RECENT_1H" -> 60L;
             case "RECENT_3H" -> 300L;
             case "RECENT_6H" -> 600L;
@@ -233,7 +234,7 @@ public class CardService {
      * <p>只检查该叶子的大盘；其他叶子对同一目标的引用不使本叶子的规则继续有效。
      */
     public boolean stillReferenced(long orgId, AlertableTarget target) {
-        if (target == null) {
+        if (Objects.isNull(target)) {
             return false;
         }
         for (Dashboard dashboard : dashboards.byOrg(orgId)) {
@@ -265,7 +266,7 @@ public class CardService {
         if (UNIT_MISMATCH.name().equals(targetError)) {
             throw new ValidationException(UNIT_MISMATCH);
         }
-        if (targetError != null) {
+        if (Objects.nonNull(targetError)) {
             throw new ValidationException(FORMULA_INVALID, targetError);
         }
     }
@@ -301,13 +302,13 @@ public class CardService {
                 || !before.targetIdentity().equals(after.targetIdentity());
     }
     private String normalize(String formula) {
-        return formula == null ? "" : formula.replaceAll("\\s+", "").toLowerCase(java.util.Locale.ROOT);
+        return Objects.isNull(formula) ? "" : formula.replaceAll("\\s+", "").toLowerCase(java.util.Locale.ROOT);
     }
     private List<String> statNames(String formula) {
         return statsOf(formula).stream().map(Enum::name).toList();
     }
     private List<Stat> statsOf(String formula) {
-        if (formula == null) {
+        if (Objects.isNull(formula)) {
             return List.of();
         }
         FormulaParser.ParseOutcome parsed = new FormulaParser().parse(formula);
@@ -327,10 +328,9 @@ public class CardService {
     private String rawPrefixOf(AlertableTarget target) {
         return target.getKind() == AlertableTargetKind.RAW_STAT
                 ? target.getService() + "|" + target.getTargetKind() + "|"
-                  + (target.getTargetType() == null ? "" : target.getTargetType()) + "|"
-                  + (target.getTargetName() == null ? "" : target.getTargetName()) + "|"
-                  + (target.getMetricLabels() == null ? "" : target.getMetricLabels())
+                  + (Objects.isNull(target.getTargetType()) ? "" : target.getTargetType()) + "|"
+                  + (Objects.isNull(target.getTargetName()) ? "" : target.getTargetName()) + "|"
+                  + (Objects.isNull(target.getMetricLabels()) ? "" : target.getMetricLabels())
                 : "";
     }
 }
-

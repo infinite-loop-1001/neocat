@@ -5,6 +5,7 @@ import com.neocat.ingest.domain.tree.RawNode;
 import java.time.Instant;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.Objects;
 
 /**
  * Metric 标签规范化（PRD 04 §2）。
@@ -19,7 +20,7 @@ public class MetricLabels {
     }
     /** 规范化为稳定字符串；null / 空标签得到空串。 */
     public static String canonicalize(Map<String, String> labels) {
-        if (labels == null || labels.isEmpty()) {
+        if (Objects.isNull(labels) || labels.isEmpty()) {
             return "";
         }
         TreeMap<String, String> sorted = new TreeMap<>(labels);
@@ -52,6 +53,6 @@ public class MetricLabels {
      * </ul>
      */
     public static String categoryOf(RawNode node) {
-        return node.getCategory() == null ? "" : node.getCategory();
+        return Objects.isNull(node.getCategory()) ? "" : node.getCategory();
     }
 }

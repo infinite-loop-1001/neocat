@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * ClickHouse 报表查询的 JDBC 实现（技术方案 06 §10）。
@@ -98,11 +99,11 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
         args.addAll(new java.util.ArrayList<>(args));
         args.addAll(List.of(service, kind, lower, upper));
 
-        if (type != null) {
+        if (Objects.nonNull(type)) {
             sql.append(" AND type = ?");
             args.add(type);
         }
-        if (name != null) {
+        if (Objects.nonNull(name)) {
             sql.append("METRIC".equalsIgnoreCase(kind) ? " AND metric_labels = ?" : " AND name = ?");
             args.add(name);
         }
@@ -179,7 +180,7 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
                 service, kind, java.sql.Timestamp.from(from), java.sql.Timestamp.from(to),
                 service, kind, java.sql.Date.valueOf(from.atZone(zone.get()).toLocalDate()),
                 java.sql.Date.valueOf(to.atZone(zone.get()).toLocalDate())));
-        if (type != null) {
+        if (Objects.nonNull(type)) {
             sql.append(" WHERE type = ?");
             args.add(type);
         }
@@ -204,7 +205,7 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
                 """, Integer.class,
                 service,
                 java.sql.Timestamp.from(from), java.sql.Timestamp.from(to));
-        return count != null && count > 0;
+        return Objects.nonNull(count) && count > 0;
     }
     /**
      * 某 Metric 具体序列在某小时是否被并入 other（PRD 04 §3：该小时显示缺口，
@@ -220,7 +221,7 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
                 """, Integer.class,
                 service, metricName, labels,
                 java.sql.Timestamp.from(hourStart.truncatedTo(java.time.temporal.ChronoUnit.HOURS)));
-        return count != null && count > 0;
+        return count > 0;
     }
     /** 桶行映射：把分布数组还原为 long[]，其余列直接读出。 */
     private static class BucketRowMapper implements RowMapper<ClickHouseReportQuery.BucketRow> {
@@ -256,7 +257,7 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
                     distributionOf(rs),
                      rs.getLong("covered_seconds"),
                      (Double) rs.getObject("last_value"),
-                     rs.getTimestamp("last_sample_time") == null ? null : rs.getTimestamp("last_sample_time").toInstant(),
+                     Objects.isNull(rs.getTimestamp("last_sample_time")) ? null : rs.getTimestamp("last_sample_time").toInstant(),
                      rs.getBoolean("count_missing"));
         }
 
@@ -270,13 +271,13 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
          */
         private java.time.Instant bucketStartOf(ResultSet rs) throws SQLException {
             java.sql.Timestamp raw = rs.getTimestamp("bucket_start");
-            if (raw == null) {
+            if (Objects.isNull(raw)) {
                 return null;
             }
             if (level == AggregationLevel.DAY || level == AggregationLevel.WEEK
                     || level == AggregationLevel.MONTH) {
                 java.time.LocalDate date = rs.getObject("bucket_start", java.time.LocalDate.class);
-                if (date != null) {
+                if (Objects.nonNull(date)) {
                     return date.atStartOfDay(zone).toInstant();
                 }
             }

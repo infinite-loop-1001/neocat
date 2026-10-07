@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 滑动窗口判定与分钟调度（PRD 06 §3.2、§5、§6）。
@@ -77,7 +78,7 @@ public class AlertEngine {
         int window = Math.max(1, rule.getWindowPoints());
         // fixme: 如果当前窗口状态为空需要抛异常, 不能当作空状态往下算
         // rules: 赋值表达式右侧是一个表达式时, 右边的表达式需要用 () 包裹
-        AlertWindowState current = state == null
+        AlertWindowState current = Objects.isNull(state)
                 ? AlertWindowState.empty(rule.getId(), minute)
                 : state;
 
@@ -120,7 +121,7 @@ public class AlertEngine {
         List<Stat> required = requiredStats(rule);
         Map<Stat, Double> values = points.values(rule.getTarget(), minute, required);
         for (Stat stat : required) {
-            if (values == null || !values.containsKey(stat) || values.get(stat) == null) {
+            if (Objects.isNull(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
                 return false;
             }
         }
@@ -132,7 +133,7 @@ public class AlertEngine {
     /** AND：全部条件满足；OR：任一条件满足。 */
     private boolean combine(AlertRule rule, Map<Stat, Double> values) {
         List<Condition> conditions = rule.getConditions();
-        if (conditions == null || conditions.isEmpty()) {
+        if (Objects.isNull(conditions) || conditions.isEmpty()) {
             return false;
         }
         // rules: 判断相等使用 Objects.equals(), 防止出现任一比较对象为 null
@@ -149,10 +150,10 @@ public class AlertEngine {
     private List<Stat> requiredStats(AlertRule rule) {
         // fixme: 这里去重直接使用 stream 流就可以
         Map<Stat, Boolean> unique = new LinkedHashMap<>();
-        if (rule.getTarget() != null && rule.getTarget().getFormulaStats() != null) {
+        if (Objects.nonNull(rule.getTarget()) && Objects.nonNull(rule.getTarget().getFormulaStats())) {
             rule.getTarget().getFormulaStats().forEach(stat -> unique.put(stat, true));
         }
-        if (rule.getConditions() != null) {
+        if (Objects.nonNull(rule.getConditions())) {
             rule.getConditions().forEach(condition -> unique.put(condition.getStat(), true));
         }
         return List.copyOf(unique.keySet());
@@ -165,16 +166,16 @@ public class AlertEngine {
      * 每个通道各发一次（PRD 06 §10）。
      */
     private List<AlertNotification> notify(AlertRule rule, long minute) {
-        List<Long> recipients = rule.getRecipients() == null ? List.of() : rule.getRecipients();
-        if (this.recipients != null) {
+        List<Long> recipients = Objects.isNull(rule.getRecipients()) ? List.of() : rule.getRecipients();
+        if (Objects.nonNull(this.recipients)) {
             recipients = recipients.stream().filter(this.recipients::isEnabled)
-                    .filter(id -> rule.getOrgId() == null || this.recipients.isEffectiveMember(id, rule.getOrgId()))
+                    .filter(id -> Objects.isNull(rule.getOrgId()) || this.recipients.isEffectiveMember(id, rule.getOrgId()))
                     .toList();
         }
-        if (recipients.isEmpty() || rule.getChannels() == null || rule.getChannels().isEmpty()) {
+        if (recipients.isEmpty() || Objects.isNull(rule.getChannels()) || rule.getChannels().isEmpty()) {
             return List.of();
         }
-        if (dispatcher != null) {
+        if (Objects.nonNull(dispatcher)) {
             return dispatcher.dispatch(rule, recipients, minute);
         }
         String message = rule.getName() + " 触发于 " + minute;
@@ -211,5 +212,4 @@ public class AlertEngine {
 
     }
 }
-
 

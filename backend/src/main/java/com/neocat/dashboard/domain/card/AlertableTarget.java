@@ -3,6 +3,7 @@ package com.neocat.dashboard.domain.card;
 import com.neocat.query.domain.stat.Stat;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 可作为组织告警目标的对象（PRD 05 §9、PRD 06 §8）。
@@ -57,8 +58,8 @@ public class AlertableTarget {
     /** 目标身份：用于判断是否仍被引用。 */
     public String identity() {
         return kind + "|" + service + "|" + targetKind + "|"
-                + (targetType == null ? "" : targetType) + "|"
-                + (targetName == null ? "" : targetName) + "|"
-                + (metricLabels == null ? "" : metricLabels);
+                + (Objects.isNull(targetType) ? "" : targetType) + "|"
+                + (Objects.isNull(targetName) ? "" : targetName) + "|"
+                + (Objects.isNull(metricLabels) ? "" : metricLabels);
     }
 }

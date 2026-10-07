@@ -7,7 +7,7 @@ import com.neocat.trace.domain.tree.TraceTree;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 /**
  * 基于 ClickHouse 的原始树存储（技术方案 06 §5–6、02 §7）。
@@ -39,7 +39,7 @@ public class ClickHouseRawTreeStore implements RawTreeStore {
                 tree.getInstanceId(),
                 tree.getMessageId(),
                 tree.getRootMessageId(),
-                tree.getParentMessageId() == null ? "" : tree.getParentMessageId(),
+                Objects.isNull(tree.getParentMessageId()) ? "" : tree.getParentMessageId(),
                 Instant.ofEpochMilli(tree.getTreeTimestamp()),
                 tree.getFingerprint(),
                 codec.encode(tree.getNodes())));
@@ -47,7 +47,7 @@ public class ClickHouseRawTreeStore implements RawTreeStore {
         query.insertRelation(new RawTreeQuery.TraceRelationRow(
                 tree.getMessageId(),
                 tree.getRootMessageId(),
-                tree.getParentMessageId() == null ? "" : tree.getParentMessageId(),
+                Objects.isNull(tree.getParentMessageId()) ? "" : tree.getParentMessageId(),
                 tree.getServiceName(),
                 tree.getInstanceId(),
                 Instant.ofEpochMilli(tree.getTreeTimestamp())));
@@ -55,7 +55,7 @@ public class ClickHouseRawTreeStore implements RawTreeStore {
     @Override
     public TraceTree findByMessageId(String messageId) {
         var row = query.selectTree(messageId);
-        return row == null ? null : toDomain(row);
+        return Objects.isNull(row) ? null : toDomain(row);
     }
     @Override
     public List<TraceTree> findByRootMessageId(String rootMessageId) {
@@ -68,7 +68,7 @@ public class ClickHouseRawTreeStore implements RawTreeStore {
     @Override
     public TraceRelation relationOf(String messageId) {
         var row = query.selectRelation(messageId);
-        return row == null ? null : RawTreeQuery.toDomain(row);
+        return Objects.isNull(row) ? null : RawTreeQuery.toDomain(row);
     }
     @Override
     public List<TraceRelation> relationsByRoot(String rootMessageId) {
@@ -79,7 +79,7 @@ public class ClickHouseRawTreeStore implements RawTreeStore {
     @Override
     public String fingerprintOf(String messageId) {
         var row = query.selectTree(messageId);
-        return row == null ? null : row.getFingerprint();
+        return Objects.isNull(row) ? null : row.getFingerprint();
     }
     @Override
     public List<TraceTree> findByServiceAndTimeRange(String service, long from, long to) {

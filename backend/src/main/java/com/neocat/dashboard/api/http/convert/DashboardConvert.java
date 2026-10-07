@@ -6,6 +6,7 @@ import com.neocat.dashboard.domain.dashboard.Dashboard;
 import com.neocat.dashboard.domain.formula.FormulaParser;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public final class DashboardConvert {
     private DashboardConvert() {
@@ -19,7 +20,7 @@ public final class DashboardConvert {
         // 保留原入口行为：阈值线暂不参与保存或告警，不能借规范重构改变产品语义。
         return Card.withoutThresholds(0, dashboardId, draft.getService(), draft.getTargetKind(), draft.getTargetType(),
                 draft.getTargetName(), draft.getMetricLabels(), List.of(), draft.getFormula(),
-                draft.getTimeRange() == null ? "RECENT_24H" : draft.getTimeRange(), 0);
+                Objects.isNull(draft.getTimeRange()) ? "RECENT_24H" : draft.getTimeRange(), 0);
     }
 
     public static CardResponse card(Card card) {
@@ -35,7 +36,7 @@ public final class DashboardConvert {
     }
 
     private static List<Threshold> thresholds(List<ThresholdLine> lines) {
-        return lines == null ? List.of() : lines.stream()
+        return Objects.isNull(lines) ? List.of() : lines.stream()
                 .map(line -> new Threshold(line.getDirection().name(), line.getValue())).toList();
     }
 
