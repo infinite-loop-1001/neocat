@@ -11,10 +11,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
-
 import java.time.Clock;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.Objects;
 
 /**
@@ -85,7 +83,7 @@ public class SessionInterceptor implements HandlerInterceptor {
             return null;
         }
         return Arrays.stream(cookies)
-                .filter(cookie -> SESSION_COOKIE.equals(cookie.getName()))
+                .filter(cookie -> Objects.equals(SESSION_COOKIE, cookie.getName()))
                 .map(Cookie::getValue)
                 .filter(value -> Objects.nonNull(value) && !value.isBlank())
                 .findFirst().orElse(null);

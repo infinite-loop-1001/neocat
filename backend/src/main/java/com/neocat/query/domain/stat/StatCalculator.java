@@ -2,9 +2,9 @@ package com.neocat.query.domain.stat;
 
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.DurationDistribution;
-
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 统计项计算（PRD 03 §3、§4；技术方案 03 §8.1）。
@@ -29,7 +29,7 @@ import java.util.Objects;
 public class StatCalculator {
 
     public Double compute(List<AggregatedRow> rows, Stat stat, long coveredSeconds) {
-        if (Objects.isNull(rows) || rows.isEmpty()) {
+        if (CollectionUtils.isEmpty(rows)) {
             // 序列不存在：缺数，不是零
             return null;
         }

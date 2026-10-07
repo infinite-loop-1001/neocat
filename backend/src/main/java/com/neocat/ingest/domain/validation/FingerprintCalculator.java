@@ -10,10 +10,9 @@ import com.neocat.ingest.domain.tree.RemoteCallValue;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Objects;
+import java.util.*;
+
+import org.apache.commons.collections4.MapUtils;
 
 /**
  * 树内容指纹计算（PRD 02 §6.1）。
@@ -77,7 +76,7 @@ public class FingerprintCalculator {
             return NULL;
         }
         // Preserve the persisted legacy fingerprint when all five original fields are present.
-        if (hb.getValues().keySet().equals(java.util.Set.of("heap-used", "heap-max", "gc-count", "gc-time", "threads"))) {
+        if (Objects.equals(hb.getValues().keySet(), Set.of("heap-used", "heap-max", "gc-count", "gc-time", "threads"))) {
             return hb.heapUsedBytes() + "," + hb.heapMaxBytes() + "," + hb.gcCount() + "," + hb.gcTimeMs() + "," + hb.threadCount();
         }
         return canonicalMap(hb.getValues().entrySet().stream().collect(java.util.stream.Collectors.toMap(
@@ -100,7 +99,7 @@ public class FingerprintCalculator {
     }
     /** 按键名字典序拼接，消除 Map 迭代顺序差异。 */
     private String canonicalMap(Map<String, String> map) {
-        if (Objects.isNull(map) || map.isEmpty()) {
+        if (MapUtils.isEmpty(map)) {
             return "";
         }
         TreeMap<String, String> sorted = new TreeMap<>(map);

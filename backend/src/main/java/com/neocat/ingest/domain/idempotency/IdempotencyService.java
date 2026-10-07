@@ -30,15 +30,15 @@ public class IdempotencyService {
             throw new IllegalArgumentException("messageId 不能为空");
         }
         String cached = store.fingerprintOf(messageId);
-        if (java.util.Objects.nonNull(cached)) {
-            return cached.equals(fingerprint)
+        if (Objects.nonNull(cached)) {
+            return Objects.equals(cached, fingerprint)
                     ? IdempotencyDecision.DUPLICATE
                     : IdempotencyDecision.CONFLICT;
         }
 
         String past = historical.fingerprintOf(messageId);
-        if (java.util.Objects.nonNull(past)) {
-            return past.equals(fingerprint)
+        if (Objects.nonNull(past)) {
+            return Objects.equals(past, fingerprint)
                     ? IdempotencyDecision.DUPLICATE
                     : IdempotencyDecision.CONFLICT;
         }

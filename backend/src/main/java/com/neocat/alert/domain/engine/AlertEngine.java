@@ -5,7 +5,6 @@ import com.neocat.alert.domain.rule.AlertChannel;
 import com.neocat.alert.domain.rule.AlertRule;
 import com.neocat.alert.domain.rule.Combinator;
 import com.neocat.alert.domain.rule.Condition;
-
 import com.neocat.query.domain.stat.Stat;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -13,12 +12,14 @@ import lombok.ToString;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.collections4.ListUtils;
 
 /**
  * 滑动窗口判定与分钟调度（PRD 06 §3.2、§5、§6）。
@@ -121,7 +122,7 @@ public class AlertEngine {
         List<Stat> required = requiredStats(rule);
         Map<Stat, Double> values = points.values(rule.getTarget(), minute, required);
         for (Stat stat : required) {
-            if (Objects.isNull(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
+            if (MapUtils.isEmpty(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
                 return false;
             }
         }
@@ -133,7 +134,7 @@ public class AlertEngine {
     /** AND：全部条件满足；OR：任一条件满足。 */
     private boolean combine(AlertRule rule, Map<Stat, Double> values) {
         List<Condition> conditions = rule.getConditions();
-        if (Objects.isNull(conditions) || conditions.isEmpty()) {
+        if (CollectionUtils.isEmpty(conditions)) {
             return false;
         }
         // rules: 判断相等使用 Objects.equals(), 防止出现任一比较对象为 null
@@ -166,13 +167,13 @@ public class AlertEngine {
      * 每个通道各发一次（PRD 06 §10）。
      */
     private List<AlertNotification> notify(AlertRule rule, long minute) {
-        List<Long> recipients = Objects.isNull(rule.getRecipients()) ? List.of() : rule.getRecipients();
+        List<Long> recipients = ListUtils.emptyIfNull(rule.getRecipients());
         if (Objects.nonNull(this.recipients)) {
             recipients = recipients.stream().filter(this.recipients::isEnabled)
                     .filter(id -> Objects.isNull(rule.getOrgId()) || this.recipients.isEffectiveMember(id, rule.getOrgId()))
                     .toList();
         }
-        if (recipients.isEmpty() || Objects.isNull(rule.getChannels()) || rule.getChannels().isEmpty()) {
+        if (CollectionUtils.isEmpty(recipients) || CollectionUtils.isEmpty(rule.getChannels())) {
             return List.of();
         }
         if (Objects.nonNull(dispatcher)) {

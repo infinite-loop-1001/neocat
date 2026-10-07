@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.time.*;
 import java.util.*;
 import com.neocat.common.config.IngestConfig;
+import org.apache.commons.collections4.CollectionUtils;
 
 @Component
 @org.springframework.context.annotation.DependsOn("ingestConfig")
@@ -32,7 +33,7 @@ public class MetricMetadataFlushJob {
     public void flush() {
         Instant now = clock.instant();
         var entries = memory.entries(Instant.EPOCH, now.plusSeconds(3600));
-        if (entries.isEmpty()) return;
+        if (CollectionUtils.isEmpty(entries)) return;
         List<Object[]> rows = entries.stream().map(e -> {
             try { return new Object[] { e.getService(), e.getMetric(), java.sql.Timestamp.from(e.getHour()), e.getCanonicalLabels(),
                     json.writeValueAsString(e.getLabels()), e.isMerged() ? 1 : 0, e.getVersion(), e.getSource() }; }

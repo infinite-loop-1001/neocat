@@ -1,12 +1,11 @@
 package com.neocat.query.infra.service;
 
 import com.neocat.query.infra.port.ReportDataPort;
-
 import com.neocat.query.api.internal.SeriesDataLookup;
 import org.springframework.stereotype.Component;
-
 import java.time.Instant;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 @Component
 public class SeriesDataLookupService implements SeriesDataLookup {
@@ -20,6 +19,6 @@ public class SeriesDataLookupService implements SeriesDataLookup {
         if (Objects.nonNull(instance)) {
             return reports.instancesWithData(kind, service, from, to).contains(instance);
         }
-        return !reports.typesOf(kind, service, from, to).isEmpty();
+        return CollectionUtils.isNotEmpty(reports.typesOf(kind, service, from, to));
     }
 }

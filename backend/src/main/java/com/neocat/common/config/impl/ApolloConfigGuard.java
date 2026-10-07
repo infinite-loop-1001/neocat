@@ -10,11 +10,11 @@ import com.neocat.common.config.ReportConfig;
 import com.neocat.common.config.TraceConfig;
 import link.cu1universe.dev.apollo.annotation.ApolloStaticValue;
 import org.springframework.core.env.Environment;
-
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 启动期必需配置校验。
@@ -64,7 +64,7 @@ public final class ApolloConfigGuard {
         }
         validateServerPort(environment.getProperty("server.port"), problems);
         validateTimezone(environment.getProperty("neocat.platform.init.timezone"), problems);
-        if (!problems.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(problems)) {
             throw new IllegalStateException("Apollo 配置校验失败：" + String.join("；", problems));
         }
     }
@@ -78,16 +78,16 @@ public final class ApolloConfigGuard {
         }
         try {
             Class<?> type = field.getType();
-            if (type == int.class) {
+            if (Objects.equals(type, int.class)) {
                 if (Integer.parseInt(raw) < 1) {
                     problems.add("运行参数必须大于 0：" + key + "=" + raw);
                 }
-            } else if (type == double.class) {
+            } else if (Objects.equals(type, double.class)) {
                 double value = Double.parseDouble(raw);
                 if (!Double.isFinite(value) || value < 0 || value > 1) {
                     problems.add("比例参数必须在 0–1 之间：" + key + "=" + raw);
                 }
-            } else if (type == boolean.class
+            } else if (Objects.equals(type, boolean.class)
                     && !"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
                 problems.add("布尔运行参数不合法：" + key + "=" + raw);
             }

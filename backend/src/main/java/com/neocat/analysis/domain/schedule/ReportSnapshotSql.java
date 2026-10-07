@@ -1,5 +1,7 @@
 package com.neocat.analysis.domain.schedule;
 
+import java.util.Objects;
+
 /** Read upgraded snapshot writes once per writer/key/bucket; legacy append rows remain additive. */
 @org.springframework.modulith.NamedInterface("analysis")
 public class ReportSnapshotSql {
@@ -16,7 +18,7 @@ public class ReportSnapshotSql {
         for (int i = 0; i < columns.length; i++) selected.append(", tupleElement(latest, ").append(i + 1).append(") AS ").append(columns[i]);
         // Global rollups rebuild the full lower-level history. Once such a snapshot exists,
         // legacy additive upper-level rows must not be counted on top of it during upgrade.
-        String legacyExclusion = table.equals("nc_minute_bucket") || table.equals("nc_hour_bucket") ? ""
+        String legacyExclusion = Objects.equals(table, "nc_minute_bucket") || Objects.equals(table, "nc_hour_bucket") ? ""
                 : " AND tuple(" + keys + ") NOT IN (SELECT " + keys + " FROM neocat." + table
                 + " WHERE snapshot_source = 'global-rollup-v1')";
         return "(SELECT " + keys + ", " + String.join(", ", columns) + " FROM neocat." + table

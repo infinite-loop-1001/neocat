@@ -2,16 +2,14 @@ package com.neocat.query.domain.report;
 
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
-
 import com.neocat.analysis.domain.bucket.AggregatedRow;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * Type / Name 表查询（PRD 03 §7.1、§7.2、§8、§9）。
@@ -54,7 +52,7 @@ public class ReportTableService {
 
     private List<ReportRow> table(String kind, List<AggregatedRow> rows, String typeFilter,
                                   long coveredSeconds) {
-        if (Objects.isNull(rows) || rows.isEmpty()) {
+        if (CollectionUtils.isEmpty(rows)) {
             return List.of();
         }
         boolean byName = Objects.nonNull(typeFilter);
@@ -62,7 +60,7 @@ public class ReportTableService {
 
         Map<String, List<AggregatedRow>> grouped = new LinkedHashMap<>();
         for (AggregatedRow row : rows) {
-            if (byName && !typeFilter.equals(row.key().getType())) {
+            if (byName && !Objects.equals(typeFilter, row.key().getType())) {
                 continue;
             }
             grouped.computeIfAbsent(row.key().getType(), k -> new ArrayList<>()).add(row);

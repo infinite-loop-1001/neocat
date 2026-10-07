@@ -6,7 +6,6 @@ import com.neocat.ingest.domain.receive.IngestResult;
 import com.neocat.ingest.domain.receive.IngestStatus;
 import com.neocat.protocol.ingest.v1.IngestResponse;
 import com.neocat.protocol.ingest.v1.Status;
-
 import java.util.Objects;
 
 /**
@@ -40,7 +39,7 @@ public class IngestResponseMapper {
             // ACCEPTED / DUPLICATE / DROPPED 都是「平台已受理」语义
             return 202;
         }
-        if ("PLATFORM_INITIALIZING".equals(result.getCode())) {
+        if (Objects.equals("PLATFORM_INITIALIZING", result.getCode())) {
             return 503;
         }
         ErrorCode code = parseCode(result.getCode());

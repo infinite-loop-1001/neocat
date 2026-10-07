@@ -6,13 +6,13 @@ import com.neocat.dashboard.domain.formula.FormulaParser;
 import com.neocat.query.api.internal.ReportPoints;
 import com.neocat.query.domain.stat.Stat;
 import org.springframework.stereotype.Component;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.collections4.ListUtils;
 
 @Component
 public class ReportCardInputSource implements CardInputSource {
@@ -33,11 +33,11 @@ public class ReportCardInputSource implements CardInputSource {
         List<Stat> stats = parsed.getFormula().referencedStats().stream().distinct().toList();
         Map<Long, Map<Stat, Double>> result = new LinkedHashMap<>();
         for (long[] boundary : bucketBoundaries(from, to, bucketSeconds)) {
-            String name = "METRIC".equals(card.getTargetKind()) ? card.getMetricLabels() : card.getTargetName();
+            String name = Objects.equals("METRIC", card.getTargetKind()) ? card.getMetricLabels() : card.getTargetName();
             Map<String, Double> raw = reports.values(card.getTargetKind(), card.getService(), card.getTargetType(),
                     name, Instant.ofEpochMilli(boundary[0]), Instant.ofEpochMilli(boundary[1]),
                     stats.stream().map(Enum::name).toList(),
-                    Objects.isNull(card.getInstanceScope()) ? List.of() : card.getInstanceScope());
+                    ListUtils.emptyIfNull(card.getInstanceScope()));
             Map<Stat, Double> values = new LinkedHashMap<>();
             for (Stat stat : stats) {
                 values.put(stat, raw.get(stat.name()));

@@ -6,11 +6,12 @@ import com.neocat.analysis.domain.dependency.*;
 import com.neocat.analysis.domain.metric.*;
 import com.neocat.analysis.domain.schedule.*;
 import org.springframework.stereotype.Component;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.commons.collections4.MapUtils;
+import java.util.Objects;
 
 @Component
 public  class InMemoryMetricLabelMetadata implements MetricLabelMetadata {
@@ -44,12 +45,12 @@ public  class InMemoryMetricLabelMetadata implements MetricLabelMetadata {
 
     @Override
     public void record(String service, String metric, Map<String, String> labels, String owner, Instant time) {
-        Map<String, String> copy = Objects.isNull(labels) ? Map.of() : Map.copyOf(labels);
+        Map<String, String> copy = MapUtils.isEmpty(labels) ? Map.of() : Map.copyOf(labels);
         String canonical = MetricLabels.canonicalize(copy);
         Instant hour = time.truncatedTo(ChronoUnit.HOURS);
         var key = new Key(service, metric, hour, canonical);
         entries.compute(key, (k, old) -> new Entry(service, metric, hour, canonical, copy,
-                SeriesKey.OTHER_LABELS.equals(owner) || Objects.nonNull(old) && old.isMerged(),
+                Objects.equals(SeriesKey.OTHER_LABELS, owner) || Objects.nonNull(old) && old.isMerged(),
                 Objects.isNull(old) ? 1 : old.getVersion() + 1, source));
     }
     @Override

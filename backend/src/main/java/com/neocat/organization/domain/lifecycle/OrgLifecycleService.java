@@ -6,26 +6,26 @@ import com.neocat.organization.domain.membership.OrgMembershipService;
 import com.neocat.organization.domain.tree.DeletionPreview;
 import com.neocat.organization.domain.tree.OrgNode;
 import com.neocat.organization.domain.tree.OrgNodeRepository;
-
 import com.neocat.common.error.exception.BusinessRuleException;
 import com.neocat.common.error.exception.ConflictException;
 import com.neocat.common.error.exception.ResourceNotFoundException;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Objects;
-
 import static com.neocat.common.error.ErrorCode.CONFIRM_NAME_MISMATCH;
 import static com.neocat.common.error.ErrorCode.HAS_CHILDREN;
 import static com.neocat.common.error.ErrorCode.LEAF_HAS_RESOURCES;
 import static com.neocat.common.error.ErrorCode.ORG_NOT_FOUND;
+import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 组织生命周期用例（PRD 01 §5.2 / §5.3）。
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("isOrganization")
+@Service
+@NamedInterface("isOrganization")
 public class OrgLifecycleService {
 
     private final OrgNodeRepository nodes;
@@ -90,7 +90,7 @@ public class OrgLifecycleService {
         if (!isLeaf(orgId)) {
             throw new ConflictException(HAS_CHILDREN);
         }
-        if (!node.getName().equals(confirmName)) {
+        if (!Objects.equals(node.getName(), confirmName)) {
             throw new ConflictException(CONFIRM_NAME_MISMATCH);
         }
 
@@ -115,7 +115,7 @@ public class OrgLifecycleService {
         }
     }
     public boolean isLeaf(long orgId) {
-        return nodes.childrenOf(orgId).isEmpty();
+        return CollectionUtils.isEmpty(nodes.childrenOf(orgId));
     }
 
     // ── 内部 ─────────────────────────────────────────────────

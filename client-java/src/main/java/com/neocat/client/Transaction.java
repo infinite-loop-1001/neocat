@@ -49,7 +49,7 @@ public class Transaction {
     /** 记录异常：异常名成为 Problem 的聚合键（PRD 03 §9）。 */
     public void setException(Throwable exception) {
         this.exception = exception;
-        if (Objects.isNull(this.status) || SUCCESS.equals(this.status)) {
+        if (Objects.isNull(this.status) || Objects.equals(SUCCESS, this.status)) {
             this.status = FAILURE;
         }
     }

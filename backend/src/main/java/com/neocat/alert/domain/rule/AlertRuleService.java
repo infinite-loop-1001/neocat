@@ -4,8 +4,8 @@ import com.neocat.alert.domain.engine.Notifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
-
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 告警规则用例（PRD 06 §2、§3、§8）。
@@ -69,7 +69,7 @@ public class AlertRuleService {
             throw new IllegalArgumentException("规则不能为空");
         }
         // rules: 容器的比较使用 Apache 的 CollectionUtils 判断
-        if (Objects.isNull(draft.getConditions()) || draft.getConditions().isEmpty()) {
+        if (CollectionUtils.isEmpty(draft.getConditions())) {
             throw new IllegalArgumentException("至少需要一个比较条件");
         }
         if (draft.getWindowPoints() < 1) {

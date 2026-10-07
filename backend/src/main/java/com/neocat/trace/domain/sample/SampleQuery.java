@@ -55,10 +55,10 @@ public class SampleQuery {
         return new SampleQuery(service, category, name, null, from, to, null, DEFAULT_LIMIT);
     }
     public boolean matches(com.neocat.trace.domain.tree.TraceTree tree, com.neocat.trace.domain.tree.TraceNode node) {
-        if (Objects.nonNull(service) && !service.equals(tree.getServiceName())) {
+        if (Objects.nonNull(service) && !Objects.equals(service, tree.getServiceName())) {
             return false;
         }
-        if (Objects.nonNull(instance) && !instance.equals(tree.getInstanceId())) {
+        if (Objects.nonNull(instance) && !Objects.equals(instance, tree.getInstanceId())) {
             return false;
         }
         if (node.getTimestamp() < from || node.getTimestamp() >= to) {
@@ -71,7 +71,7 @@ public class SampleQuery {
         if (Objects.nonNull(category) && !category.equalsIgnoreCase(node.getCategory())) {
             return false;
         }
-        return Objects.isNull(name) || name.equals(node.getName());
+        return Objects.isNull(name) || Objects.equals(name, node.getName());
     }
 }
 

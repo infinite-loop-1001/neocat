@@ -2,23 +2,23 @@ package com.neocat.organization.domain.tree;
 
 import com.neocat.organization.domain.lifecycle.OrgResourceGateway;
 import com.neocat.organization.domain.membership.OrgMembershipService;
-
 import com.neocat.common.error.exception.ConflictException;
 import com.neocat.common.error.exception.ResourceNotFoundException;
-
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.neocat.common.error.ErrorCode.NAME_DUPLICATED;
 import static com.neocat.common.error.ErrorCode.ORG_NOT_FOUND;
 import static com.neocat.common.error.ErrorCode.PARENT_ORG_NOT_FOUND;
 import static com.neocat.common.error.ErrorCode.LEAF_HAS_RESOURCES;
+import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 组织树用例（PRD 01 §5）。
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("isOrganization")
+@Service
+@NamedInterface("isOrganization")
 public class OrgTreeService {
 
     private final OrgNodeRepository nodes;
@@ -51,7 +51,7 @@ public class OrgTreeService {
             throw new ResourceNotFoundException(PARENT_ORG_NOT_FOUND, parentId);
         }
         requireUniqueName(name, parentId, null);
-        if (Objects.nonNull(parentId) && nodes.childrenOf(parentId).isEmpty()
+        if (Objects.nonNull(parentId) && CollectionUtils.isEmpty(nodes.childrenOf(parentId))
                 && (resources.hasDashboards(parentId) || resources.hasAlertRules(parentId))) {
             throw new com.neocat.common.error.exception.BusinessRuleException(LEAF_HAS_RESOURCES);
         }
@@ -71,7 +71,7 @@ public class OrgTreeService {
     public boolean isLeaf(long orgId) {
         java.util.Optional.ofNullable(nodes.findById(orgId))
                 .orElseThrow(() -> new ResourceNotFoundException(ORG_NOT_FOUND, orgId));
-        return nodes.childrenOf(orgId).isEmpty();
+        return CollectionUtils.isEmpty(nodes.childrenOf(orgId));
     }
 
     // ── 内部 ─────────────────────────────────────────────────
@@ -83,7 +83,7 @@ public class OrgTreeService {
         boolean duplicated = nodes.findAll().stream()
                 .filter(n -> !Objects.equals(n.getId(), selfId))
                 .filter(n -> Objects.equals(n.getParentId(), parentId))
-                .anyMatch(n -> n.getName().equals(name));
+                .anyMatch(n -> Objects.equals(n.getName(), name));
         if (duplicated) {
             throw new ConflictException(NAME_DUPLICATED, name);
         }

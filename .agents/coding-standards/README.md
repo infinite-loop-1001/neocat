@@ -12,21 +12,24 @@
 6. 相邻成员字段、静态变量之间必须空一行，包括嵌套类。
 7. Convert / Converter 必须使用 MapStruct，禁止手写静态转换工具类；Spring 管理的转换器使用 `@Mapper(componentModel = "spring")`，调用方通过构造函数注入。具体映射与特殊逻辑边界见 [http-api.md](http-api.md)。
 8. Java 判空必须使用 `Objects.isNull(value)` / `Objects.nonNull(value)`，禁止使用 `== null` / `!= null`（包括反向比较）；必需参数校验保留 `Objects.requireNonNull`。详见 [java.md](java.md)。
+9. 容器与 Map 的判空统一使用 Apache `CollectionUtils` / `MapUtils`（`isEmpty`、`isNotEmpty`、`emptyIfNull`），不使用 `size() == 0`、`== null || isEmpty()` 等手写形式；`Objects.equals()` 用于判断对象相等。详见 [java.md](java.md)。
 
 ## 建议
 
 1. Spring Bean 使用构造函数注入；实例运行时字段初始化放进构造函数。自有组件优先 `@Service` / `@Component`，不为简单构造专设 Wiring。
 2. 不使用 Lombok `@UtilityClass`，工具类用显式私有构造器。
 3. 自有函数不返回 `Optional`；可空查询明确标注可空，必需查询抛明确业务异常。JDK / 框架返回的 Optional 立即消费，禁止返回 null 的 Optional。
-4. 集合辅助操作优先 JDK 或 Apache 工具类；Java 判空遵守上述强制项。不为简单操作新增依赖，不使用 Hutool、Fastjson 或 Spring 的 CollectionUtils 替代。
+4. 集合辅助操作优先 JDK 或 Apache 工具类；Java 判空遵守上述强制项。不为简单操作新增依赖，不使用 Hutool、Fastjson 或 Spring 的 CollectionUtils 替代。容器判空所需的 `commons-collections4` 仅 backend 声明；client-java 保持零新增依赖，容器判空沿用 JDK。
 
 执行细节及示例见 [java.md](java.md)。离线测试不代表真实中间件验收通过。
 
 ## 自动回归
 
 仓库根运行 `node scripts/check-coding-standards.mjs`（需要 JDK 17+）：源码禁用项、
-JDK 语法树解析成员间距/重复 key/Optional 返回声明/null 比较、两个 POM 的 `-parameters`。
+JDK 语法树解析成员间距/重复 key/Optional 返回声明/null 比较/容器判空组合与 `size()` 比较、两个 POM 的 `-parameters`。
 扫描 backend、client-java 的 src 与 scripts 中的手写 Java，不扫描 `target` 生成代码。脚本自身规格：
 `node --test scripts/check-coding-standards.test.mjs`。
 它不验证依赖传递树、JSON 字段等价、锁的真实互斥和事务连接；分别运行依赖树检查、
 后端 DTO / MockMvc / 装配 / 锁规格以及现场手册，不能拿一次静态扫描代替验收。
+容器判空检查只识别语法上可确定的形态（`Objects.isNull(x) || x.isEmpty()`、`Objects.nonNull(x) && !x.isEmpty()`、`size() == 0`），
+且排除 `String`；单独出现的 `list.isEmpty()` 需靠评审或类型感知检查发现。

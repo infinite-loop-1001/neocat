@@ -2,19 +2,19 @@ package com.neocat.organization.domain.membership;
 
 import com.neocat.organization.domain.tree.OrgNode;
 import com.neocat.organization.domain.tree.OrgNodeRepository;
-
 import com.neocat.common.error.exception.ResourceNotFoundException;
 import com.neocat.organization.api.internal.EffectiveMembershipChanged;
 import org.springframework.context.ApplicationEventPublisher;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Objects;
-
 import static com.neocat.common.error.ErrorCode.ORG_NOT_FOUND;
+import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 组织成员与有效叶子权限用例（PRD 01 §6）。
@@ -23,8 +23,8 @@ import static com.neocat.common.error.ErrorCode.ORG_NOT_FOUND;
  * 其中 leaves(叶子) = {叶子}，leaves(非叶子) = 其所有后代叶子。
  * 每次成员关系变更后立即重算，保证「权限变化即时生效」。
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("isOrganization")
+@Service
+@NamedInterface("isOrganization")
 public class OrgMembershipService {
 
     private final OrgNodeRepository nodes;
@@ -121,12 +121,12 @@ public class OrgMembershipService {
         queue.add(orgId);
         visited.add(orgId);
 
-        while (!queue.isEmpty()) {
+        while (CollectionUtils.isNotEmpty(queue)) {
             long current = queue.poll();
             List<OrgNode> children = all.stream()
                     .filter(n -> Objects.nonNull(n.getParentId()) && n.getParentId() == current)
                     .toList();
-            if (children.isEmpty()) {
+            if (CollectionUtils.isEmpty(children)) {
                 leaves.add(current);
             } else {
                 for (OrgNode child : children) {

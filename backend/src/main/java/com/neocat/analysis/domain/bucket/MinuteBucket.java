@@ -137,7 +137,7 @@ public class MinuteBucket {
     public synchronized void addValue(double value, java.time.Instant eventTime) {
         addValue(value);
         if (Objects.isNull(valueLastTime) || eventTime.isAfter(valueLastTime)
-                || (eventTime.equals(valueLastTime) && value > valueLast)) {
+                || (Objects.equals(eventTime, valueLastTime) && value > valueLast)) {
             valueLast = value;
             valueLastTime = eventTime;
         }

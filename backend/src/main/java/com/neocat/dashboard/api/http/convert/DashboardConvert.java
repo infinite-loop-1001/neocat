@@ -7,6 +7,7 @@ import com.neocat.dashboard.domain.formula.FormulaParser;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.collections4.ListUtils;
 
 public final class DashboardConvert {
     private DashboardConvert() {
@@ -36,7 +37,7 @@ public final class DashboardConvert {
     }
 
     private static List<Threshold> thresholds(List<ThresholdLine> lines) {
-        return Objects.isNull(lines) ? List.of() : lines.stream()
+        return ListUtils.emptyIfNull(lines).stream()
                 .map(line -> new Threshold(line.getDirection().name(), line.getValue())).toList();
     }
 

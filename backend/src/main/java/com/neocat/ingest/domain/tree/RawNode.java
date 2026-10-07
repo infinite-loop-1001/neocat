@@ -1,6 +1,7 @@
 package com.neocat.ingest.domain.tree;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * MessageTree 内的一个节点（PRD 02 §3、技术方案 04 §2）。
@@ -64,7 +65,7 @@ public class RawNode {
     public static final String STATUS_SUCCESS = "0";
 
     public boolean succeeded() {
-        return STATUS_SUCCESS.equals(status);
+        return Objects.equals(STATUS_SUCCESS, status);
     }
 }
 

@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import org.apache.commons.collections4.CollectionUtils;
 
 /** 组织与成员管理 HTTP 入口；管理员检查不改变。 */
 @RestController
@@ -95,7 +96,7 @@ public class OrgAdminController {
     }
 
     private OrgResponse response(OrgNode node) {
-        return OrgConvert.node(node, nodes.childrenOf(node.getId()).isEmpty(),
+        return OrgConvert.node(node, CollectionUtils.isEmpty(nodes.childrenOf(node.getId())),
                 membership.effectiveMembers(node.getId()).size());
     }
 }

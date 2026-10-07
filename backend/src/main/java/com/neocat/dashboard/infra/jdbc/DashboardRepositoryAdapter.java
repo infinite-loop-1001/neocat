@@ -11,10 +11,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neocat.organization.api.internal.OrgResourceIndex;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Objects;
+import org.apache.commons.collections4.ListUtils;
 
 /**
  * 大盘与卡片的 MyBatis 适配器（表 {@code nc_dashboard} / {@code nc_card} / {@code nc_card_threshold_line}）。
@@ -99,9 +99,9 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         row.setTargetKind(card.getTargetKind());
         row.setTargetType(card.getTargetType());
         row.setTargetName(card.getTargetName());
-        row.setMetricName("METRIC".equals(card.getTargetKind()) ? card.getTargetType() : null);
+        row.setMetricName(Objects.equals("METRIC", card.getTargetKind()) ? card.getTargetType() : null);
         row.setMetricLabels(toJson(card.getMetricLabels()));
-        row.setInstanceScope(toJson(Objects.isNull(card.getInstanceScope()) ? List.of() : card.getInstanceScope()));
+        row.setInstanceScope(toJson(ListUtils.emptyIfNull(card.getInstanceScope())));
         row.setFormula(card.getFormula());
         var parsed = new FormulaParser().parse(card.getFormula());
         if (!parsed.valid()) {

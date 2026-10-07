@@ -78,7 +78,7 @@ public class TraceAssembler {
 
         String rootId = Objects.isNull(seedTree.getRootMessageId()) ? seedTree.getMessageId() : seedTree.getRootMessageId();
         List<TraceTree> inTrace = new ArrayList<>(store.findByRootMessageId(rootId));
-        if (inTrace.stream().noneMatch(t -> t.getMessageId().equals(seedTree.getMessageId()))) {
+        if (inTrace.stream().noneMatch(t -> Objects.equals(t.getMessageId(), seedTree.getMessageId()))) {
             inTrace.add(seedTree);
         }
         inTrace.sort(Comparator.comparingLong(TraceTree::getTreeTimestamp));
@@ -98,7 +98,7 @@ public class TraceAssembler {
         for (TraceTree tree : inTrace) {
             TraceTreeNode parent = byMessageId.get(tree.getMessageId());
             for (TraceNode span : parent.spans()) {
-                if (!"CALL".equals(span.getCategory())) {
+                if (!Objects.equals("CALL", span.getCategory())) {
                     continue;
                 }
                 String downstreamService = span.getName();
@@ -106,8 +106,8 @@ public class TraceAssembler {
                     continue;
                 }
                 boolean childPresent = inTrace.stream()
-                        .anyMatch(t -> downstreamService.equals(t.getServiceName())
-                                && tree.getMessageId().equals(t.getParentMessageId()));
+                        .anyMatch(t -> Objects.equals(downstreamService, t.getServiceName())
+                                && Objects.equals(tree.getMessageId(), t.getParentMessageId()));
                 if (childPresent) {
                     continue;
                 }
@@ -131,8 +131,8 @@ public class TraceAssembler {
                                          TraceNode span, Instant now, Duration retention) {
         List<TraceRelation> relations = store.relationsByRoot(rootId);
         Optional<TraceRelation> expiredRelation = relations.stream()
-                .filter(r -> downstreamService.equals(r.getServiceName()))
-                .filter(r -> parentTree.getMessageId().equals(r.getParentMessageId()))
+                .filter(r -> Objects.equals(downstreamService, r.getServiceName()))
+                .filter(r -> Objects.equals(parentTree.getMessageId(), r.getParentMessageId()))
                 .findFirst();
 
         if (expiredRelation.isPresent()) {

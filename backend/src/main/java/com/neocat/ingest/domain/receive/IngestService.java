@@ -7,15 +7,14 @@ import com.neocat.ingest.domain.validation.FingerprintCalculator;
 import com.neocat.ingest.domain.validation.LatenessPolicy;
 import com.neocat.ingest.domain.validation.TreeValidator;
 import com.neocat.ingest.domain.validation.ValidationOutcome;
-
 import com.neocat.common.queue.BoundedDropQueue;
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.time.clock.ClockProvider;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.function.Supplier;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 上报接收编排（PRD 02 §4、§5、§8；技术方案 04 §5.2）。
@@ -90,7 +89,7 @@ public class IngestService {
     public IngestResult accept(IngestBatch batch, int payloadBytes) {
         ValidationOutcome batchCheck = validator.validateBatch(batch, payloadBytes);
         if (!batchCheck.isValid()) {
-            return IngestResult.rejected(batchCheck.getCode(), Objects.isNull(batch) || Objects.isNull(batch.getTrees())
+            return IngestResult.rejected(batchCheck.getCode(), Objects.isNull(batch) || CollectionUtils.isEmpty(batch.getTrees())
                     ? 0 : batch.getTrees().size());
         }
 

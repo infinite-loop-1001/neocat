@@ -5,9 +5,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.springframework.modulith.NamedInterface;
-
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 一条告警规则（PRD 06 §1、§2）。
@@ -108,7 +108,7 @@ public class AlertRule {
     }
     /** 规则引用的统计项（用于判断目标是否仍被卡片引用）。 */
     public List<Stat> referencedStats() {
-        if (Objects.nonNull(target) && Objects.nonNull(target.getFormulaStats()) && !target.getFormulaStats().isEmpty()) {
+        if (Objects.nonNull(target) && Objects.nonNull(target.getFormulaStats()) && CollectionUtils.isNotEmpty(target.getFormulaStats())) {
             return target.getFormulaStats();
         }
         return conditions.stream().map(Condition::getStat).distinct().toList();

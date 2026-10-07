@@ -5,6 +5,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.collections4.ListUtils;
 
 /**
  * 卡片维度下钻（PRD 05 §6、§7，技术方案 02 §9.3）。
@@ -22,8 +25,8 @@ public class CardDimensionService {
         if (Objects.isNull(card) || Objects.isNull(request)) {
             throw new IllegalArgumentException("card 与 request 不能为空");
         }
-        List<CardPoint> aggregate = Objects.isNull(aggregated) ? List.of() : List.copyOf(aggregated);
-        List<ThresholdLine> lines = Objects.isNull(request.getThresholdLines()) ? List.of() : request.getThresholdLines();
+        List<CardPoint> aggregate = CollectionUtils.isEmpty(aggregated) ? List.of() : List.copyOf(aggregated);
+        List<ThresholdLine> lines = ListUtils.emptyIfNull(request.getThresholdLines());
 
         // 聚合模式：不返回任何机器明细
         if (request.aggregateMode() && request.getTopN() <= 0) {
@@ -31,7 +34,7 @@ public class CardDimensionService {
         }
 
         List<CardDimensionView.MachineSeries> series = selectSeries(request, byInstance);
-        boolean drilled = !series.isEmpty();
+        boolean drilled = CollectionUtils.isNotEmpty(series);
         return new CardDimensionView(aggregate, series, drilled, lines);
     }
 
@@ -50,16 +53,16 @@ public class CardDimensionService {
      */
     private List<CardDimensionView.MachineSeries> selectSeries(CardDrillRequest request,
                                                               Map<String, List<CardPoint>> byInstance) {
-        if (Objects.isNull(byInstance) || byInstance.isEmpty()) {
+        if (MapUtils.isEmpty(byInstance)) {
             return List.of();
         }
         List<CardDimensionView.MachineSeries> candidates = new ArrayList<>();
         byInstance.forEach((instance, points) -> {
-            if (Objects.isNull(instance) || AGGREGATE_INSTANCE.equals(instance)) {
+            if (Objects.isNull(instance) || Objects.equals(AGGREGATE_INSTANCE, instance)) {
                 return;
             }
             candidates.add(new CardDimensionView.MachineSeries(instance,
-                    Objects.isNull(points) ? List.of() : List.copyOf(points)));
+                    CollectionUtils.isEmpty(points) ? List.of() : List.copyOf(points)));
         });
 
         if (!request.aggregateMode()) {
@@ -67,7 +70,7 @@ public class CardDimensionService {
             List<CardDimensionView.MachineSeries> picked = new ArrayList<>();
             for (String wanted : request.getInstances()) {
                 candidates.stream()
-                        .filter(s -> s.getInstance().equals(wanted))
+                        .filter(s -> Objects.equals(s.getInstance(), wanted))
                         .findFirst()
                         .ifPresent(picked::add);
             }

@@ -1,6 +1,7 @@
 package com.neocat.analysis.domain.analyzer;
 
 import java.util.List;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 一次扇出的结果（PRD 02 §9：记录失败域而非整体失败）。
@@ -46,7 +47,7 @@ public class FanOutResult {
 
     }
     public boolean anyFailed() {
-        return !failures.isEmpty();
+        return CollectionUtils.isNotEmpty(failures);
     }
 }
 

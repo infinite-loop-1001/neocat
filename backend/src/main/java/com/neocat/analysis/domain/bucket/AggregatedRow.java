@@ -118,7 +118,7 @@ public class AggregatedRow {
     public void mergeLastValue(Double value, Instant time) {
         if (Objects.isNull(value) || Objects.isNull(time)) return;
         if (Objects.isNull(valueLastTime) || time.isAfter(valueLastTime)
-                || (time.equals(valueLastTime) && value > valueLast)) {
+                || (Objects.equals(time, valueLastTime) && value > valueLast)) {
             valueLast = value;
             valueLastTime = time;
         }

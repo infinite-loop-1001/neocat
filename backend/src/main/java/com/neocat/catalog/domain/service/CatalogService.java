@@ -65,7 +65,7 @@ public class CatalogService {
         return repository.instancesOf(serviceName);
     }
     public boolean exists(String serviceName) {
-        return repository.services().stream().anyMatch(s -> s.getName().equals(serviceName));
+        return repository.services().stream().anyMatch(s -> Objects.equals(s.getName(), serviceName));
     }
 
     // ── 动态过滤（PRD 02 §5、PRD 00 §4.1）────────────────────

@@ -59,7 +59,7 @@ public class DependencyAnalyzer implements Analyzer {
             }
             String upstream = tree.getServiceName();
             String downstream = call.getDownstreamService();
-            if (Objects.isNull(upstream) || upstream.equals(downstream)) {
+            if (Objects.isNull(upstream) || Objects.equals(upstream, downstream)) {
                 // 自调用不是跨服务依赖
                 continue;
             }

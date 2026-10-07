@@ -3,6 +3,7 @@ package com.neocat.client;
 import com.neocat.protocol.ingest.v1.Heartbeat;
 import java.lang.management.*;
 import java.util.*;
+import java.util.Objects;
 
 /** Conservative MXBean sampling. Unknown pools/collectors remain absent, not guessed zeroes. */
 public final class JvmHeartbeatSampler {
@@ -24,7 +25,7 @@ public final class JvmHeartbeatSampler {
     }
 
     private static String alias(String field) {
-        if (field.equals("thread_count")) return "threads";
+        if (Objects.equals(field, "thread_count")) return "threads";
         String[] words = field.replace("_bytes", "").replace("_ms", "").split("_");
         StringBuilder key = new StringBuilder(words[0]);
         for (int i = 1; i < words.length; i++) key.append(Character.toUpperCase(words[i].charAt(0))).append(words[i].substring(1));

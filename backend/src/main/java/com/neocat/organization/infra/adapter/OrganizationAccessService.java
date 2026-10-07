@@ -5,7 +5,9 @@ import com.neocat.organization.domain.membership.EffectiveLeafRepository;
 import com.neocat.organization.domain.tree.OrgNodeRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Set;
+import org.apache.commons.collections4.CollectionUtils;
 
 @Component
 public class OrganizationAccessService implements OrganizationAccess {
@@ -19,7 +21,7 @@ public class OrganizationAccessService implements OrganizationAccess {
     }
     @Override
     public boolean isLeaf(long orgId) {
-        return java.util.Objects.nonNull(nodes.findById(orgId)) && nodes.childrenOf(orgId).isEmpty();
+        return Objects.nonNull(nodes.findById(orgId)) && CollectionUtils.isEmpty(nodes.childrenOf(orgId));
     }
     @Override
     public boolean isEffectiveMember(long accountId, long orgId) {

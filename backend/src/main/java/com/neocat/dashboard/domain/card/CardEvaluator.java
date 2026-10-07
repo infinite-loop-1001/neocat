@@ -2,9 +2,7 @@ package com.neocat.dashboard.domain.card;
 
 import com.neocat.dashboard.domain.formula.Formula;
 import com.neocat.dashboard.domain.formula.FormulaParser;
-
 import com.neocat.query.domain.stat.Stat;
-
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -12,6 +10,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 
 /**
  * 卡片求值器（PRD 05 §4、§5，技术方案 02 §9.2）。
@@ -43,12 +43,12 @@ public class CardEvaluator {
 
         Set<String> missing = new LinkedHashSet<>();
         for (Stat stat : formula.referencedStats()) {
-            Double value = Objects.isNull(inputs) ? null : inputs.get(stat);
+            Double value = MapUtils.isEmpty(inputs) ? null : inputs.get(stat);
             if (Objects.isNull(value)) {
                 missing.add(displayOf(stat));
             }
         }
-        if (!missing.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(missing)) {
             return new CardPoint(bucketStart, bucketEnd, null,
                     CardPointOutcome.GAP, List.copyOf(missing));
         }

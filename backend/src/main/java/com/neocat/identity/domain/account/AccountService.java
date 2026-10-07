@@ -139,7 +139,7 @@ public class AccountService {
         if (!hasher.matches(oldRawPassword, account.getPasswordHash())) {
             throw new AuthenticationException(BAD_CREDENTIALS);
         }
-        if (oldRawPassword.equals(newRawPassword)) {
+        if (Objects.equals(oldRawPassword, newRawPassword)) {
             throw new ValidationException(PASSWORD_UNCHANGED);
         }
         requirePasswordLength(newRawPassword);

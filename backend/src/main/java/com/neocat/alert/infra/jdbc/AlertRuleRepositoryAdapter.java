@@ -15,11 +15,11 @@ import com.neocat.organization.api.internal.OrgResourceIndex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 告警规则与窗口状态的 MyBatis 适配器
@@ -62,7 +62,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         row.setTargetType(rule.getTarget().getType());
         row.setTargetName(rule.getTarget().getName());
         row.setTargetMetricLabels(rule.getTarget().getMetricLabels());
-        row.setFormulaStats(Objects.isNull(rule.getTarget().getFormulaStats()) ? "" :
+        row.setFormulaStats(CollectionUtils.isEmpty(rule.getTarget().getFormulaStats()) ? "" :
                 rule.getTarget().getFormulaStats().stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
         row.setTargetStat(rule.getConditions().get(0).getStat().name());
         row.setChannels(rule.getChannels().stream().map(Enum::name)
@@ -97,7 +97,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         }
 
         if (Objects.nonNull(resources)) {
-            if (Objects.nonNull(prior) && Objects.nonNull(prior.getOrgId()) && !prior.getOrgId().equals(rule.getOrgId())) {
+            if (Objects.nonNull(prior) && Objects.nonNull(prior.getOrgId()) && !Objects.equals(prior.getOrgId(), rule.getOrgId())) {
                 resources.removeAlertRule(prior.getOrgId(), rule.getId());
             }
             if (rule.isOrganization()) {

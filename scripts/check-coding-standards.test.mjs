@@ -97,6 +97,46 @@ test('Java 判空检查覆盖左右比较、括号、三元与 lambda，忽略�
   }
 });
 
+test('容器判空必须走 CollectionUtils / MapUtils，且不误报字符串 isEmpty', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-container-standards-'));
+  const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));
+  const run = source => {
+    const file = path.join(dir, 'Fixture.java');
+    fs.writeFileSync(file, source);
+    return spawnSync('java', [helper, file], { encoding: 'utf8' });
+  };
+  try {
+    const invalid = run(`import java.util.Objects;
+      class Fixture {
+      boolean run(java.util.List<String> list, java.util.Map<String, String> map, java.util.Set<String> set) {
+        boolean a = Objects.isNull(list) || list.isEmpty();
+        boolean b = Objects.isNull(map) || map.isEmpty();
+        boolean c = Objects.nonNull(set) && !set.isEmpty();
+        boolean d = list.size() == 0;
+        return a || b || c || d;
+      }
+    }`);
+    assert.equal(invalid.status, 1, invalid.stderr);
+    assert.equal((invalid.stderr.match(/容器判空必须使用/g) ?? []).length, 4, invalid.stderr);
+    assert.ok(!invalid.stderr.includes('禁止直接比较 null'), invalid.stderr);
+
+    const valid = run(`import org.apache.commons.collections4.CollectionUtils;
+      import org.apache.commons.collections4.MapUtils;
+      import java.util.Objects;
+      class Fixture {
+        boolean run(java.util.List<String> list, java.util.Map<String, String> map, String text) {
+          // String.isEmpty 与容器判空规则无关。
+          if (Objects.nonNull(text) && !text.isEmpty()) return false;
+          return CollectionUtils.isEmpty(list) || MapUtils.isEmpty(map)
+              || CollectionUtils.isNotEmpty(list) || MapUtils.isNotEmpty(map);
+        }
+      }`);
+    assert.equal(valid.status, 0, valid.stderr);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('Objects 判空保持短路、三元默认值与副作用表达式单次求值', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-null-semantics-'));
   const file = path.join(dir, 'Fixture.java');

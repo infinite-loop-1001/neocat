@@ -5,10 +5,8 @@ import com.neocat.query.domain.series.Quality;
 import com.neocat.query.domain.series.Series;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
-
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.common.time.bucket.Bucket;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * Metric 查询（PRD 04 §2–5，链路 21）。
@@ -69,9 +68,9 @@ public class MetricQueryService {
         }
 
         return new Series(service, "METRIC", metricName, labels, stat,
-                buckets.isEmpty() ? 0 : buckets.get(0).totalSeconds(),
-                buckets.isEmpty() ? 0 : buckets.get(0).getStart().toEpochMilli(),
-                buckets.isEmpty() ? 0 : buckets.get(buckets.size() - 1).getEnd().toEpochMilli(),
+                CollectionUtils.isEmpty(buckets) ? 0 : buckets.get(0).totalSeconds(),
+                CollectionUtils.isEmpty(buckets) ? 0 : buckets.get(0).getStart().toEpochMilli(),
+                CollectionUtils.isEmpty(buckets) ? 0 : buckets.get(buckets.size() - 1).getEnd().toEpochMilli(),
                 List.copyOf(points));
     }
     /** 该小时对该标签组合是否被并入 other。 */
@@ -88,7 +87,7 @@ public class MetricQueryService {
      * other 序列在各小时本来就代表聚合结果。
      */
     private boolean mergedIntoOtherFor(String labels, long bucketStart, Set<Long> mergedHours) {
-        if ("__OTHER__".equals(labels)) {
+        if (Objects.equals("__OTHER__", labels)) {
             return false;
         }
         return mergedIntoOther(bucketStart, mergedHours);
@@ -102,7 +101,7 @@ public class MetricQueryService {
     private Map<Long, AggregatedRow> indexByBucket(List<AggregatedRow> rows,
                                                    String service, String metricName, String labels) {
         Map<Long, AggregatedRow> byBucket = new HashMap<>();
-        if (Objects.isNull(rows)) {
+        if (CollectionUtils.isEmpty(rows)) {
             return byBucket;
         }
         for (AggregatedRow row : rows) {
@@ -115,13 +114,13 @@ public class MetricQueryService {
     }
     /** 行的序列身份是否与查询目标一致。 */
     private boolean matchesIdentity(AggregatedRow row, String service, String metricName, String labels) {
-        if (Objects.nonNull(service) && !service.equals(row.key().getService())) {
+        if (Objects.nonNull(service) && !Objects.equals(service, row.key().getService())) {
             return false;
         }
-        if (Objects.nonNull(metricName) && !metricName.equals(row.key().getType())) {
+        if (Objects.nonNull(metricName) && !Objects.equals(metricName, row.key().getType())) {
             return false;
         }
-        if (Objects.nonNull(labels) && !labels.equals(row.key().getMetricLabels())) {
+        if (Objects.nonNull(labels) && !Objects.equals(labels, row.key().getMetricLabels())) {
             return false;
         }
         return true;

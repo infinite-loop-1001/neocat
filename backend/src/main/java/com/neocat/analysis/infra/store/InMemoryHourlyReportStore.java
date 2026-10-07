@@ -3,7 +3,6 @@ package com.neocat.analysis.infra.store;
 import com.neocat.analysis.domain.bucket.HourlyReportStore;
 import com.neocat.analysis.domain.bucket.MinuteBucket;
 import com.neocat.analysis.domain.bucket.SeriesKey;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -11,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Objects;
+import org.apache.commons.collections4.MapUtils;
 
 /**
  * 进程内当前小时报表（技术方案 01-architecture.md §6.5）。
@@ -53,7 +53,7 @@ public class InMemoryHourlyReportStore implements HourlyReportStore {
     @Override
     public MinuteBucket bucket(SeriesKey key, Instant minuteStart) {
         Map<Instant, MinuteBucket> byMinute = buckets.get(key);
-        return Objects.isNull(byMinute) ? null : byMinute.get(minuteStart.truncatedTo(ChronoUnit.MINUTES));
+        return MapUtils.isEmpty(byMinute) ? null : byMinute.get(minuteStart.truncatedTo(ChronoUnit.MINUTES));
     }
     @Override
     public Set<SeriesKey> seriesKeys() {

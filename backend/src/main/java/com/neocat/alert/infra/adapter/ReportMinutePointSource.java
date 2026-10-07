@@ -6,11 +6,11 @@ import com.neocat.dashboard.api.internal.CardResults;
 import com.neocat.query.api.internal.ReportPoints;
 import com.neocat.query.domain.stat.Stat;
 import org.springframework.stereotype.Component;
-
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Component
 public class ReportMinutePointSource implements MinutePointSource {
@@ -37,7 +37,7 @@ public class ReportMinutePointSource implements MinutePointSource {
             }
             return result;
         }
-        String name = "METRIC".equals(target.getReportKind()) ? target.getMetricLabels() : target.getName();
+        String name = Objects.equals("METRIC", target.getReportKind()) ? target.getMetricLabels() : target.getName();
         Map<String, Double> raw = reports.values(target.getReportKind(), target.getService(), target.getType(),
                 name, from, from.plusSeconds(60), stats.stream().map(Enum::name).toList(), List.of());
         Map<Stat, Double> result = new LinkedHashMap<>();

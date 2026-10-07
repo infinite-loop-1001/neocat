@@ -2,6 +2,7 @@ package com.neocat.dashboard.domain.card;
 
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 卡片维度下钻（PRD 05 §6、§7，技术方案 02 §9.3）。
@@ -35,6 +36,6 @@ public class CardDrillRequest {
 
     /** 聚合模式：不勾选任何机器。 */
     public boolean aggregateMode() {
-        return Objects.isNull(instances) || instances.isEmpty();
+        return CollectionUtils.isEmpty(instances);
     }
 }

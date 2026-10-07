@@ -21,7 +21,6 @@ import com.neocat.query.domain.report.ReportRow;
 import com.neocat.query.domain.report.ReportTableService;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -30,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 报表查询应用服务（技术方案 03-api-contract.md §4）。
@@ -155,7 +155,7 @@ public class ReportQueryService {
         Stat target = Stat.parse(stat);
         // range 决定窗口，bucket 只覆盖粒度（技术方案 03 §4.2：bucket 可省略，省略时按 range 的默认粒度）。
         var base = ranges.resolve(parseRange(range), zone.get());
-        if (base.getBuckets().isEmpty()) {
+        if (CollectionUtils.isEmpty(base.getBuckets())) {
             return emptySeries(service, kind, type, name, target, base);
         }
         Granularity granularity = Granularity.fromSeconds(base.bucketSeconds());

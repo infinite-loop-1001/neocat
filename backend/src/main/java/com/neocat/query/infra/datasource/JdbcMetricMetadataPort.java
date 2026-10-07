@@ -1,14 +1,17 @@
 package com.neocat.query.infra.datasource;
 
 import com.neocat.query.infra.port.MetricMetadataPort;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neocat.analysis.domain.metric.MetricLabelMetadata;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 import org.springframework.jdbc.core.JdbcTemplate;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
+import java.util.Objects;
 
 /** Versioned snapshots: merge flags are monotone; never sum a re-written metadata snapshot. */
 public  class JdbcMetricMetadataPort implements MetricMetadataPort {
@@ -37,10 +40,11 @@ public  class JdbcMetricMetadataPort implements MetricMetadataPort {
                     rs.getTimestamp("hour").toInstant(), rs.getString("labels"), labels,
                     rs.getBoolean("is_merged"), rs.getLong("report_count"), rs.getString("source"));
         }, service, metric, Timestamp.from(to), Timestamp.from(from.truncatedTo(java.time.temporal.ChronoUnit.HOURS))));
-        result.addAll(memory.entries(from, to).stream().filter(e -> e.getService().equals(service) && e.getMetric().equals(metric)).toList());
-        @lombok.Getter
-        @lombok.EqualsAndHashCode
-        @lombok.ToString
+        result.addAll(memory.entries(from, to).stream().filter(e -> Objects.equals(e.getService(), service) && Objects.equals(e.getMetric(), metric)).toList());
+
+        @Getter
+        @EqualsAndHashCode
+        @ToString
         class Key {
             private final Instant hour;
 
@@ -53,7 +57,7 @@ public  class JdbcMetricMetadataPort implements MetricMetadataPort {
                 this.labels = labels;
                 this.source = source;
             }
- }
+        }
         Map<Key, MetricLabelMetadata.Entry> deduplicated = new LinkedHashMap<>();
         for (var entry : result) {
             deduplicated.merge(new Key(entry.getHour(), entry.getCanonicalLabels(), entry.getSource()), entry, (a, b) ->

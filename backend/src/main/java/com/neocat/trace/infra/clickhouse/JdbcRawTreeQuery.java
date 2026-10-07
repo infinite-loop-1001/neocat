@@ -1,12 +1,12 @@
 package com.neocat.trace.infra.clickhouse;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-
 import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
+
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 原始树与 Trace 关系的 JDBC 实现（技术方案 06 §5–6）。
@@ -56,7 +56,7 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
                 ORDER BY tree_timestamp DESC
                 LIMIT 1
                 """, TREE_ROW_MAPPER, messageId);
-        return rows.isEmpty() ? null : rows.get(0);
+        return CollectionUtils.isEmpty(rows) ? null : rows.get(0);
     }
     @Override
     public List<TraceTreeRow> selectTreesByRoot(String rootMessageId) {
@@ -95,7 +95,7 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
                 ORDER BY tree_timestamp DESC
                 LIMIT 1
                 """, RELATION_ROW_MAPPER, messageId);
-        return rows.isEmpty() ? null : rows.get(0);
+        return CollectionUtils.isEmpty(rows) ? null : rows.get(0);
     }
     @Override
     public List<TraceRelationRow> selectRelationsByRoot(String rootMessageId) {
@@ -119,7 +119,7 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
                 SELECT message_id FROM neocat.nc_raw_tree WHERE tree_timestamp < ?
                 """, String.class, java.sql.Timestamp.from(threshold));
 
-        if (ids.isEmpty()) {
+        if (CollectionUtils.isEmpty(ids)) {
             return List.of();
         }
         jdbc.update("ALTER TABLE neocat.nc_raw_tree DELETE WHERE tree_timestamp < ?",

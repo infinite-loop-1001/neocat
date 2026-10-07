@@ -4,7 +4,6 @@ import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.AggregationLevel;
 import com.neocat.analysis.domain.bucket.MinuteBucketSource;
 import com.neocat.analysis.domain.bucket.ReportBucketSinkPort;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -12,6 +11,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.function.Supplier;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 报表滚动编排（PRD 00 §10、PRD 03 §2.1，链路 23）。
@@ -61,7 +61,7 @@ public class ReportScheduler {
     public int flushCompletedMinute(Instant now) {
         Instant completedMinute = now.truncatedTo(ChronoUnit.MINUTES).minusSeconds(60);
         List<AggregatedRow> rows = reader.readMinute(completedMinute);
-        if (rows.isEmpty()) {
+        if (CollectionUtils.isEmpty(rows)) {
             return 0;
         }
         sink.writeMinuteBuckets(rows);
@@ -80,7 +80,7 @@ public class ReportScheduler {
         Instant completedHour = now.atZone(zone.get()).truncatedTo(ChronoUnit.HOURS)
                 .minusHours(1).toInstant();
         List<AggregatedRow> minuteRows = reader.readHour(completedHour);
-        if (minuteRows.isEmpty()) {
+        if (CollectionUtils.isEmpty(minuteRows)) {
             if (releaseMemory) reader.clearHour(completedHour);
             return 0;
         }
@@ -102,7 +102,7 @@ public class ReportScheduler {
         for (int offset = 1; offset <= hours; offset++) {
             Instant hour = currentHour.minusSeconds(offset * 3600L);
             List<AggregatedRow> rows = reader.readHour(hour);
-            if (!rows.isEmpty()) {
+            if (CollectionUtils.isNotEmpty(rows)) {
                 sink.writeMinuteBuckets(rows);
                 sink.writeHourBuckets(reader.aggregate(rows, AggregationLevel.HOUR));
             }
@@ -119,7 +119,7 @@ public class ReportScheduler {
         Instant start = today.minusDays(1).toInstant();
         Instant end = today.toInstant();
         List<AggregatedRow> hourRows = sink.readBuckets(AggregationLevel.HOUR, start, end);
-        if (hourRows.isEmpty()) {
+        if (CollectionUtils.isEmpty(hourRows)) {
             return 0;
         }
         List<AggregatedRow> dayRows = reader.aggregate(hourRows, AggregationLevel.DAY);
@@ -135,7 +135,7 @@ public class ReportScheduler {
         Instant end = monday.toInstant();
         Instant start = monday.minusWeeks(1).toInstant();
         List<AggregatedRow> hourRows = sink.readBuckets(AggregationLevel.HOUR, start, end);
-        if (hourRows.isEmpty()) {
+        if (CollectionUtils.isEmpty(hourRows)) {
             return 0;
         }
         List<AggregatedRow> weekRows = reader.aggregate(hourRows, AggregationLevel.WEEK);
@@ -151,7 +151,7 @@ public class ReportScheduler {
         Instant end = firstOfMonth.toInstant();
         Instant start = firstOfMonth.minusMonths(1).toInstant();
         List<AggregatedRow> hourRows = sink.readBuckets(AggregationLevel.HOUR, start, end);
-        if (hourRows.isEmpty()) {
+        if (CollectionUtils.isEmpty(hourRows)) {
             return 0;
         }
         List<AggregatedRow> monthRows = reader.aggregate(hourRows, AggregationLevel.MONTH);

@@ -2,9 +2,9 @@ package com.neocat.query.domain.stat;
 
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.DurationDistribution;
-
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 分位合并（PRD 03 §3、PRD 04 §9，技术方案 03 §8.1）。
@@ -36,7 +36,7 @@ public class PercentileMerger {
      * 合并多行的分布，返回新的合并分布对象（不修改输入行）。
      */
     public DurationDistribution mergeDistribution(List<AggregatedRow> rows) {
-        if (Objects.isNull(rows) || rows.isEmpty()) {
+        if (CollectionUtils.isEmpty(rows)) {
             return new DurationDistribution();
         }
         DurationDistribution merged = null;

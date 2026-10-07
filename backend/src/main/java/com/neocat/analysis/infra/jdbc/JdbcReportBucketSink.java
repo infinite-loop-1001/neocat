@@ -2,12 +2,12 @@ package com.neocat.analysis.infra.jdbc;
 
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.AggregationLevel;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * ClickHouse 桶写入（技术方案 06 §1–3、§9）。
@@ -71,7 +71,7 @@ public class JdbcReportBucketSink implements com.neocat.analysis.domain.bucket.R
      * 批量写入。分布以 {@code long[]} 直接映射到 ClickHouse 的 {@code Array(UInt64)}。
      */
     private void write(String table, String bucketColumn, List<AggregatedRow> rows) {
-        if (Objects.isNull(rows) || rows.isEmpty()) {
+        if (CollectionUtils.isEmpty(rows)) {
             return;
         }
         String sql = """

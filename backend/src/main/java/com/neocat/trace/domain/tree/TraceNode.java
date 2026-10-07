@@ -1,6 +1,5 @@
 package com.neocat.trace.domain.tree;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -51,9 +50,6 @@ public class TraceNode {
         this.tags = tags;
     }
 
-    public boolean succeeded() {
-        return "0".equals(status);
-    }
 }
 
 

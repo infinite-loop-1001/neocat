@@ -1,17 +1,15 @@
 package com.neocat.ingest.domain.validation;
 
 import com.neocat.ingest.domain.receive.IngestBatch;
-import com.neocat.ingest.domain.receive.IngestService;
 import com.neocat.ingest.domain.tree.MessageTree;
 import com.neocat.ingest.domain.tree.MetricValue;
 import com.neocat.ingest.domain.tree.NodeKind;
 import com.neocat.ingest.domain.tree.RawNode;
-
 import com.neocat.common.config.IngestConfig;
-
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 上报校验链（技术方案 04 §4）。
@@ -31,11 +29,11 @@ public class TreeValidator {
     /** 批次级校验：协议版本、批次树数、批次字节。 */
     public ValidationOutcome validateBatch(IngestBatch batch, int payloadBytes) {
         if (Objects.isNull(batch) || Objects.isNull(batch.getProtocolVersion())
-                || !IngestBatch.SUPPORTED_VERSION.equals(batch.getProtocolVersion())) {
+                || !Objects.equals(IngestBatch.SUPPORTED_VERSION, batch.getProtocolVersion())) {
             return ValidationOutcome.reject(ValidationOutcome.UNSUPPORTED_VERSION,
                     "不支持的协议版本：" + (Objects.isNull(batch) ? null : batch.getProtocolVersion()));
         }
-        if (Objects.isNull(batch.getTrees()) || batch.getTrees().isEmpty()) {
+        if (CollectionUtils.isEmpty(batch.getTrees())) {
             return ValidationOutcome.reject(ValidationOutcome.BATCH_TOO_LARGE, "批次不能为空");
         }
         if (batch.getTrees().size() > IngestConfig.MAX_TREES_PER_BATCH) {
@@ -57,7 +55,7 @@ public class TreeValidator {
         if (!required.isValid()) {
             return required;
         }
-        if (Objects.isNull(tree.getNodes()) || tree.getNodes().isEmpty()) {
+        if (CollectionUtils.isEmpty(tree.getNodes())) {
             return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "树内节点不能为空");
         }
         if (tree.getNodes().size() > IngestConfig.MAX_NODES_PER_TREE) {

@@ -1,5 +1,7 @@
 package com.neocat.query.domain.report;
 
+import java.util.Objects;
+
 /**
  * 机器维度的一行（PRD 03 §7.3）。
  *
@@ -44,7 +46,7 @@ public class MachineRow {
     public static final String OTHER = "other";
 
     public boolean isOther() {
-        return OTHER.equals(instance);
+        return Objects.equals(OTHER, instance);
     }
 }
 

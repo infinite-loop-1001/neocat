@@ -2,7 +2,6 @@ package com.neocat.ingest.infra;
 
 import com.neocat.common.config.IngestConfig;
 import com.neocat.common.queue.BoundedDropQueue;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.collections4.CollectionUtils;
 
 /** 动态上报队列：容量检查直接读配置，缩容不丢弃已经接收的数据。 */
 public class IngestDropQueue<T> implements BoundedDropQueue<T> {
@@ -51,9 +51,9 @@ public class IngestDropQueue<T> implements BoundedDropQueue<T> {
         lock.lockInterruptibly();
         try {
             long remaining = TimeUnit.MILLISECONDS.toNanos(Math.max(0, timeoutMillis));
-            while (items.isEmpty() && remaining > 0) remaining = available.awaitNanos(remaining);
+            while (CollectionUtils.isEmpty(items) && remaining > 0) remaining = available.awaitNanos(remaining);
             List<T> batch = new ArrayList<>();
-            while (!items.isEmpty() && batch.size() < Math.max(1, maxItems)) batch.add(items.removeFirst());
+            while (CollectionUtils.isNotEmpty(items) && batch.size() < Math.max(1, maxItems)) batch.add(items.removeFirst());
             return batch;
         } finally {
             lock.unlock();

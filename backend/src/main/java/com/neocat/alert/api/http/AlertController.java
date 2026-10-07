@@ -20,6 +20,7 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.ListUtils;
 
 /** 告警 HTTP 入口：保存自动关闭，预览不发送、不落历史、不改变窗口。 */
 // rules: 使用 springDoc 添加接口文档
@@ -109,8 +110,7 @@ public class AlertController {
             }
             requireOrgMember(account.getId(), draft.getOrgId());
         }
-        List<AlertChannel> channels = Objects.isNull(draft.getChannels()) ? List.of()
-                : draft.getChannels().stream().map(AlertChannel::valueOf).toList();
+        List<AlertChannel> channels = ListUtils.emptyIfNull(draft.getChannels()).stream().map(AlertChannel::valueOf).toList();
         AlertRule rule = convert.rule(draft, scope);
         // rules: 这类业务校验下沉到 service 处理逻辑
         dispatcher.validateChannels(channels);

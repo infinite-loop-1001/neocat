@@ -2,6 +2,7 @@ package com.neocat.query.domain.report;
 
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 机器维度视图（PRD 03 §7.3、§10）。
@@ -42,7 +43,7 @@ public class MachineView {
     }
 
     public boolean hasSelection() {
-        return Objects.nonNull(selected) && !selected.isEmpty();
+        return Objects.nonNull(selected) && CollectionUtils.isNotEmpty(selected);
     }
     /** 数量类对账：Top N + other 应等于全量。 */
     public long reconciledTotal() {

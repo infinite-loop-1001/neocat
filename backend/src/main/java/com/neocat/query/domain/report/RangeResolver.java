@@ -4,10 +4,10 @@ import com.neocat.common.time.bucket.Bucket;
 import com.neocat.common.time.bucket.Granularity;
 import com.neocat.common.time.range.RangeSpec;
 import com.neocat.common.time.bucket.TimeBucketResolver;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 查询时间范围解析（PRD 03 §2、技术方案 03 §4.2）。
@@ -50,7 +50,7 @@ public class RangeResolver {
 
 
         public long bucketSeconds() {
-            return buckets.isEmpty() ? 0 : buckets.get(0).totalSeconds();
+            return CollectionUtils.isEmpty(buckets) ? 0 : buckets.get(0).totalSeconds();
         }
 
         public int pointCount() {
@@ -59,7 +59,7 @@ public class RangeResolver {
     }
     public ResolvedRange resolve(RangeSpec spec, ZoneId zone) {
         List<Bucket> parsed = buckets.resolve(spec, zone);
-        if (parsed.isEmpty()) {
+        if (CollectionUtils.isEmpty(parsed)) {
             return new ResolvedRange(Instant.EPOCH, Instant.EPOCH, List.of());
         }
         Instant from = parsed.get(0).getStart();

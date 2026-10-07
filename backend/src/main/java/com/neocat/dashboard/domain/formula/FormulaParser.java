@@ -100,7 +100,7 @@ public class FormulaParser {
             String op = cursor.previous();
             Formula right = parseTerm(cursor);
             Formula.Binary binary = new Formula.Binary(
-                    "+".equals(op) ? FormulaOperator.ADD : FormulaOperator.SUBTRACT, left, right);
+                    Objects.equals("+", op) ? FormulaOperator.ADD : FormulaOperator.SUBTRACT, left, right);
             requireAdditiveCompatibility(binary);
             left = binary;
         }
@@ -112,7 +112,7 @@ public class FormulaParser {
             String op = cursor.previous();
             Formula right = parseFactor(cursor);
             left = new Formula.Binary(
-                    "*".equals(op) ? FormulaOperator.MULTIPLY : FormulaOperator.DIVIDE, left, right);
+                    Objects.equals("*", op) ? FormulaOperator.MULTIPLY : FormulaOperator.DIVIDE, left, right);
         }
         return left;
     }
@@ -213,7 +213,7 @@ public class FormulaParser {
     }
     private boolean isAggregate(String token) {
         String lower = token.toLowerCase(Locale.ROOT);
-        return lower.equals("sum") || lower.equals("avg") || lower.equals("min") || lower.equals("max");
+        return Objects.equals(lower, "sum") || Objects.equals(lower, "avg") || Objects.equals(lower, "min") || Objects.equals(lower, "max");
     }
     private FormulaAggregate aggregateOf(String token) {
         return switch (token.toLowerCase(Locale.ROOT)) {
@@ -273,7 +273,7 @@ public class FormulaParser {
         }
 
         boolean peekNextIs(String expected) {
-            return index + 1 < tokens.size() && tokens.get(index + 1).equals(expected);
+            return index + 1 < tokens.size() && Objects.equals(tokens.get(index + 1), expected);
         }
 
         String next() {
@@ -287,7 +287,7 @@ public class FormulaParser {
         }
 
         boolean accept(String expected) {
-            if (expected.equals(peek())) {
+            if (Objects.equals(expected, peek())) {
                 next();
                 return true;
             }

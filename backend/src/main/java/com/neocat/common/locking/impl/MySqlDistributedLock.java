@@ -40,7 +40,7 @@ public class MySqlDistributedLock {
                     + "ON DUPLICATE KEY UPDATE lock_key = lock_key", key);
             String locked = jdbc.queryForObject(
                     "SELECT lock_key FROM nc_distributed_lock WHERE lock_key = ? FOR UPDATE", String.class, key);
-            if (!key.equals(locked)) {
+            if (!Objects.equals(key, locked)) {
                 throw new IllegalStateException("未获得指定锁行：" + key);
             }
             return operation.get();

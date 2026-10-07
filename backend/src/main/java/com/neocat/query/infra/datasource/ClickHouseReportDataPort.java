@@ -3,14 +3,13 @@ package com.neocat.query.infra.datasource;
 import com.neocat.query.infra.port.ReportDataPort;
 
 import com.neocat.analysis.domain.bucket.AggregatedRow;
-import com.neocat.analysis.domain.bucket.AggregationLevel;
 import com.neocat.analysis.domain.bucket.DurationDistribution;
 import com.neocat.analysis.domain.bucket.SeriesKey;
 import com.neocat.analysis.domain.bucket.SeriesKind;
 import com.neocat.common.time.bucket.Bucket;
 import com.neocat.common.time.bucket.Granularity;
-import com.neocat.common.time.range.RangeSpec;
 import com.neocat.common.time.bucket.TimeBucketResolver;
+import com.neocat.common.time.range.RangeSpec;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -19,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 基于 ClickHouse 的报表读取实现（技术方案 06 §10）。
@@ -74,7 +74,7 @@ public class ClickHouseReportDataPort implements ReportDataPort {
     public List<AggregatedRow> rows(String kind, String service, String type, String name,
                                     Instant from, Instant to, Granularity granularity,
                                     List<String> instances) {
-        List<String> targets = (Objects.isNull(instances) || instances.isEmpty())
+        List<String> targets = (CollectionUtils.isEmpty(instances))
                 ? List.of(SeriesKey.ALL)
                 : instances;
 

@@ -6,13 +6,11 @@ import com.neocat.dashboard.domain.dashboard.DashboardRepository;
 import com.neocat.dashboard.domain.event.CardEvent;
 import com.neocat.dashboard.domain.event.CardEventPublisher;
 import com.neocat.dashboard.domain.formula.FormulaParser;
-
 import com.neocat.common.error.exception.AuthorizationException;
 import com.neocat.common.error.exception.BusinessRuleException;
 import com.neocat.common.error.exception.ResourceNotFoundException;
 import com.neocat.common.error.exception.ValidationException;
 import com.neocat.query.domain.stat.Stat;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Objects;
-
 import static com.neocat.common.error.ErrorCode.CARD_EVALUATION_UNAVAILABLE;
 import static com.neocat.common.error.ErrorCode.CARD_NOT_FOUND;
 import static com.neocat.common.error.ErrorCode.CARD_NOT_IN_DASHBOARD;
@@ -30,6 +27,7 @@ import static com.neocat.common.error.ErrorCode.DASHBOARD_NOT_FOUND;
 import static com.neocat.common.error.ErrorCode.FORMULA_INVALID;
 import static com.neocat.common.error.ErrorCode.NOT_ORG_MEMBER;
 import static com.neocat.common.error.ErrorCode.UNIT_MISMATCH;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 卡片用例（PRD 05 §2–§9）。
@@ -134,7 +132,7 @@ public class CardService {
     @com.neocat.common.locking.MySqlLocked("metadata")
     public void reorder(long accountId, long dashboardId, List<Long> cardIds) {
         Dashboard dashboard = requireDashboard(accountId, dashboardId);
-        if (Objects.isNull(cardIds)) {
+        if (CollectionUtils.isEmpty(cardIds)) {
             return;
         }
         int order = 0;
@@ -260,10 +258,10 @@ public class CardService {
 
     private void validate(Card draft) {
         String targetError = evaluator.validateTarget(draft);
-        if (CardEvaluator.INVALID_TARGET.equals(targetError)) {
+        if (Objects.equals(CardEvaluator.INVALID_TARGET, targetError)) {
             throw new ValidationException(CARD_TARGET_REQUIRED);
         }
-        if (UNIT_MISMATCH.name().equals(targetError)) {
+        if (Objects.equals(UNIT_MISMATCH.name(), targetError)) {
             throw new ValidationException(UNIT_MISMATCH);
         }
         if (Objects.nonNull(targetError)) {
@@ -298,8 +296,8 @@ public class CardService {
         return java.util.Optional.ofNullable(dashboards.findById(card.getDashboardId())).map(Dashboard::getOrgId).orElse(0L);
     }
     private boolean targetOrFormulaChanged(Card before, Card after) {
-        return !normalize(before.getFormula()).equals(normalize(after.getFormula()))
-                || !before.targetIdentity().equals(after.targetIdentity());
+        return !Objects.equals(normalize(before.getFormula()), normalize(after.getFormula()))
+                || !Objects.equals(before.targetIdentity(), after.targetIdentity());
     }
     private String normalize(String formula) {
         return Objects.isNull(formula) ? "" : formula.replaceAll("\\s+", "").toLowerCase(java.util.Locale.ROOT);

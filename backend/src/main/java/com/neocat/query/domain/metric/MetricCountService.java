@@ -1,7 +1,6 @@
 package com.neocat.query.domain.metric;
 
 import com.neocat.query.domain.series.Quality;
-
 import com.neocat.analysis.domain.analyzer.*;
 import com.neocat.analysis.domain.bucket.*;
 import com.neocat.analysis.domain.dependency.*;
@@ -10,6 +9,8 @@ import com.neocat.analysis.domain.schedule.*;
 import com.neocat.common.time.bucket.Bucket;
 import java.time.*;
 import java.util.*;
+import org.apache.commons.collections4.CollectionUtils;
+import java.util.Objects;
 
 /** Exact counts from observation rows, preserving identity and uncertainty across source hours. */
 @org.springframework.modulith.NamedInterface("query")
@@ -32,15 +33,15 @@ public class MetricCountService {
                         : row.bucketStart().truncatedTo(java.time.temporal.ChronoUnit.HOURS);
                 Instant sourceEnd = row.level() == AggregationLevel.DAY ? sourceHour.plusSeconds(86400) : sourceHour.plusSeconds(3600);
                 var entries = metadata.stream().filter(e -> e.getHour().plusSeconds(3600).isAfter(sourceHour) && e.getHour().isBefore(sourceEnd)).toList();
-                if (entries.isEmpty()) { unknown = true; continue; }
-                if (SeriesKey.OTHER_LABELS.equals(row.key().getMetricLabels())) {
+                if (CollectionUtils.isEmpty(entries)) { unknown = true; continue; }
+                if (Objects.equals(SeriesKey.OTHER_LABELS, row.key().getMetricLabels())) {
                     // A metadata flush can lag behind the bucket flush. Do not interpret
                     // an incomplete list of merged combinations as exhaustive ownership.
                     long recordedMerged = entries.stream().filter(MetricLabelMetadata.Entry::isMerged).mapToLong(MetricLabelMetadata.Entry::getVersion).sum();
                     if (recordedMerged < row.valueCount()
                             || entries.stream().anyMatch(e -> e.isMerged() && filters.matches(e.getLabels()))) unknown = true;
                 } else {
-                    var labels = entries.stream().filter(e -> e.getCanonicalLabels().equals(row.key().getMetricLabels())).findFirst();
+                    var labels = entries.stream().filter(e -> Objects.equals(e.getCanonicalLabels(), row.key().getMetricLabels())).findFirst();
                     if (labels.isEmpty()) unknown = true;
                     else if (filters.matches(labels.get().getLabels())) count += row.valueCount();
                 }

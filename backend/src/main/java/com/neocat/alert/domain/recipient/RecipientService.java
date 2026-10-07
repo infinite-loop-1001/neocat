@@ -7,8 +7,9 @@ import com.neocat.alert.domain.rule.AlertRuleService;
 import com.neocat.common.locking.MySqlLocked;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
+import org.apache.commons.collections4.CollectionUtils;
+import java.util.Objects;
 
 /**
  * 收件人维护（PRD 06 §9）。
@@ -75,7 +76,7 @@ public class RecipientService {
      * 规则本身不因收件人清空而关闭。
      */
     public List<Long> effectiveRecipients(AlertRule rule) {
-        if (Objects.isNull(rule) || Objects.isNull(rule.getRecipients())) {
+        if (Objects.isNull(rule) || CollectionUtils.isEmpty(rule.getRecipients())) {
             return List.of();
         }
         List<Long> result = new ArrayList<>();
@@ -113,7 +114,7 @@ public class RecipientService {
     }
     /** 校验收件人选择合法：账号必须启用；组织告警还必须是该叶子的有效成员。 */
     public void validateSelection(AlertRule rule, List<Long> recipients) {
-        if (Objects.isNull(recipients) || recipients.isEmpty()) {
+        if (CollectionUtils.isEmpty(recipients)) {
             return;
         }
         // rules: 遍历容器的时候不要单独 for 循环做可能高耗时的业务逻辑 (如 rpc, 数据库操作), 尽量使用批量处理
@@ -133,7 +134,7 @@ public class RecipientService {
     private List<AlertRule> removeFromAll(long accountId) {
         List<AlertRule> changed = new ArrayList<>();
         for (AlertRule rule : repository.findAll()) {
-            if (Objects.isNull(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
+            if (CollectionUtils.isEmpty(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
                 continue;
             }
             List<Long> remaining = rule.getRecipients().stream().filter(id -> id != accountId).toList();
@@ -146,7 +147,7 @@ public class RecipientService {
         List<AlertRule> changed = new ArrayList<>();
         for (AlertRule rule : repository.byOrg(orgId)) {
             // fixme: 抽一个公共方法在当前类里
-            if (Objects.isNull(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
+            if (CollectionUtils.isEmpty(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
                 continue;
             }
             List<Long> remaining = rule.getRecipients().stream().filter(id -> id != accountId).toList();
@@ -166,7 +167,7 @@ public class RecipientService {
     }
     // rules: List 去重使用 stream 流, 不要单独再写一个函数
     private List<Long> distinct(List<Long> recipients) {
-        if (Objects.isNull(recipients)) {
+        if (CollectionUtils.isEmpty(recipients)) {
             return List.of();
         }
         Set<Long> unique = new LinkedHashSet<>(recipients);

@@ -5,10 +5,10 @@ import com.neocat.alert.domain.rule.AlertRule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 通知分发（PRD 06 §10、§11）。
@@ -57,7 +57,7 @@ public class NotificationDispatcher {
      * @throws IllegalArgumentException 通道未配置或列表为空
      */
     public void validateChannels(List<AlertChannel> channels) {
-        if (Objects.isNull(channels) || channels.isEmpty()) {
+        if (CollectionUtils.isEmpty(channels)) {
             throw new IllegalArgumentException("规则必须指定至少一个通知通道");
         }
         for (AlertChannel channel : channels) {
@@ -84,10 +84,10 @@ public class NotificationDispatcher {
      * @return 实际发送成功的通知；无有效收件人时为空列表
      */
     public List<AlertNotification> dispatch(AlertRule rule, List<Long> effectiveRecipients, long triggeredAt) {
-        if (Objects.isNull(rule) || Objects.isNull(effectiveRecipients) || effectiveRecipients.isEmpty()) {
+        if (Objects.isNull(rule) || CollectionUtils.isEmpty(effectiveRecipients)) {
             return List.of();
         }
-        if (Objects.isNull(rule.getChannels()) || rule.getChannels().isEmpty()) {
+        if (CollectionUtils.isEmpty(rule.getChannels())) {
             return List.of();
         }
 

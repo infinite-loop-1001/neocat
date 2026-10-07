@@ -2,16 +2,13 @@ package com.neocat.query.domain.report;
 
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
-
 import com.neocat.analysis.domain.bucket.AggregatedRow;
-import com.neocat.analysis.domain.bucket.AggregationLevel;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 机器维度视图构建（PRD 03 §7.3、§10；技术方案 03 §4.3）。
@@ -46,7 +43,7 @@ public class MachineViewBuilder {
                 .toList();
 
         // 手动勾选模式：只返回选中机器，不补 other
-        if (Objects.nonNull(selected) && !selected.isEmpty()) {
+        if (Objects.nonNull(selected) && CollectionUtils.isNotEmpty(selected)) {
             List<MachineRow> selectedRows = sorted.stream()
                     .filter(row -> selected.contains(row.key().getInstance()))
                     .map(row -> toMachineRow(row, calculator, stat, coveredSeconds))
@@ -73,13 +70,13 @@ public class MachineViewBuilder {
 
     /** 排除全机器聚合行。 */
     private List<AggregatedRow> filterMachineRows(List<AggregatedRow> rows) {
-        if (Objects.isNull(rows)) {
+        if (CollectionUtils.isEmpty(rows)) {
             return List.of();
         }
         List<AggregatedRow> machines = new ArrayList<>();
         for (AggregatedRow row : rows) {
             String instance = row.key().getInstance();
-            if (Objects.isNull(instance) || SeriesKeyHelper.ALL.equals(instance)) {
+            if (Objects.isNull(instance) || Objects.equals(SeriesKeyHelper.ALL, instance)) {
                 continue;
             }
             machines.add(row);

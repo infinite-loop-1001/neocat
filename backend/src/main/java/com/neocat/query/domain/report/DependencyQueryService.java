@@ -3,9 +3,7 @@ package com.neocat.query.domain.report;
 import com.neocat.query.domain.stat.PercentileMerger;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
-
 import com.neocat.analysis.domain.bucket.AggregatedRow;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -13,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 依赖查询（PRD 04 §6、§8，链路 22）。
@@ -74,7 +73,7 @@ public class DependencyQueryService {
      */
     public List<DependencyRow> list(DependencyDirectionQuery direction, List<AggregatedRow> rows,
                                     long coveredSeconds) {
-        if (Objects.isNull(rows) || rows.isEmpty() || Objects.isNull(direction)) {
+        if (CollectionUtils.isEmpty(rows) || Objects.isNull(direction)) {
             return List.of();
         }
         String expectedType = direction.name().toUpperCase(Locale.ROOT);

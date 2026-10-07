@@ -6,9 +6,10 @@ import com.neocat.alert.domain.engine.PreviewResult;
 import com.neocat.query.domain.stat.Stat;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 
 /**
  * 告警 HTTP 契约与领域模型之间的转换（PRD 06 §1、§2、§4）。
@@ -32,9 +33,9 @@ public interface AlertConvert {
                 draft.getWindowPoints(),
                 // rules: 禁止使用 List.of(), 因为他返回的是一个不可变 List, 使用 Apache common 包的 CollectionUtils 创建空
                 //  容器, 包括单不限于 List, Set, Map 等等
-                Objects.isNull(draft.getConditions()) ? List.of() : conditions(draft.getConditions()),
-                Objects.isNull(draft.getRecipients()) ? List.of() : draft.getRecipients(),
-                Objects.isNull(draft.getChannels()) ? List.of() : channels(draft.getChannels()));
+                CollectionUtils.isEmpty(draft.getConditions()) ? List.of() : conditions(draft.getConditions()),
+                ListUtils.emptyIfNull(draft.getRecipients()),
+                CollectionUtils.isEmpty(draft.getChannels()) ? List.of() : channels(draft.getChannels()));
     }
 
     /** 条件列表：统计项与比较符在边界处解析为枚举。 */
@@ -54,7 +55,7 @@ public interface AlertConvert {
     // question: 为什么这里要直接引用 query.domain 模块的值对象?
     // rules: 这里用枚举 code 判断呢, 不要用常量值判断
     default AlertTarget target(TargetDraft draft) {
-        List<Stat> stats = Objects.isNull(draft.getFormulaStats()) ? List.of() : draft.getFormulaStats().stream().map(Stat::parse).toList();
+        List<Stat> stats = ListUtils.emptyIfNull(draft.getFormulaStats()).stream().map(Stat::parse).toList();
         return "CARD_RESULT".equalsIgnoreCase(draft.getKind())
                 ? AlertTarget.cardResult(draft.getCardId(), draft.getService(), draft.getReportKind(), draft.getType(), draft.getName(), stats)
                 : AlertTarget.rawMetric(draft.getService(), draft.getReportKind(), draft.getType(), draft.getName());

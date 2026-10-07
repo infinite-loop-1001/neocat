@@ -3,15 +3,15 @@ package com.neocat.alert.domain.engine;
 import com.neocat.alert.domain.rule.AlertRule;
 import com.neocat.alert.domain.rule.Combinator;
 import com.neocat.alert.domain.rule.Condition;
-
 import com.neocat.query.domain.stat.Stat;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 
 /**
  * 预告警试算（PRD 06 §4）。
@@ -80,7 +80,7 @@ public class PreviewService {
     // fixme: 这里逻辑需要收束到 AlterWindowStateService 里
     public boolean combine(AlertRule rule, Map<Stat, Double> values) {
         List<Condition> conditions = rule.getConditions();
-        if (Objects.isNull(conditions) || conditions.isEmpty()) {
+        if (CollectionUtils.isEmpty(conditions)) {
             return false;
         }
         boolean and = rule.getCombinator() == Combinator.AND;
@@ -115,7 +115,7 @@ public class PreviewService {
     // fixme: 这里逻辑需要收束到 AlterWindowStateService 里
     private String firstMissing(List<Stat> requiredStats, Map<Stat, Double> values) {
         for (Stat stat : requiredStats) {
-            if (Objects.isNull(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
+            if (MapUtils.isEmpty(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
                 return displayOf(stat);
             }
         }

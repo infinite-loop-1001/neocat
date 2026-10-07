@@ -3,6 +3,9 @@ package com.neocat.query.domain.metric;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neocat.common.error.exception.ValidationException;
 import java.util.*;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import java.util.Objects;
 
 /** Strict external input: malformed filters are not silently interpreted as a total query. */
 @org.springframework.modulith.NamedInterface("query")
@@ -32,7 +35,7 @@ public class MetricFilters {
                     if (!value.isTextual()) throw invalid();
                     values.add(value.textValue());
                 }
-                if (!values.isEmpty()) result.put(field.getKey(), Set.copyOf(values));
+                if (CollectionUtils.isNotEmpty(values)) result.put(field.getKey(), Set.copyOf(values));
             }
             return new MetricFilters(Map.copyOf(result));
         } catch (ValidationException e) { throw e; }
@@ -42,5 +45,5 @@ public class MetricFilters {
     public boolean matches(Map<String, String> labels) {
         return values.entrySet().stream().allMatch(e -> labels.containsKey(e.getKey()) && e.getValue().contains(labels.get(e.getKey())));
     }
-    public boolean total() { return values.isEmpty(); }
+    public boolean total() { return MapUtils.isEmpty(values); }
 }

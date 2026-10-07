@@ -3,7 +3,6 @@ package com.neocat.analysis.infra.store;
 import com.neocat.analysis.domain.metric.MetricHourRank;
 import com.neocat.analysis.domain.bucket.SeriesKey;
 import com.neocat.common.config.MetricConfig;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
@@ -102,7 +101,7 @@ public class InMemoryMetricHourRank implements MetricHourRank {
         for (Map.Entry<Group, HourState> entry : hours.entrySet()) {
             Group key = entry.getKey();
             HourState state = entry.getValue();
-            if (!key.getHour().equals(hour)) {
+            if (!Objects.equals(key.getHour(), hour)) {
                 continue;
             }
             synchronized (state) {
@@ -117,7 +116,7 @@ public class InMemoryMetricHourRank implements MetricHourRank {
     public boolean finalized(Instant hourStart) {
         Instant hour = hourOf(hourStart);
         return hours.entrySet().stream()
-                .filter(e -> e.getKey().getHour().equals(hour))
+                .filter(e -> Objects.equals(e.getKey().getHour(), hour))
                 .findFirst()
                 .map(e -> {
                     synchronized (e.getValue()) {

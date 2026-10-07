@@ -11,14 +11,13 @@ import com.neocat.ingest.domain.tree.RawNode;
 import com.neocat.ingest.domain.tree.RemoteCallValue;
 import com.neocat.protocol.ingest.v1.IngestRequest;
 import com.neocat.protocol.ingest.v1.Kind;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
 import static com.neocat.common.error.ErrorCode.MALFORMED_TREE;
 import static com.neocat.common.error.ErrorCode.UNSUPPORTED_VERSION;
+import org.apache.commons.collections4.MapUtils;
 
 /**
  * 上报协议适配器：Protobuf 批次 → 领域对象（技术方案 04-ingest-protocol.md §2–3）。
@@ -37,7 +36,7 @@ public class IngestRequestMapper {
         if (Objects.isNull(request)) {
             throw new IngestException(MALFORMED_TREE, "请求体为空");
         }
-        if (!IngestBatch.SUPPORTED_VERSION.equals(request.getProtocolVersion())) {
+        if (!Objects.equals(IngestBatch.SUPPORTED_VERSION, request.getProtocolVersion())) {
             throw new IngestException(UNSUPPORTED_VERSION, request.getProtocolVersion());
         }
         List<MessageTree> trees = new ArrayList<>(request.getTreesCount());
@@ -74,7 +73,7 @@ public class IngestRequestMapper {
                 node.hasHeartbeat() ? toHeartbeat(node.getHeartbeat()) : null,
                 node.hasRemoteCall() ? toRemoteCall(node.getRemoteCall()) : null,
                 node.hasException() ? toException(node.getException()) : null,
-                node.getTagsMap().isEmpty() ? Map.of() : Map.copyOf(node.getTagsMap()));
+                MapUtils.isEmpty(node.getTagsMap()) ? Map.of() : Map.copyOf(node.getTagsMap()));
     }
     private static NodeKind toKind(Kind kind) {
         return switch (kind) {
@@ -91,7 +90,7 @@ public class IngestRequestMapper {
         return new MetricValue(
                 blankToNull(metric.getName()),
                 metric.getValue(),
-                metric.getLabelsMap().isEmpty() ? Map.of() : Map.copyOf(metric.getLabelsMap()));
+                MapUtils.isEmpty(metric.getLabelsMap()) ? Map.of() : Map.copyOf(metric.getLabelsMap()));
     }
     public static HeartbeatValue toHeartbeat(com.neocat.protocol.ingest.v1.Heartbeat hb) {
         Map<String, Long> values = new java.util.LinkedHashMap<>();
@@ -104,7 +103,7 @@ public class IngestRequestMapper {
         return new HeartbeatValue(values);
     }
     private static String heartbeatMetric(String field) {
-        if (field.equals("thread_count")) return "threads";
+        if (Objects.equals(field, "thread_count")) return "threads";
         return field.replace("_bytes", "").replace("_ms", "").replace('_', '-');
     }
     private static RemoteCallValue toRemoteCall(com.neocat.protocol.ingest.v1.RemoteCall call) {

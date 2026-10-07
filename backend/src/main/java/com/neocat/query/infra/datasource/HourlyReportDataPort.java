@@ -1,7 +1,6 @@
 package com.neocat.query.infra.datasource;
 
 import com.neocat.query.infra.port.ReportDataPort;
-
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.AggregationLevel;
 import com.neocat.analysis.domain.bucket.HourlyReportStore;
@@ -11,7 +10,6 @@ import com.neocat.common.time.bucket.Bucket;
 import com.neocat.common.time.bucket.Granularity;
 import com.neocat.common.time.bucket.TimeBucketResolver;
 import com.neocat.common.time.range.RangeSpec;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -20,6 +18,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 基于进程内当前小时报表的读取实现（技术方案 01-architecture.md §6.5）。
@@ -63,7 +62,7 @@ public class HourlyReportDataPort implements ReportDataPort {
     public List<AggregatedRow> rows(String kind, String service, String type, String name,
                                     Instant from, Instant to, Granularity granularity,
                                     List<String> instances) {
-        List<String> targets = (Objects.isNull(instances) || instances.isEmpty())
+        List<String> targets = (CollectionUtils.isEmpty(instances))
                 ? List.of(SeriesKey.ALL)
                 : instances;
 
@@ -78,7 +77,7 @@ public class HourlyReportDataPort implements ReportDataPort {
             }
             String seriesName = key.getKind() == com.neocat.analysis.domain.bucket.SeriesKind.METRIC
                     ? key.getMetricLabels() : key.getName();
-            if (Objects.nonNull(name) && !name.equals(seriesName)) {
+            if (Objects.nonNull(name) && !Objects.equals(name, seriesName)) {
                 continue;
             }
             for (Bucket bucket : bucketList) {
@@ -136,13 +135,13 @@ public class HourlyReportDataPort implements ReportDataPort {
     public List<String> instancesWithData(String kind, String service, Instant from, Instant to) {
         Set<String> result = new LinkedHashSet<>();
         for (SeriesKey key : store.seriesKeys()) {
-            if (!service.equals(key.getService())) {
+            if (!Objects.equals(service, key.getService())) {
                 continue;
             }
             if (!key.getKind().name().equalsIgnoreCase(kind)) {
                 continue;
             }
-            if (SeriesKey.ALL.equals(key.getInstance())) {
+            if (Objects.equals(SeriesKey.ALL, key.getInstance())) {
                 continue;
             }
             if (hasDataInRange(key, from, to)) {
@@ -189,19 +188,19 @@ public class HourlyReportDataPort implements ReportDataPort {
     @Override
     public boolean mergedIntoOther(String service, String metricName, String labels, Instant hourStart) {
         return Objects.nonNull(metadata) && metadata.entries(hourStart, hourStart.plusSeconds(3600)).stream().anyMatch(e ->
-                e.getService().equals(service) && e.getMetric().equals(metricName) && e.getCanonicalLabels().equals(labels) && e.isMerged());
+                Objects.equals(e.getService(), service) && Objects.equals(e.getMetric(), metricName) && Objects.equals(e.getCanonicalLabels(), labels) && e.isMerged());
     }
 
     // ── 内部 ─────────────────────────────────────────────────
 
     private boolean matches(SeriesKey key, String kind, String service, String type) {
-        if (!service.equals(key.getService())) {
+        if (!Objects.equals(service, key.getService())) {
             return false;
         }
         if (!key.getKind().name().equalsIgnoreCase(kind)) {
             return false;
         }
-        return Objects.isNull(type) || type.equals(key.getType());
+        return Objects.isNull(type) || Objects.equals(type, key.getType());
     }
     /** 该序列在 [from, to) 内是否存在非空分钟桶。 */
     private boolean hasDataInRange(SeriesKey key, Instant from, Instant to) {

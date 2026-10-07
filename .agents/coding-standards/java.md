@@ -55,6 +55,29 @@ return Objects.nonNull(value) && value.isValid();
 `Objects.requireNonNull` 用于必需参数校验，不得替换成普通判空而丢失失败语义；
 非 null 的对象相等性比较不受本条影响。不为判空引入依赖。
 
+## 容器与相等
+
+容器（`Collection` / `List` / `Set`）与 `Map` 的判空统一使用 Apache `commons-collections4`：
+
+```java
+if (CollectionUtils.isEmpty(recipients)) {
+    return List.of();
+}
+if (MapUtils.isNotEmpty(labels)) {
+    entries.putAll(labels);
+}
+List<Line> lines = ListUtils.emptyIfNull(card.getThresholdLines());
+```
+
+- 判空/非空用 `CollectionUtils`、`MapUtils`；`ListUtils` / `SetUtils` 没有 `isEmpty`，只有 `emptyIfNull`。
+- `emptyIfNull` 按静态类型选择 `ListUtils` / `SetUtils` / `MapUtils`，其余用 `CollectionUtils`。
+- 禁止 `list.size() == 0`、`Objects.isNull(list) || list.isEmpty()` 这类手写判空；可直接用 `CollectionUtils.isEmpty()` 表达「null 或空」。
+- 空容器默认值仍用 `List.of()` / `Map.of()` / `List.copyOf()`；它们与 `CollectionUtils.emptyCollection()` 一样不可修改，不要为「可变空容器」引入工具调用。
+
+判断对象相等使用 `Objects.equals(left, right)`，避免任一比较对象为 null 时抛 NPE。枚举与原始类型仍用 `==`：枚举常量引用唯一，`==` 不会 NPE 且是惯用写法。注意 `a.equals(b)` 改为 `Objects.equals(a, b)` 会把原本的 NPE 变成返回 false；接收者确定非 null 时保持原样更安全。
+
+容器判空工具仅 backend 声明 `commons-collections4`；client-java 保持零新增依赖，容器判空沿用 JDK。
+
 正常未找到：返回 `@Nullable T` 并用 `Objects.isNull` / `Objects.nonNull` 消费。必需存在：明确抛出已有业务异常。集合返回空集合，不返回 null。Optional 不是避免制定未找到语义的替代品；框架的 Optional 可局部消费。
 
 现有明确的 equals、isEmpty、isBlank 无需为了风格改成复杂工具调用。工具限定 JDK、Apache，避免增加依赖或掩盖领域语义。

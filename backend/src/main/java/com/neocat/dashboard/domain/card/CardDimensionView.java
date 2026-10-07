@@ -2,6 +2,7 @@ package com.neocat.dashboard.domain.card;
 
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * 卡片维度视图（PRD 05 §6、§7）。
@@ -59,7 +60,7 @@ public class CardDimensionView {
     }
     /** 聚合结果中越过阈值线的点位数（仅用于展示，不驱动告警）。 */
     public long breaches() {
-        if (Objects.isNull(thresholdLines) || thresholdLines.isEmpty()) {
+        if (CollectionUtils.isEmpty(thresholdLines)) {
             return 0;
         }
         return aggregated.stream()
