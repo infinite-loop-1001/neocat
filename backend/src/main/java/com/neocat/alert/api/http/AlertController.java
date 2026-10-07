@@ -43,10 +43,12 @@ public class AlertController {
 
     private final Clock clock;
 
+    private final AlertConvert convert;
+
     public AlertController(AlertRuleRepository repository, AlertRuleService ruleService,
                            AlertLifecycleService lifecycle, PreviewService previewService,
                            RecipientService recipients, NotificationDispatcher dispatcher,
-                           RecipientGateway recipientGateway, Clock clock) {
+                           RecipientGateway recipientGateway, Clock clock, AlertConvert convert) {
         // rules: controller 不能依赖 repository
         this.repository = repository;
         this.ruleService = ruleService;
@@ -56,6 +58,7 @@ public class AlertController {
         this.dispatcher = dispatcher;
         this.recipientGateway = recipientGateway;
         this.clock = clock;
+        this.convert = convert;
     }
 
     @GetMapping
@@ -76,7 +79,7 @@ public class AlertController {
             rules = repository.findAll().stream()
                     .filter(rule -> rule.getScope().name().equalsIgnoreCase(scope)).toList();
         }
-        return ResponseEntity.ok(rules.stream().map(AlertConvert::response).toList());
+        return ResponseEntity.ok(rules.stream().map(convert::response).toList());
     }
 
     @GetMapping("/channels")
@@ -89,10 +92,10 @@ public class AlertController {
 
     @PostMapping("/preview")
     public ResponseEntity<PreviewResponse> preview(@RequestBody AlertDraft draft) {
-        AlertRule rule = AlertConvert.rule(draft, scope(draft));
+        AlertRule rule = convert.rule(draft, scope(draft));
         long latestMinute = clock.instant().minusSeconds(AlertConfig.EVALUATE_DELAY_SECONDS).toEpochMilli()
                 / 60_000L * 60_000L;
-        return ResponseEntity.ok(AlertConvert.preview(previewService.preview(rule, latestMinute)));
+        return ResponseEntity.ok(convert.preview(previewService.preview(rule, latestMinute)));
     }
 
     @PostMapping
@@ -107,11 +110,11 @@ public class AlertController {
         }
         List<AlertChannel> channels = draft.getChannels() == null ? List.of()
                 : draft.getChannels().stream().map(AlertChannel::valueOf).toList();
-        AlertRule rule = AlertConvert.rule(draft, scope);
+        AlertRule rule = convert.rule(draft, scope);
         // rules: 这类业务校验下沉到 service 处理逻辑
         dispatcher.validateChannels(channels);
         recipients.validateSelection(rule, draft.getRecipients());
-        return ResponseEntity.status(201).body(AlertConvert.response(ruleService.save(rule)));
+        return ResponseEntity.status(201).body(convert.response(ruleService.save(rule)));
     }
 
     @PostMapping("/{id}")
@@ -124,21 +127,21 @@ public class AlertController {
             requireOrgMember(account.getId(), draft.getOrgId());
         }
         // fixme: 这里要由 AlterRuleService 处理
-        return ResponseEntity.ok(AlertConvert.response(lifecycle.edit(id, AlertConvert.rule(draft, scope))));
+        return ResponseEntity.ok(convert.response(lifecycle.edit(id, convert.rule(draft, scope))));
     }
 
     @PostMapping("/{id}/enable")
     // fixme: 这里指返回是否成功就可以了, 不需要返回全量数据
     public ResponseEntity<RuleResponse> enable(@PathVariable long id) {
         // fixme: 这里要由 AlterRuleService 处理
-        return ResponseEntity.ok(AlertConvert.response(lifecycle.enable(id, clock.millis())));
+        return ResponseEntity.ok(convert.response(lifecycle.enable(id, clock.millis())));
     }
 
     @PostMapping("/{id}/disable")
     // fixme: 这里指返回是否成功就可以了, 不需要返回全量数据
     public ResponseEntity<RuleResponse> disable(@PathVariable long id) {
         // fixme: 这里要由 AlterRuleService 处理
-        return ResponseEntity.ok(AlertConvert.response(lifecycle.disable(id)));
+        return ResponseEntity.ok(convert.response(lifecycle.disable(id)));
     }
 
     @DeleteMapping("/{id}")

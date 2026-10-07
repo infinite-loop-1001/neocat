@@ -37,8 +37,9 @@ class DynamicHttpConfigSpec extends Specification {
     def "同一告警预览控制器更新后使用新延迟"() {
         given:
         def preview = Mock(com.neocat.alert.domain.engine.PreviewService)
+        def convert = org.mapstruct.factory.Mappers.getMapper(com.neocat.alert.api.http.convert.AlertConvert)
         def controller = new com.neocat.alert.api.http.AlertController(null, null, null, preview,
-                null, null, null, Clock.fixed(Instant.parse('2026-10-03T02:02:30Z'), ZoneOffset.UTC))
+                null, null, null, Clock.fixed(Instant.parse('2026-10-03T02:02:30Z'), ZoneOffset.UTC), convert)
         def target = new com.neocat.alert.api.http.dto.AlertDtos.TargetDraft('RAW_METRIC', 0, 's', 'TRANSACTION', 'URL', 'n', [])
         def condition = new com.neocat.alert.api.http.dto.AlertDtos.ConditionDraft('hits', 'GT', 0)
         def draft = new com.neocat.alert.api.http.dto.AlertDtos.AlertDraft('SERVICE', null, 'r', '',

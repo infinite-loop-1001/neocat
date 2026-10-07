@@ -151,7 +151,8 @@ class HttpDtoContractSpec extends Specification {
                      gaps:[[bucketStart:1L,missingInputs:['HITS']]], undefined:[[bucketStart:3L,reason:'DIVIDE_BY_ZERO']]]
 
         expect:
-        json.readTree(json.writeValueAsString(com.neocat.alert.api.http.convert.AlertConvert.preview(preview))) ==
+        json.readTree(json.writeValueAsString(org.mapstruct.factory.Mappers
+                .getMapper(com.neocat.alert.api.http.convert.AlertConvert).preview(preview))) ==
                 json.readTree('''{"result":"INSUFFICIENT_DATA","points":[{"minute":1,"known":false,"satisfied":false,"missingStat":"HITS"}]}''')
         json.readTree(json.writeValueAsString(DashboardConvert.series(model))) == json.readTree(json.writeValueAsString(model))
         json.readTree(json.writeValueAsString(DashboardConvert.card(card))).fieldNames().toList().toSet() ==

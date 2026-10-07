@@ -4,52 +4,70 @@ import com.neocat.alert.api.http.dto.AlertDtos.*;
 import com.neocat.alert.domain.rule.*;
 import com.neocat.alert.domain.engine.PreviewResult;
 import com.neocat.query.domain.stat.Stat;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
-// fixme: 使用 mapstruct 而不是静态函数
-public final class AlertConvert {
-    private AlertConvert() {
-    }
+/**
+ * 告警 HTTP 契约与领域模型之间的转换（PRD 06 §1、§2、§4）。
+ *
+ * <p>MapStruct 在编译期生成实现并注册为 Spring Bean（{@code componentModel = "spring"}）：
+ * 接口只声明映射形状，字段对应关系由 {@code @Mapping} 表达，不再手写逐字段的静态转换函数。
+ *
+ * <p>规则的创建仍调用 {@link AlertRule#draft} 而不是直接构造：id、启用状态、窗口基线与三个集合的
+ * 防御性拷贝属于聚合的初始状态不变量，不能复制到转换层。
+ */
+@Mapper(componentModel = "spring")
+public interface AlertConvert {
 
-    public static AlertRule rule(AlertDraft draft, AlertScope scope) {
+    /** 新建规则草稿；未给出的字段按原入口行为取默认值。 */
+    default AlertRule rule(AlertDraft draft, AlertScope scope) {
         // rules: 判空使用 Objects.isNull() 或者 Objects.nonNull()
-        List<Condition> conditions = draft.getConditions() == null ? List.of() : draft.getConditions().stream()
-                .map(c -> new Condition(Stat.parse(c.getStat()), Comparator.valueOf(c.getComparator()), c.getThreshold())).toList();
-        return AlertRule.draft(scope, draft.getOrgId(), draft.getName() == null ? "未命名规则" : draft.getName(),
+        return AlertRule.draft(scope, draft.getOrgId(),
+                draft.getName() == null ? "未命名规则" : draft.getName(),
                 draft.getDescription() == null ? "" : draft.getDescription(),
                 draft.getTarget() == null ? AlertTarget.rawMetric("", "TRANSACTION", null, null) : target(draft.getTarget()),
                 draft.getCombinator() == null ? Combinator.AND : Combinator.valueOf(draft.getCombinator()),
+                draft.getWindowPoints(),
                 // rules: 禁止使用 List.of(), 因为他返回的是一个不可变 List, 使用 Apache common 包的 CollectionUtils 创建空
                 //  容器, 包括单不限于 List, Set, Map 等等
-                draft.getWindowPoints(), conditions, draft.getRecipients() == null ? List.of() : draft.getRecipients(),
-                draft.getChannels() == null ? List.of() : draft.getChannels().stream().map(AlertChannel::valueOf).toList());
+                draft.getConditions() == null ? List.of() : conditions(draft.getConditions()),
+                draft.getRecipients() == null ? List.of() : draft.getRecipients(),
+                draft.getChannels() == null ? List.of() : channels(draft.getChannels()));
     }
 
-    private static AlertTarget target(TargetDraft draft) {
-        // question: 为什么这里要直接引用 query.domain 模块的值对象?
+    /** 条件列表：统计项与比较符在边界处解析为枚举。 */
+    List<Condition> conditions(List<ConditionDraft> drafts);
+
+    /** 通道列表：字符串按枚举名解析。 */
+    List<AlertChannel> channels(List<String> names);
+
+    /**
+     * 统计项：沿用 {@link Stat#parse} 的裁剪与大写归一，因此不能交给 String → 枚举的默认转换。
+     */
+    default Stat stat(String raw) {
+        return Stat.parse(raw);
+    }
+
+    /** 目标：卡片结果目标携带卡片 ID 与公式统计项，其余按原始指标目标构造。 */
+    // question: 为什么这里要直接引用 query.domain 模块的值对象?
+    // rules: 这里用枚举 code 判断呢, 不要用常量值判断
+    default AlertTarget target(TargetDraft draft) {
         List<Stat> stats = draft.getFormulaStats() == null ? List.of() : draft.getFormulaStats().stream().map(Stat::parse).toList();
-        // rules: 这里用枚举 code 判断呢, 不要用常量值判断
         return "CARD_RESULT".equalsIgnoreCase(draft.getKind())
                 ? AlertTarget.cardResult(draft.getCardId(), draft.getService(), draft.getReportKind(), draft.getType(), draft.getName(), stats)
                 : AlertTarget.rawMetric(draft.getService(), draft.getReportKind(), draft.getType(), draft.getName());
     }
 
-    public static RuleResponse response(AlertRule rule) {
-        AlertTarget target = rule.getTarget();
-        return new RuleResponse(rule.getId(), rule.getScope().name(), rule.getOrgId(), rule.getName(),
-                rule.getCombinator().name(), rule.getWindowPoints(), rule.isEnabled(), rule.isInvalid(), rule.getRecipients(),
-                rule.getChannels().stream().map(Enum::name).toList(), rule.getConditions().stream()
-                        .map(c -> new ConditionDraft(c.getStat().name(), c.getComparator().name(), c.getThreshold())).toList(),
-                new TargetResponse(target.getKind().name(), target.getCardId(), target.getService(), target.getReportKind(),
-                        target.getType() == null ? "" : target.getType(), target.getName() == null ? "" : target.getName()));
-    }
+    /** 规则响应：领域枚举按名称出参，条件与目标递归转换为对应 DTO。 */
+    RuleResponse response(AlertRule rule);
 
-    public static PreviewResponse preview(PreviewResult result) {
-        return new PreviewResponse(result.getResult().name(), result.getPoints().stream()
-                .map(p -> new PreviewPoint(p.getMinute(), p.isKnown(), p.isSatisfied(), p.getMissingStat()))
-                .toList());
-    }
+    /** 目标响应：缺失的分类与名称按原契约保留为空串。 */
+    @Mapping(target = "type", source = "type", defaultValue = "")
+    @Mapping(target = "name", source = "name", defaultValue = "")
+    TargetResponse target(AlertTarget target);
+
+    /** 试算响应：逐点判定明细保持原结构。 */
+    PreviewResponse preview(PreviewResult result);
 }

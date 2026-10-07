@@ -10,6 +10,7 @@
 4. 禁止引入或调用 Hutool、Fastjson（含 Fastjson2）；JSON 使用 Jackson。
 5. 对外 Controller 使用专用 DTO 与 Convert，统一 `ResponseEntity<T>`；详见 [http-api.md](http-api.md)。
 6. 相邻成员字段、静态变量之间必须空一行，包括嵌套类。
+7. Convert / Converter 必须使用 MapStruct，禁止手写静态转换工具类；Spring 管理的转换器使用 `@Mapper(componentModel = "spring")`，调用方通过构造函数注入。具体映射与特殊逻辑边界见 [http-api.md](http-api.md)。
 
 ## 建议
 

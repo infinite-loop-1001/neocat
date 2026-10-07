@@ -33,7 +33,7 @@ Collectors.toMap(Item::getId, Function.identity(), (left, right) -> {
 
 - 禁止声明 `record`，使用普通类和 `getX()` / `isX()`；手写行为方法不强制改名。
 - 禁止 Hutool、Fastjson、Fastjson2，包括直接和可排除的传递依赖。
-- 禁止新增 `@UtilityClass`；优先显式私有构造器的工具类，或普通 Convert。
+- 禁止新增 `@UtilityClass`；普通工具类使用显式私有构造器。Convert / Converter 必须使用 MapStruct，不得作为手写静态工具类实现；Spring 注入与特殊映射边界见 [http-api.md](http-api.md)。
 - DTO 不自动输出密码、token 等敏感字段的 toString。
 - 两个 POM 的 `-parameters` 必须保留，新增请求 DTO 需实测 JSON 绑定。
 
