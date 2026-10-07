@@ -1,5 +1,6 @@
 package com.neocat.dashboard.domain.formula;
 
+import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.Stat;
 
 import java.util.List;
@@ -128,7 +129,7 @@ public sealed interface Formula {
 
         @Override
         public List<Stat> referencedStats() {
-            return List.of();
+            return Lists.newArrayList();
         }
     }
 }

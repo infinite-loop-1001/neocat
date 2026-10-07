@@ -1,5 +1,7 @@
 package com.neocat.trace.infra.clickhouse;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.neocat.trace.domain.tree.TraceNode;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,14 +43,14 @@ public class JsonTreePayloadCodec implements RawTreeQuery.TreePayloadCodec {
     @Override
     public List<TraceNode> decode(String payload) {
         if (Objects.isNull(payload) || payload.isBlank()) {
-            return List.of();
+            return Lists.newArrayList();
         }
         try {
             return MAPPER.readValue(payload, TYPE).stream()
                     .map(JsonTreePayloadCodec::fromMap)
                     .toList();
         } catch (Exception e) {
-            return List.of();
+            return Lists.newArrayList();
         }
     }
 
@@ -80,7 +82,7 @@ public class JsonTreePayloadCodec implements RawTreeQuery.TreePayloadCodec {
                 str(map.get("detail")),
                 map.get("tags") instanceof Map<?, ?> tags
                         ? (Map<String, String>) tags
-                        : Map.of());
+                        : Maps.newHashMap());
     }
     private static String str(Object value) {
         return Objects.isNull(value) ? "" : String.valueOf(value);

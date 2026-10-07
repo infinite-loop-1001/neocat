@@ -23,13 +23,13 @@ test('JDK 语法树检查覆盖注释、注解、多行字段与默认访问级�
       void run() { int a = 1; int b = 2; }
     }`);
     assert.equal(valid.status, 0, valid.stderr);
-    const invalid = run(`import static java.util.stream.Collectors.toMap;
+    const invalid = run(`import static stream.Collectors.toMap;
       class Fixture {
         final Object a =
           new Object();
         // 注释不代替空行
         @Deprecated Object b;
-        java.util.Optional<String> find() { return null; }
+        Optional<String> find() { return null; }
         void run() { var m = list.stream().collect(toMap(x -> x.a, x -> x.b)); }
         record Nested(int id) {}
       }`);
@@ -38,7 +38,7 @@ test('JDK 语法树检查覆盖注释、注解、多行字段与默认访问级�
       assert.ok(invalid.stderr.includes(message), invalid.stderr);
     }
     const collector = run(`class Fixture {
-      void run() { var m = list.stream().collect(java.util.stream.Collectors.toMap(
+      void run() { var m = list.stream().collect(stream.Collectors.toMap(
         x -> pair(x.a, x.b), x -> x.value, (left, right) -> { throw new IllegalStateException(); })); }
     }`);
     assert.equal(collector.status, 0, collector.stderr);
@@ -68,13 +68,13 @@ test('Java 判空检查覆盖左右比较、括号、三元与 lambda，忽略�
         boolean e = (value) == ((null));
         boolean f = (null) != value;
         String g = value == null ? "empty" : value.toString();
-        java.util.function.Predicate<Object> h = x -> x != null && x.toString().isBlank();
+        function.Predicate<Object> h = x -> x != null && x.toString().isBlank();
         return value != null && value.toString().isEmpty();
       }
     }`);
     assert.equal(invalid.status, 1, invalid.stderr);
     assert.equal((invalid.stderr.match(/Java 判空必须使用/g) ?? []).length, 9, invalid.stderr);
-    const valid = run(`import java.util.Objects;
+    const valid = run(`import Objects;
       class Fixture {
         boolean run(Object value, Object other) {
           // value == null; null != value;
@@ -84,8 +84,8 @@ test('Java 判空检查覆盖左右比较、括号、三元与 lambda，忽略�
             null == value
             """;
           char literal = '=';
-          java.util.function.Predicate<Object> nonNull = Objects::nonNull;
-          java.util.function.Predicate<Object> isNull = Objects::isNull;
+          function.Predicate<Object> nonNull = Objects::nonNull;
+          function.Predicate<Object> isNull = Objects::isNull;
           Object required = Objects.requireNonNull(other);
           Object empty = null;
           return Objects.isNull(value) || Objects.nonNull(value) && value != other;
@@ -106,9 +106,9 @@ test('容器判空必须走 CollectionUtils / MapUtils，且不误报字符串 i
     return spawnSync('java', [helper, file], { encoding: 'utf8' });
   };
   try {
-    const invalid = run(`import java.util.Objects;
+    const invalid = run(`import Objects;
       class Fixture {
-      boolean run(java.util.List<String> list, java.util.Map<String, String> map, java.util.Set<String> set) {
+      boolean run(List<String> list, Map<String, String> map, Set<String> set) {
         boolean a = Objects.isNull(list) || list.isEmpty();
         boolean b = Objects.isNull(map) || map.isEmpty();
         boolean c = Objects.nonNull(set) && !set.isEmpty();
@@ -122,9 +122,9 @@ test('容器判空必须走 CollectionUtils / MapUtils，且不误报字符串 i
 
     const valid = run(`import org.apache.commons.collections4.CollectionUtils;
       import org.apache.commons.collections4.MapUtils;
-      import java.util.Objects;
+      import Objects;
       class Fixture {
-        boolean run(java.util.List<String> list, java.util.Map<String, String> map, String text) {
+        boolean run(List<String> list, Map<String, String> map, String text) {
           // String.isEmpty 与容器判空规则无关。
           if (Objects.nonNull(text) && !text.isEmpty()) return false;
           return CollectionUtils.isEmpty(list) || MapUtils.isEmpty(map)
@@ -141,7 +141,7 @@ test('Objects 判空保持短路、三元默认值与副作用表达式单次求
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-null-semantics-'));
   const file = path.join(dir, 'Fixture.java');
   try {
-    fs.writeFileSync(file, `import java.util.Objects;
+    fs.writeFileSync(file, `import Objects;
       class Fixture {
         private static int calls;
 
@@ -168,6 +168,29 @@ test('Objects 判空保持短路、三元默认值与副作用表达式单次求
       }`);
     const result = spawnSync('java', [file], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('空 JDK 容器工厂与 subList 禁止使用', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-collections-standards-'));
+  const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));
+  const file = path.join(dir, 'Fixture.java');
+  try {
+    fs.writeFileSync(file, `class Fixture {
+      void run(List<String> values) {
+        List<String> a = List.of();
+        Set<String> b = Set.of();
+        Map<String, String> c = Map.of();
+        List<String> d = List.<String>of();
+        ${['values.', 'sub', 'List(0, 1);'].join('')}
+      }
+    }`);
+    const result = spawnSync('java', [helper, file], { encoding: 'utf8' });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal((result.stderr.match(/空容器必须使用/g) ?? []).length, 4, result.stderr);
+    assert.equal((result.stderr.match(/源码中禁止使用 subList/g) ?? []).length, 1, result.stderr);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

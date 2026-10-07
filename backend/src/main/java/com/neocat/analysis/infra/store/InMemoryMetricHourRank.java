@@ -1,5 +1,6 @@
 package com.neocat.analysis.infra.store;
 
+import com.google.common.collect.Sets;
 import com.neocat.analysis.domain.metric.MetricHourRank;
 import com.neocat.analysis.domain.bucket.SeriesKey;
 import com.neocat.common.config.MetricConfig;
@@ -76,7 +77,7 @@ public class InMemoryMetricHourRank implements MetricHourRank {
     public Set<String> promotedLabels(String service, String metricName, Instant hourStart) {
         HourState state = hours.get(groupKey(service, metricName, hourOf(hourStart)));
         if (Objects.isNull(state)) {
-            return Set.of();
+            return Sets.newHashSet();
         }
         synchronized (state) {
             return Set.copyOf(state.promoted);

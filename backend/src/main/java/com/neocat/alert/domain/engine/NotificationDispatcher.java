@@ -1,5 +1,6 @@
 package com.neocat.alert.domain.engine;
 
+import com.google.common.collect.Lists;
 import com.neocat.alert.domain.rule.AlertChannel;
 import com.neocat.alert.domain.rule.AlertRule;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,10 +86,10 @@ public class NotificationDispatcher {
      */
     public List<AlertNotification> dispatch(AlertRule rule, List<Long> effectiveRecipients, long triggeredAt) {
         if (Objects.isNull(rule) || CollectionUtils.isEmpty(effectiveRecipients)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         if (CollectionUtils.isEmpty(rule.getChannels())) {
-            return List.of();
+            return Lists.newArrayList();
         }
 
         String message = rule.getName() + " 触发于 " + triggeredAt;

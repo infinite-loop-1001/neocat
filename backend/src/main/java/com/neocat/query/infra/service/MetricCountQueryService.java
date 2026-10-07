@@ -2,6 +2,7 @@ package com.neocat.query.infra.service;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import com.neocat.common.error.*;
 import com.neocat.common.error.exception.*;
 import com.neocat.common.time.bucket.*;
@@ -65,7 +66,7 @@ public class MetricCountQueryService {
         // One level per source interval; preserves label identity and never sums multiple rollup levels.
         var rows = data.metricSourceRows(service, metric, window.getFrom(), window.getTo(),
                 Granularity.fromSeconds(window.bucketSeconds()));
-        var entries = conditions.total() ? List.<com.neocat.analysis.domain.metric.MetricLabelMetadata.Entry>of()
+        var entries = conditions.total() ? Lists.<com.neocat.analysis.domain.metric.MetricLabelMetadata.Entry>newArrayList()
                 : metadata.entries(service, metric, window.getFrom(), window.getTo());
         Instant now = clock.instant();
         var points = new MetricCountService().points(rows, entries, window.getBuckets(), conditions, now,

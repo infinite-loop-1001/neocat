@@ -1,5 +1,6 @@
 package com.neocat.alert.api.http.convert;
 
+import com.google.common.collect.Lists;
 import com.neocat.alert.api.http.dto.AlertDtos.*;
 import com.neocat.alert.domain.rule.*;
 import com.neocat.alert.domain.engine.PreviewResult;
@@ -31,11 +32,9 @@ public interface AlertConvert {
                 Objects.isNull(draft.getTarget()) ? AlertTarget.rawMetric("", "TRANSACTION", null, null) : target(draft.getTarget()),
                 Objects.isNull(draft.getCombinator()) ? Combinator.AND : Combinator.valueOf(draft.getCombinator()),
                 draft.getWindowPoints(),
-                // rules: 禁止使用 List.of(), 因为他返回的是一个不可变 List, 使用 Apache common 包的 CollectionUtils 创建空
-                //  容器, 包括单不限于 List, Set, Map 等等
-                CollectionUtils.isEmpty(draft.getConditions()) ? List.of() : conditions(draft.getConditions()),
+                CollectionUtils.isEmpty(draft.getConditions()) ? Lists.newArrayList() : conditions(draft.getConditions()),
                 ListUtils.emptyIfNull(draft.getRecipients()),
-                CollectionUtils.isEmpty(draft.getChannels()) ? List.of() : channels(draft.getChannels()));
+                CollectionUtils.isEmpty(draft.getChannels()) ? Lists.newArrayList() : channels(draft.getChannels()));
     }
 
     /** 条件列表：统计项与比较符在边界处解析为枚举。 */

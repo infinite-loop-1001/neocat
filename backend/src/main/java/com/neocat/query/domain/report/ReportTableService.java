@@ -1,5 +1,6 @@
 package com.neocat.query.domain.report;
 
+import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
 import com.neocat.analysis.domain.bucket.AggregatedRow;
@@ -53,7 +54,7 @@ public class ReportTableService {
     private List<ReportRow> table(String kind, List<AggregatedRow> rows, String typeFilter,
                                   long coveredSeconds) {
         if (CollectionUtils.isEmpty(rows)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         boolean byName = Objects.nonNull(typeFilter);
         StatCalculator calculator = new StatCalculator();

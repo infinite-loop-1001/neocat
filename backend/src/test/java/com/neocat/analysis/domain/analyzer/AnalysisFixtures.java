@@ -1,5 +1,6 @@
 package com.neocat.analysis.domain.analyzer;
 
+import com.google.common.collect.Maps;
 import com.neocat.ingest.domain.tree.ExceptionValue;
 import com.neocat.ingest.domain.tree.HeartbeatValue;
 import com.neocat.ingest.domain.tree.MessageTree;
@@ -20,7 +21,7 @@ public final class AnalysisFixtures {
     public static RawNode node(String nodeId, String category, String name,
                                String status, long durationMs, long timestamp) {
         return new RawNode(nodeId, NodeKind.TRANSACTION, category, name, status, timestamp, durationMs,
-                null, null, null, null, null, Map.of());
+                null, null, null, null, null, Maps.newHashMap());
     }
 
     public static MessageTree treeWithTimes(String service, String instance, long treeTimestamp, List<RawNode> nodes) {
@@ -37,27 +38,27 @@ public final class AnalysisFixtures {
     public static MessageTree eventTree(String service, String instance, long timestamp,
                                         String category, String name, String status) {
         RawNode eventNode = new RawNode("n-1", NodeKind.EVENT, category, name, status, timestamp, 0L,
-                null, null, null, null, null, Map.of());
+                null, null, null, null, null, Maps.newHashMap());
         return treeWithTimes(service, instance, timestamp, List.of(eventNode));
     }
 
     public static MessageTree metricTree(String service, String instance, long timestamp,
                                          String metricName, double value) {
-        return metricTree(service, instance, timestamp, metricName, value, Map.of());
+        return metricTree(service, instance, timestamp, metricName, value, Maps.newHashMap());
     }
 
     public static MessageTree metricTree(String service, String instance, long timestamp,
                                          String metricName, double value, Map<String, String> labels) {
         MetricValue metric = new MetricValue(metricName, value, labels);
         RawNode metricNode = new RawNode("n-1", NodeKind.METRIC, metricName, metricName, "0", timestamp, 0L,
-                null, metric, null, null, null, Map.of());
+                null, metric, null, null, null, Maps.newHashMap());
         return treeWithTimes(service, instance, timestamp, List.of(metricNode));
     }
 
     public static MessageTree heartbeatTree(String service, String instance, long timestamp) {
         HeartbeatValue hb = new HeartbeatValue(512_000_000L, 2_048_000_000L, 12L, 340L, 96L);
         RawNode hbNode = new RawNode("n-1", NodeKind.HEARTBEAT, "jvm", "jvm", "0", timestamp, 0L,
-                null, null, hb, null, null, Map.of());
+                null, null, hb, null, null, Maps.newHashMap());
         return treeWithTimes(service, instance, timestamp, List.of(hbNode));
     }
 
@@ -66,7 +67,7 @@ public final class AnalysisFixtures {
                                              String downstream, String callType, String status, long durationMs) {
         RemoteCallValue call = new RemoteCallValue(downstream, "10.9.9.9", callType, status);
         RawNode callNode = new RawNode("n-1", NodeKind.REMOTE_CALL, callType, downstream, status, timestamp,
-                durationMs, null, null, null, call, null, Map.of());
+                durationMs, null, null, null, call, null, Maps.newHashMap());
         return treeWithTimes(service, instance, timestamp, List.of(callNode));
     }
 
@@ -76,7 +77,7 @@ public final class AnalysisFixtures {
                                             String exceptionMessage, long durationMs) {
         ExceptionValue ex = new ExceptionValue(exceptionName, exceptionMessage, "at ...");
         RawNode node = new RawNode("n-1", NodeKind.TRANSACTION, category, name, "ERROR", timestamp,
-                durationMs, null, null, null, null, ex, Map.of());
+                durationMs, null, null, null, null, ex, Maps.newHashMap());
         return treeWithTimes(service, instance, timestamp, List.of(node));
     }
 }

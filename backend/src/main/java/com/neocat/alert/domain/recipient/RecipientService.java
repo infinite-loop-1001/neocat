@@ -1,5 +1,6 @@
 package com.neocat.alert.domain.recipient;
 
+import com.google.common.collect.Lists;
 import com.neocat.alert.domain.engine.AlertWindowState;
 import com.neocat.alert.domain.rule.AlertRule;
 import com.neocat.alert.domain.rule.AlertRuleRepository;
@@ -51,22 +52,22 @@ public class RecipientService {
     /** 处理账号/组织事件，返回被修改的规则。 */
     public List<AlertRule> onEvent(RecipientEvent event) {
         if (Objects.isNull(event)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         if (event instanceof RecipientEvent.UserDisabled disabled) {
             return removeFromAll(disabled.getAccountId());
         }
         if (event instanceof RecipientEvent.UserEnabled) {
             // 不恢复任何收件关系
-            return List.of();
+            return Lists.newArrayList();
         }
         if (event instanceof RecipientEvent.OrgMembershipChanged changed) {
-            return changed.isGranted() ? List.of() : removeFromOrg(changed.getOrgId(), changed.getAccountId());
+            return changed.isGranted() ? Lists.newArrayList() : removeFromOrg(changed.getOrgId(), changed.getAccountId());
         }
         if (event instanceof RecipientEvent.OrgDeleted deleted) {
             return invalidateOrg(deleted.getOrgId());
         }
-        return List.of();
+        return Lists.newArrayList();
     }
 
     /**
@@ -77,7 +78,7 @@ public class RecipientService {
      */
     public List<Long> effectiveRecipients(AlertRule rule) {
         if (Objects.isNull(rule) || CollectionUtils.isEmpty(rule.getRecipients())) {
-            return List.of();
+            return Lists.newArrayList();
         }
         List<Long> result = new ArrayList<>();
         for (Long accountId : rule.getRecipients()) {
@@ -168,7 +169,7 @@ public class RecipientService {
     // rules: List 去重使用 stream 流, 不要单独再写一个函数
     private List<Long> distinct(List<Long> recipients) {
         if (CollectionUtils.isEmpty(recipients)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         Set<Long> unique = new LinkedHashSet<>(recipients);
         return List.copyOf(unique);

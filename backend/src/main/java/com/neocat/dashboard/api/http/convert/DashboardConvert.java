@@ -1,5 +1,6 @@
 package com.neocat.dashboard.api.http.convert;
 
+import com.google.common.collect.Lists;
 import com.neocat.dashboard.api.http.dto.DashboardDtos.*;
 import com.neocat.dashboard.domain.card.*;
 import com.neocat.dashboard.domain.dashboard.Dashboard;
@@ -20,7 +21,7 @@ public final class DashboardConvert {
     public static Card card(CardDraft draft, long dashboardId) {
         // 保留原入口行为：阈值线暂不参与保存或告警，不能借规范重构改变产品语义。
         return Card.withoutThresholds(0, dashboardId, draft.getService(), draft.getTargetKind(), draft.getTargetType(),
-                draft.getTargetName(), draft.getMetricLabels(), List.of(), draft.getFormula(),
+                draft.getTargetName(), draft.getMetricLabels(), Lists.newArrayList(), draft.getFormula(),
                 Objects.isNull(draft.getTimeRange()) ? "RECENT_24H" : draft.getTimeRange(), 0);
     }
 

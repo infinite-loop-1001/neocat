@@ -1,5 +1,6 @@
 package com.neocat.trace.infra.clickhouse;
 
+import com.google.common.collect.Lists;
 import org.springframework.jdbc.core.JdbcTemplate;
 import javax.sql.DataSource;
 import java.sql.ResultSet;
@@ -120,7 +121,7 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
                 """, String.class, java.sql.Timestamp.from(threshold));
 
         if (CollectionUtils.isEmpty(ids)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         jdbc.update("ALTER TABLE neocat.nc_raw_tree DELETE WHERE tree_timestamp < ?",
                 java.sql.Timestamp.from(threshold));

@@ -1,5 +1,6 @@
 package com.neocat.dashboard.domain.card;
 
+import com.google.common.collect.Lists;
 import com.neocat.dashboard.domain.access.OrgAccessGateway;
 import com.neocat.dashboard.domain.dashboard.Dashboard;
 import com.neocat.dashboard.domain.dashboard.DashboardRepository;
@@ -307,11 +308,11 @@ public class CardService {
     }
     private List<Stat> statsOf(String formula) {
         if (Objects.isNull(formula)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         FormulaParser.ParseOutcome parsed = new FormulaParser().parse(formula);
         if (!parsed.valid()) {
-            return List.of();
+            return Lists.newArrayList();
         }
         Map<Stat, Boolean> unique = new LinkedHashMap<>();
         parsed.getFormula().referencedStats().forEach(stat -> unique.put(stat, true));

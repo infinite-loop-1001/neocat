@@ -1,5 +1,6 @@
 package com.neocat.alert.infra.jdbc;
 
+import com.google.common.collect.Lists;
 import com.neocat.alert.domain.rule.AlertChannel;
 import com.neocat.alert.domain.rule.AlertRule;
 import com.neocat.alert.domain.rule.AlertRuleRepository;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
@@ -162,7 +164,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         List<AlertRecipientRow> recipients = mapper.selectRecipients(row.getId());
         List<Long> recipientIds = recipients.stream().map(AlertRecipientRow::getAccountId).distinct().toList();
         List<AlertChannel> channels = Objects.isNull(row.getChannels()) || row.getChannels().isBlank()
-                ? List.of() : java.util.Arrays.stream(row.getChannels().split(","))
+                ? Lists.newArrayList() : java.util.Arrays.stream(row.getChannels().split(","))
                 .map(AlertChannel::valueOf).toList();
 
         AlertTarget target = new AlertTarget(
@@ -173,8 +175,8 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
                 row.getTargetType(),
                 row.getTargetName(),
                 row.getTargetMetricLabels(),
-                Objects.isNull(row.getFormulaStats()) || row.getFormulaStats().isBlank() ? List.of() :
-                        java.util.Arrays.stream(row.getFormulaStats().split(",")).map(Stat::parse).toList());
+                Objects.isNull(row.getFormulaStats()) || row.getFormulaStats().isBlank() ? Lists.newArrayList() :
+                        Arrays.stream(row.getFormulaStats().split(",")).map(Stat::parse).toList());
 
         return new AlertRule(
                 row.getId(),

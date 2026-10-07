@@ -1,5 +1,6 @@
 package com.neocat.ingest.infra.protocol;
 
+import com.google.common.collect.Maps;
 import com.neocat.common.error.exception.IngestException;
 import com.neocat.ingest.domain.tree.ExceptionValue;
 import com.neocat.ingest.domain.tree.HeartbeatValue;
@@ -73,7 +74,7 @@ public class IngestRequestMapper {
                 node.hasHeartbeat() ? toHeartbeat(node.getHeartbeat()) : null,
                 node.hasRemoteCall() ? toRemoteCall(node.getRemoteCall()) : null,
                 node.hasException() ? toException(node.getException()) : null,
-                MapUtils.isEmpty(node.getTagsMap()) ? Map.of() : Map.copyOf(node.getTagsMap()));
+                MapUtils.isEmpty(node.getTagsMap()) ? Maps.newHashMap() : Map.copyOf(node.getTagsMap()));
     }
     private static NodeKind toKind(Kind kind) {
         return switch (kind) {
@@ -90,7 +91,7 @@ public class IngestRequestMapper {
         return new MetricValue(
                 blankToNull(metric.getName()),
                 metric.getValue(),
-                MapUtils.isEmpty(metric.getLabelsMap()) ? Map.of() : Map.copyOf(metric.getLabelsMap()));
+                MapUtils.isEmpty(metric.getLabelsMap()) ? Maps.newHashMap() : Map.copyOf(metric.getLabelsMap()));
     }
     public static HeartbeatValue toHeartbeat(com.neocat.protocol.ingest.v1.Heartbeat hb) {
         Map<String, Long> values = new java.util.LinkedHashMap<>();

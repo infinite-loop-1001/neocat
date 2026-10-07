@@ -1,5 +1,6 @@
 package com.neocat.dashboard.domain.dashboard;
 
+import com.google.common.collect.Lists;
 import com.neocat.dashboard.domain.access.OrgAccessGateway;
 import com.neocat.dashboard.domain.card.Card;
 import com.neocat.dashboard.domain.event.CardEvent;
@@ -68,7 +69,7 @@ public class DashboardService {
      */
     public List<Dashboard> list(long accountId, long orgId) {
         if (!orgAccess.isLeaf(orgId) || !orgAccess.isEffectiveMember(accountId, orgId)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         return dashboards.byOrg(orgId);
     }
@@ -112,7 +113,7 @@ public class DashboardService {
             for (Card card : removed) {
                 var parsed = parser.parse(card.getFormula());
                 List<String> stats = parsed.valid() ? parsed.getFormula().referencedStats().stream()
-                        .map(Enum::name).distinct().toList() : List.of();
+                        .map(Enum::name).distinct().toList() : Lists.newArrayList();
                 cardEvents.publish(new CardEvent.CardDeleted(card.getId(), dashboard.getId(), dashboard.getOrgId(),
                         card.targetIdentity(), stats));
             }

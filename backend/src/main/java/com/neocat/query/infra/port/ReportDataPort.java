@@ -1,5 +1,6 @@
 package com.neocat.query.infra.port;
 
+import com.google.common.collect.Lists;
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.common.time.bucket.Granularity;
 import com.neocat.query.domain.series.Series;
@@ -31,7 +32,7 @@ public interface ReportDataPort {
     /** Metric counts need original source timestamps to interpret hour-specific other ownership. */
     default List<AggregatedRow> metricSourceRows(String service, String metric, Instant from, Instant to,
                                                 Granularity granularity) {
-        return rows("METRIC", service, metric, null, from, to, Granularity.MINUTE_1, List.of());
+        return rows("METRIC", service, metric, null, from, to, Granularity.MINUTE_1, Lists.newArrayList());
     }
     /**
      * 读取某序列在给定时间范围内的行。

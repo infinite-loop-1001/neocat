@@ -1,5 +1,7 @@
 package com.neocat.dashboard.domain.card;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.neocat.dashboard.domain.access.CardInputSource;
 import com.neocat.dashboard.domain.formula.Formula;
 import com.neocat.dashboard.domain.formula.FormulaParser;
@@ -49,7 +51,7 @@ public class CardSeriesService {
     public List<CardPoint> series(Card card, Instant from, Instant to, long bucketSeconds) {
         FormulaParser.ParseOutcome parsed = parser.parse(card.getFormula());
         if (!parsed.valid()) {
-            return List.of();
+            return Lists.newArrayList();
         }
         Formula formula = parsed.getFormula();
 
@@ -60,7 +62,7 @@ public class CardSeriesService {
         for (long[] boundary : boundaries) {
             long start = boundary[0];
             long end = boundary[1];
-            Map<Stat, Double> bucketValues = values.getOrDefault(start, Map.of());
+            Map<Stat, Double> bucketValues = values.getOrDefault(start, Maps.newHashMap());
             points.add(evaluator.evaluate(formula, bucketValues, start, end));
         }
         return List.copyOf(points);

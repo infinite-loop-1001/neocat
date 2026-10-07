@@ -1,8 +1,10 @@
 package com.neocat.dashboard.domain.card;
 
+import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.Stat;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -75,12 +77,12 @@ public class Card {
                                          List<String> instanceScope, String formula, String timeRange,
                                          int orderNo) {
         return new Card(id, dashboardId, service, targetKind, targetType, targetName, metricLabels,
-                instanceScope, formula, timeRange, orderNo, List.of());
+                instanceScope, formula, timeRange, orderNo, Lists.newArrayList());
     }
     /** 卡片目标是否覆盖某个统计项（供组织告警可用目标并集计算）。 */
     public boolean references(Stat stat) {
-        return Objects.nonNull(formula) && formula.toLowerCase(java.util.Locale.ROOT)
-                .contains(stat.name().toLowerCase(java.util.Locale.ROOT).replace("_", ""));
+        return Objects.nonNull(formula) && formula.toLowerCase(Locale.ROOT)
+                .contains(stat.name().toLowerCase(Locale.ROOT).replace("_", ""));
     }
     /** 目标标识：用于判定两张卡片是否指向同一指标对象。 */
     public String targetIdentity() {

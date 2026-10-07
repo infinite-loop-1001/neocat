@@ -1,5 +1,6 @@
 package com.neocat.dashboard.infra.jdbc;
 
+import com.google.common.collect.Lists;
 import com.neocat.dashboard.domain.card.Card;
 import com.neocat.dashboard.domain.dashboard.Dashboard;
 import com.neocat.dashboard.domain.dashboard.DashboardRepository;
@@ -162,8 +163,8 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
     private Card toCard(CardRow row) {
         return new Card(row.getId(), row.getDashboardId(), row.getService(), row.getTargetKind(),
                 row.getTargetType(), row.getTargetName(), fromJson(row.getMetricLabels(), String.class),
-                Objects.isNull(row.getInstanceScope()) ? List.of() :
-                        fromJson(row.getInstanceScope(), new TypeReference<List<String>>() {}),
+                Objects.isNull(row.getInstanceScope()) ? Lists.newArrayList() :
+                        fromJson(row.getInstanceScope(), new TypeReference<>() {}),
                 row.getFormula(), row.getTimeRange(), row.getOrderNo(),
                 mapper.selectThresholdLines(row.getId()).stream()
                         .map(line -> new ThresholdLine(ThresholdDirection.valueOf(line.getDirection()), line.getValue()))

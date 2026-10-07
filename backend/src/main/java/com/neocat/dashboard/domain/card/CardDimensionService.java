@@ -5,6 +5,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -25,12 +27,12 @@ public class CardDimensionService {
         if (Objects.isNull(card) || Objects.isNull(request)) {
             throw new IllegalArgumentException("card 与 request 不能为空");
         }
-        List<CardPoint> aggregate = CollectionUtils.isEmpty(aggregated) ? List.of() : List.copyOf(aggregated);
+        List<CardPoint> aggregate = CollectionUtils.isEmpty(aggregated) ? Lists.newArrayList() : List.copyOf(aggregated);
         List<ThresholdLine> lines = ListUtils.emptyIfNull(request.getThresholdLines());
 
         // 聚合模式：不返回任何机器明细
         if (request.aggregateMode() && request.getTopN() <= 0) {
-            return new CardDimensionView(aggregate, List.of(), false, lines);
+            return new CardDimensionView(aggregate, Lists.newArrayList(), false, lines);
         }
 
         List<CardDimensionView.MachineSeries> series = selectSeries(request, byInstance);
@@ -54,7 +56,7 @@ public class CardDimensionService {
     private List<CardDimensionView.MachineSeries> selectSeries(CardDrillRequest request,
                                                               Map<String, List<CardPoint>> byInstance) {
         if (MapUtils.isEmpty(byInstance)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         List<CardDimensionView.MachineSeries> candidates = new ArrayList<>();
         byInstance.forEach((instance, points) -> {
@@ -62,7 +64,7 @@ public class CardDimensionService {
                 return;
             }
             candidates.add(new CardDimensionView.MachineSeries(instance,
-                    CollectionUtils.isEmpty(points) ? List.of() : List.copyOf(points)));
+                    CollectionUtils.isEmpty(points) ? Lists.newArrayList() : List.copyOf(points)));
         });
 
         if (!request.aggregateMode()) {
@@ -82,7 +84,14 @@ public class CardDimensionService {
                 .comparingDouble((CardDimensionView.MachineSeries s) -> firstValue(s)).reversed()
                 .thenComparing(CardDimensionView.MachineSeries::getInstance));
         int limit = Math.max(0, request.getTopN());
-        return candidates.size() <= limit ? candidates : candidates.subList(0, limit);
+        if (candidates.size() <= limit) {
+            return candidates;
+        }
+        List<CardDimensionView.MachineSeries> limited = new ArrayList<>();
+        for (int index = 0; index < limit; index++) {
+            limited.add(candidates.get(index));
+        }
+        return limited;
     }
     /** 首个可用值，用作 Top N 排序依据。 */
     private double firstValue(CardDimensionView.MachineSeries series) {

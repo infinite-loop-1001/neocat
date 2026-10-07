@@ -179,6 +179,14 @@ public final class CheckJavaStandards {
                     @Override
                     public Void visitMethodInvocation(MethodInvocationTree call, Void unused) {
                         String method = call.getMethodSelect().toString();
+                        if (method.matches("(?:java\\.util\\.)?(?:List|Set|Map)\\.(?:<.*>)?of") && call.getArguments().isEmpty()) {
+                            error(trees.getSourcePositions().getStartPosition(unit, call),
+                                    "空容器必须使用 Guava 可变工厂，禁止 List.of / Set.of / Map.of");
+                        }
+                        if (method.endsWith(".subList") && call.getArguments().size() == 2) {
+                            error(trees.getSourcePositions().getStartPosition(unit, call),
+                                    "源码中禁止使用 subList，必须创建独立集合");
+                        }
                         boolean collector = method.matches("(?:java\\.util\\.stream\\.)?Collectors\\.(?:<.*>)?(toMap|toConcurrentMap)")
                                 || staticCollectorImport && method.matches("(toMap|toConcurrentMap)");
                         if (collector && call.getArguments().size() < 3) {

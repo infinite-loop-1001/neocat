@@ -1,5 +1,6 @@
 package com.neocat.query.domain.report;
 
+import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.PercentileMerger;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
@@ -74,7 +75,7 @@ public class DependencyQueryService {
     public List<DependencyRow> list(DependencyDirectionQuery direction, List<AggregatedRow> rows,
                                     long coveredSeconds) {
         if (CollectionUtils.isEmpty(rows) || Objects.isNull(direction)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         String expectedType = direction.name().toUpperCase(Locale.ROOT);
 

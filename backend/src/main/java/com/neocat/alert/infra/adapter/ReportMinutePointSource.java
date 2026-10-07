@@ -1,5 +1,6 @@
 package com.neocat.alert.infra.adapter;
 
+import com.google.common.collect.Lists;
 import com.neocat.alert.domain.rule.AlertTarget;
 import com.neocat.alert.domain.engine.MinutePointSource;
 import com.neocat.dashboard.api.internal.CardResults;
@@ -39,7 +40,7 @@ public class ReportMinutePointSource implements MinutePointSource {
         }
         String name = Objects.equals("METRIC", target.getReportKind()) ? target.getMetricLabels() : target.getName();
         Map<String, Double> raw = reports.values(target.getReportKind(), target.getService(), target.getType(),
-                name, from, from.plusSeconds(60), stats.stream().map(Enum::name).toList(), List.of());
+                name, from, from.plusSeconds(60), stats.stream().map(Enum::name).toList(), Lists.newArrayList());
         Map<Stat, Double> result = new LinkedHashMap<>();
         for (Stat stat : stats) {
             result.put(stat, raw.get(stat.name()));

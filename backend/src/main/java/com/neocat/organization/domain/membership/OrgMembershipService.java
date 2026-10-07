@@ -1,5 +1,6 @@
 package com.neocat.organization.domain.membership;
 
+import com.google.common.collect.Sets;
 import com.neocat.organization.domain.tree.OrgNode;
 import com.neocat.organization.domain.tree.OrgNodeRepository;
 import com.neocat.common.error.exception.ResourceNotFoundException;
@@ -66,7 +67,7 @@ public class OrgMembershipService {
     @org.springframework.transaction.annotation.Transactional
     @com.neocat.common.locking.MySqlLocked("metadata")
     public void recompute(long accountId) {
-        Set<Long> previous = Objects.isNull(events) ? Set.of() : effectiveLeaves.leavesOf(accountId);
+        Set<Long> previous = Objects.isNull(events) ? Sets.newHashSet() : effectiveLeaves.leavesOf(accountId);
         Set<Long> leaves = new HashSet<>();
         for (Long orgId : memberships.orgsOf(accountId)) {
             leaves.addAll(descendantLeaves(orgId));

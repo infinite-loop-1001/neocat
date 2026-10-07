@@ -61,7 +61,7 @@ return Objects.nonNull(value) && value.isValid();
 
 ```java
 if (CollectionUtils.isEmpty(recipients)) {
-    return List.of();
+    return Lists.newArrayList();
 }
 if (MapUtils.isNotEmpty(labels)) {
     entries.putAll(labels);
@@ -72,11 +72,23 @@ List<Line> lines = ListUtils.emptyIfNull(card.getThresholdLines());
 - 判空/非空用 `CollectionUtils`、`MapUtils`；`ListUtils` / `SetUtils` 没有 `isEmpty`，只有 `emptyIfNull`。
 - `emptyIfNull` 按静态类型选择 `ListUtils` / `SetUtils` / `MapUtils`，其余用 `CollectionUtils`。
 - 禁止 `list.size() == 0`、`Objects.isNull(list) || list.isEmpty()` 这类手写判空；可直接用 `CollectionUtils.isEmpty()` 表达「null 或空」。
-- 空容器默认值仍用 `List.of()` / `Map.of()` / `List.copyOf()`；它们与 `CollectionUtils.emptyCollection()` 一样不可修改，不要为「可变空容器」引入工具调用。
+- 空容器默认值统一使用 Guava 可变工厂；禁止空的 `List.of()` / `Set.of()` / `Map.of()`。非空的 `List.of(...)`、`Map.of(...)` 与 `List.copyOf(...)` 如确实需要只读语义可以保留。
+
+### 可变空容器与独立集合
+
+需要空容器时使用 Guava 工厂：
+
+```java
+List<Line> lines = Lists.newArrayList();
+Set<Long> ids = Sets.newHashSet();
+Map<String, String> labels = Maps.newHashMap();
+```
+
+该规则覆盖 backend、client-java、手写 Java 测试和 `scripts`；生成代码、Groovy 与前端不适用。源码中任何位置都禁止使用 `subList()`，因为它返回原列表的视图而非独立集合；需要截取时使用索引循环或收集到新的 `ArrayList`，保留顺序、边界和所需的可变性。
 
 判断对象相等使用 `Objects.equals(left, right)`，避免任一比较对象为 null 时抛 NPE。枚举与原始类型仍用 `==`：枚举常量引用唯一，`==` 不会 NPE 且是惯用写法。注意 `a.equals(b)` 改为 `Objects.equals(a, b)` 会把原本的 NPE 变成返回 false；接收者确定非 null 时保持原样更安全。
 
-容器判空工具仅 backend 声明 `commons-collections4`；client-java 保持零新增依赖，容器判空沿用 JDK。
+容器判空工具仅 backend 声明 `commons-collections4`；Guava 在 backend 与 client-java 均显式声明，用于统一的可变空容器与独立集合创建。
 
 正常未找到：返回 `@Nullable T` 并用 `Objects.isNull` / `Objects.nonNull` 消费。必需存在：明确抛出已有业务异常。集合返回空集合，不返回 null。Optional 不是避免制定未找到语义的替代品；框架的 Optional 可局部消费。
 

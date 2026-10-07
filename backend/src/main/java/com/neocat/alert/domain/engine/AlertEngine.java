@@ -1,5 +1,6 @@
 package com.neocat.alert.domain.engine;
 
+import com.google.common.collect.Lists;
 import com.neocat.alert.domain.recipient.RecipientGateway;
 import com.neocat.alert.domain.rule.AlertChannel;
 import com.neocat.alert.domain.rule.AlertRule;
@@ -85,7 +86,7 @@ public class AlertEngine {
 
         // 基线之前的点不参与窗口
         if (minute < current.getBaselineAt()) {
-            return new EvaluationResult(false, List.of(), current);
+            return new EvaluationResult(false, Lists.newArrayList(), current);
         }
 
         List<Long> appended = new ArrayList<>(current.getPoints());
@@ -94,20 +95,22 @@ public class AlertEngine {
             appended.add(minute);
         }
         appended.sort(Long::compareTo);
-        List<Long> trimmed = appended.size() <= window
-                ? appended
-                // rules: 禁止使用 List.subList(), 返回的 subList 是个伪 List
-                : appended.subList(appended.size() - window, appended.size());
+        List<Long> trimmed = appended.size() <= window ? appended : new ArrayList<>();
+        if (appended.size() > window) {
+            for (int index = appended.size() - window; index < appended.size(); index++) {
+                trimmed.add(appended.get(index));
+            }
+        }
         AlertWindowState advanced = new AlertWindowState(rule.getId(), current.getBaselineAt(), List.copyOf(trimmed));
 
         if (trimmed.size() < window) {
-            return new EvaluationResult(false, List.of(), advanced);
+            return new EvaluationResult(false, Lists.newArrayList(), advanced);
         }
 
         // fixme: 这里 MinutePointSource 需要提供批量接口, 不能循环调用每分钟的指标值
         boolean allSatisfied = trimmed.stream().allMatch(m -> pointSatisfied(rule, m));
         if (!allSatisfied) {
-            return new EvaluationResult(false, List.of(), advanced);
+            return new EvaluationResult(false, Lists.newArrayList(), advanced);
         }
 
         List<AlertNotification> sent = notify(rule, minute);
@@ -137,8 +140,7 @@ public class AlertEngine {
         if (CollectionUtils.isEmpty(conditions)) {
             return false;
         }
-        // rules: 判断相等使用 Objects.equals(), 防止出现任一比较对象为 null
-        boolean and = rule.getCombinator() == Combinator.AND;
+        boolean and = Objects.equals(rule.getCombinator(), Combinator.AND);
         boolean aggregate = and;
         for (Condition condition : conditions) {
             boolean matched = condition.matches(values.get(condition.getStat()));
@@ -174,7 +176,7 @@ public class AlertEngine {
                     .toList();
         }
         if (CollectionUtils.isEmpty(recipients) || CollectionUtils.isEmpty(rule.getChannels())) {
-            return List.of();
+            return Lists.newArrayList();
         }
         if (Objects.nonNull(dispatcher)) {
             return dispatcher.dispatch(rule, recipients, minute);

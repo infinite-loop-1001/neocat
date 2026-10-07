@@ -1,5 +1,6 @@
 package com.neocat.query.infra.service;
 
+import com.google.common.collect.Lists;
 import com.neocat.analysis.domain.analyzer.JvmMetric;
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.AggregationLevel;
@@ -169,8 +170,8 @@ public class ReportQueryService {
         var resolved = ranges.resolve(new RangeSpec.Explicit(base.getFrom(), base.getTo(), granularity), zone.get());
 
         List<String> instanceList = Objects.isNull(instances) || instances.isBlank()
-                ? List.of()
-                : List.of(instances.split(","));
+                ? Lists.newArrayList()
+                : Lists.newArrayList(instances.split(","));
 
         List<AggregatedRow> rows = data.rows(kind, service, type, name,
                 resolved.getFrom(), resolved.getTo(), granularity, instanceList);
@@ -321,7 +322,7 @@ public class ReportQueryService {
         List<Map<String, Object>> result = new ArrayList<>();
         for (String name : data.namesOf("METRIC", service, null, resolved.getFrom(), resolved.getTo())) {
             var rows = data.rows("METRIC", service, null, name, resolved.getFrom(), resolved.getTo(),
-                    Granularity.fromSeconds(resolved.bucketSeconds()), List.of());
+                    Granularity.fromSeconds(resolved.bucketSeconds()), Lists.newArrayList());
             long reportCount = rows.stream().mapToLong(AggregatedRow::valueCount).sum();
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("labels", name);
@@ -388,7 +389,7 @@ public class ReportQueryService {
         result.put("unit", target.unit().name());
         result.put("bucketSeconds", 0);
         result.put("range", Map.of("from", base.getFrom().toEpochMilli(), "to", base.getTo().toEpochMilli()));
-        result.put("points", List.of());
+        result.put("points", Lists.newArrayList());
         result.put("mom", null);
         return result;
     }
@@ -412,7 +413,7 @@ public class ReportQueryService {
     private List<AggregatedRow> fetchRows(String kind, String service, String type, String name,
                                          RangeResolver.ResolvedRange resolved) {
         return data.rows(kind, service, type, name, resolved.getFrom(), resolved.getTo(),
-                Granularity.fromSeconds(resolved.bucketSeconds()), List.of());
+                Granularity.fromSeconds(resolved.bucketSeconds()), Lists.newArrayList());
     }
     private List<Map<String, Object>> dependencyList(String service, String direction, String range) {
         var resolved = ranges.resolve(parseRange(range), zone.get());

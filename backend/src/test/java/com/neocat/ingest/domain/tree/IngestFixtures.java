@@ -1,5 +1,7 @@
 package com.neocat.ingest.domain.tree;
 
+import com.google.common.collect.Maps;
+
 import java.util.List;
 import java.util.Map;
 
@@ -12,7 +14,7 @@ public final class IngestFixtures {
     public static RawNode node(String nodeId, String category, String name,
                                String status, long durationMs, long timestamp) {
         return new RawNode(nodeId, NodeKind.TRANSACTION, category, name, status, timestamp, durationMs,
-                null, null, null, null, null, Map.of());
+                null, null, null, null, null, Maps.newHashMap());
     }
 
     public static MessageTree treeWith(String messageId, String serviceName, String instanceId,
@@ -30,7 +32,7 @@ public final class IngestFixtures {
     public static MessageTree metricTree(String messageId, Map<String, String> labels) {
         MetricValue metric = new MetricValue("order.amount", 128.5d, labels);
         RawNode metricNode = new RawNode("n-1", NodeKind.METRIC, "order.amount", "order.amount", "0",
-                1790000000000L, 0L, null, metric, null, null, null, Map.of());
+                1790000000000L, 0L, null, metric, null, null, null, Maps.newHashMap());
         return treeWith(messageId, "order", "10.0.0.8", messageId, null, 1790000000000L, List.of(metricNode));
     }
 }

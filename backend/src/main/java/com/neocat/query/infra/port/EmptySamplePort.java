@@ -1,5 +1,6 @@
 package com.neocat.query.infra.port;
 
+import com.google.common.collect.Lists;
 import com.neocat.trace.domain.sample.Sample;
 
 import java.time.Instant;
@@ -20,6 +21,6 @@ public class EmptySamplePort implements SamplePort {
     @Override
     public List<Sample> samples(String service, String type, String name,
                                 Instant from, Instant to, int limit) {
-        return List.of();
+        return Lists.newArrayList();
     }
 }

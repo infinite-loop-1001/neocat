@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.collect.Maps;
 import com.neocat.protocol.ingest.v1.ExceptionInfo;
 import com.neocat.protocol.ingest.v1.Heartbeat;
 import com.neocat.protocol.ingest.v1.IngestRequest;
@@ -111,14 +112,14 @@ public final class NeoCat {
                 .setMetric(MetricValue.newBuilder()
                         .setName(name)
                         .setValue(value)
-                        .putAllLabels(Objects.isNull(labels) ? Map.of() : labels)
+                        .putAllLabels(Objects.isNull(labels) ? Maps.newHashMap() : labels)
                         .build())
                 .build();
         enqueue(node);
     }
 
     public void logHeartbeat(Map<String, String> tags) {
-        Map<String, String> t = Objects.isNull(tags) ? Map.of() : tags;
+        Map<String, String> t = Objects.isNull(tags) ? Maps.newHashMap() : tags;
         Node node = baseNode(Kind.HEARTBEAT, "jvm", "jvm", "0")
                 .setHeartbeat(JvmHeartbeatSampler.payload(t))
                 .build();

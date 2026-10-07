@@ -1,5 +1,7 @@
 package com.neocat.trace.domain.tree;
 
+import com.google.common.collect.Maps;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +15,7 @@ public final class TraceFixtures {
 
     public static TraceNode span(String nodeId, String category, String name,
                                  String status, long durationMs, long timestamp) {
-        return new TraceNode(nodeId, "TRANSACTION", category, name, status, timestamp, durationMs, null, Map.of());
+        return new TraceNode(nodeId, "TRANSACTION", category, name, status, timestamp, durationMs, null, Maps.newHashMap());
     }
 
     /** 一个普通树：单个 URL span。 */
@@ -62,7 +64,7 @@ public final class TraceFixtures {
                                                String serviceName, String downstream,
                                                long callStartMs, long durationMs, long callOffset) {
         TraceNode call = new TraceNode("n-call", "REMOTE_CALL", "CALL", downstream, "0",
-                callStartMs + callOffset, durationMs, null, Map.of());
+                callStartMs + callOffset, durationMs, null, Maps.newHashMap());
         TraceNode url = span("n-1", "URL", "/api", "0", 100L, callStartMs);
         return new TraceTree(messageId, rootMessageId, parentMessageId, serviceName, serviceName + "-ip",
                 callStartMs, "fp-" + messageId, List.of(url, call));

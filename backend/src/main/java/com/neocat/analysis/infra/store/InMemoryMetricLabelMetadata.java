@@ -1,5 +1,6 @@
 package com.neocat.analysis.infra.store;
 
+import com.google.common.collect.Maps;
 import com.neocat.analysis.domain.analyzer.*;
 import com.neocat.analysis.domain.bucket.*;
 import com.neocat.analysis.domain.dependency.*;
@@ -45,7 +46,7 @@ public  class InMemoryMetricLabelMetadata implements MetricLabelMetadata {
 
     @Override
     public void record(String service, String metric, Map<String, String> labels, String owner, Instant time) {
-        Map<String, String> copy = MapUtils.isEmpty(labels) ? Map.of() : Map.copyOf(labels);
+        Map<String, String> copy = MapUtils.isEmpty(labels) ? Maps.newHashMap() : Map.copyOf(labels);
         String canonical = MetricLabels.canonicalize(copy);
         Instant hour = time.truncatedTo(ChronoUnit.HOURS);
         var key = new Key(service, metric, hour, canonical);

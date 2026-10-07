@@ -1,5 +1,6 @@
 package com.neocat.query.domain.report;
 
+import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
 import com.neocat.analysis.domain.bucket.AggregatedRow;
@@ -48,7 +49,7 @@ public class MachineViewBuilder {
                     .filter(row -> selected.contains(row.key().getInstance()))
                     .map(row -> toMachineRow(row, calculator, stat, coveredSeconds))
                     .toList();
-            return new MachineView(List.of(), null, all, selectedRows);
+            return new MachineView(Lists.newArrayList(), null, all, selectedRows);
         }
 
         int limit = Math.max(0, topN);
@@ -59,11 +60,14 @@ public class MachineViewBuilder {
 
         MachineRow other = null;
         if (mergeOther && sorted.size() > limit) {
-            List<AggregatedRow> rest = sorted.subList(limit, sorted.size());
+            List<AggregatedRow> rest = new ArrayList<>();
+            for (int index = limit; index < sorted.size(); index++) {
+                rest.add(sorted.get(index));
+            }
             other = toMergedRow(rest, calculator, stat, coveredSeconds);
         }
 
-        return new MachineView(top, other, all, List.of());
+        return new MachineView(top, other, all, Lists.newArrayList());
     }
 
     // ── 内部 ─────────────────────────────────────────────────
@@ -71,7 +75,7 @@ public class MachineViewBuilder {
     /** 排除全机器聚合行。 */
     private List<AggregatedRow> filterMachineRows(List<AggregatedRow> rows) {
         if (CollectionUtils.isEmpty(rows)) {
-            return List.of();
+            return Lists.newArrayList();
         }
         List<AggregatedRow> machines = new ArrayList<>();
         for (AggregatedRow row : rows) {

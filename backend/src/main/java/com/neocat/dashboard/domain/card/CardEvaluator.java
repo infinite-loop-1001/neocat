@@ -1,5 +1,6 @@
 package com.neocat.dashboard.domain.card;
 
+import com.google.common.collect.Lists;
 import com.neocat.dashboard.domain.formula.Formula;
 import com.neocat.dashboard.domain.formula.FormulaParser;
 import com.neocat.query.domain.stat.Stat;
@@ -38,7 +39,7 @@ public class CardEvaluator {
      */
     public CardPoint evaluate(Formula formula, Map<Stat, Double> inputs, long bucketStart, long bucketEnd) {
         if (Objects.isNull(formula)) {
-            return new CardPoint(bucketStart, bucketEnd, null, CardPointOutcome.GAP, List.of());
+            return new CardPoint(bucketStart, bucketEnd, null, CardPointOutcome.GAP, Lists.newArrayList());
         }
 
         Set<String> missing = new LinkedHashSet<>();
@@ -56,9 +57,9 @@ public class CardEvaluator {
         EvalResult result = eval(formula, inputs);
         if (result.isDivideByZero()) {
             return new CardPoint(bucketStart, bucketEnd, null,
-                    CardPointOutcome.DIVIDE_BY_ZERO, List.of());
+                    CardPointOutcome.DIVIDE_BY_ZERO, Lists.newArrayList());
         }
-        return new CardPoint(bucketStart, bucketEnd, result.getComputed(), CardPointOutcome.OK, List.of());
+        return new CardPoint(bucketStart, bucketEnd, result.getComputed(), CardPointOutcome.OK, Lists.newArrayList());
     }
     /**
      * 校验卡片目标与公式：一个服务 + 一个指标对象，公式单位必须兼容。

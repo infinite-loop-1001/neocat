@@ -1,6 +1,7 @@
 package com.neocat.query.domain.metric;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Maps;
 import com.neocat.common.error.exception.ValidationException;
 import java.util.*;
 import org.apache.commons.collections4.CollectionUtils;
@@ -19,7 +20,7 @@ public class MetricFilters {
         this.values = values;
     }
     public static MetricFilters parse(String raw, ObjectMapper json) {
-        if (Objects.isNull(raw) || raw.isBlank()) return new MetricFilters(Map.of());
+        if (Objects.isNull(raw) || raw.isBlank()) return new MetricFilters(Maps.newHashMap());
         if (raw.length() > 16384) throw invalid();
         try {
             com.fasterxml.jackson.databind.JsonNode root = json.reader()

@@ -1,5 +1,6 @@
 package com.neocat.alert.domain.engine;
 
+import com.google.common.collect.Lists;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -51,6 +52,6 @@ public class AlertWindowState {
 
 
     public static AlertWindowState empty(long ruleId, long baselineAt) {
-        return new AlertWindowState(ruleId, baselineAt, List.of());
+        return new AlertWindowState(ruleId, baselineAt, Lists.newArrayList());
     }
 }

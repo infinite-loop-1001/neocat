@@ -1,5 +1,6 @@
 package com.neocat.query.domain.report;
 
+import com.google.common.collect.Lists;
 import com.neocat.common.time.bucket.Bucket;
 import com.neocat.common.time.bucket.Granularity;
 import com.neocat.common.time.range.RangeSpec;
@@ -60,7 +61,7 @@ public class RangeResolver {
     public ResolvedRange resolve(RangeSpec spec, ZoneId zone) {
         List<Bucket> parsed = buckets.resolve(spec, zone);
         if (CollectionUtils.isEmpty(parsed)) {
-            return new ResolvedRange(Instant.EPOCH, Instant.EPOCH, List.of());
+            return new ResolvedRange(Instant.EPOCH, Instant.EPOCH, Lists.newArrayList());
         }
         Instant from = parsed.get(0).getStart();
         Instant to = parsed.get(parsed.size() - 1).getEnd();
