@@ -32,6 +32,7 @@
         <guava.version>33.0.0-jre</guava.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <spring-boot.version>3.3.13</spring-boot.version>
+        <springdoc.version>2.6.0</springdoc.version>
         <spring-modulith.version>1.2.10</spring-modulith.version>
         <spock.version>2.3-groovy-4.0</spock.version>
         <gmavenplus.version>3.0.2</gmavenplus.version>
@@ -116,6 +117,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- 接口文档：SpringDoc 生成 OpenAPI，不引入 Swagger UI 页面（只暴露 /v3/api-docs） -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
 
         <!-- Spring Modulith：模块化与事件 -->

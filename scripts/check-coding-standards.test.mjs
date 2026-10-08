@@ -236,6 +236,63 @@ test('生产时间入口与领域配置归属检查，仅允许公共实现及�
   }
 });
 
+test('接口文档注解完整性：Controller 需 @Tag、端点需 @Operation、DTO 需 @Schema', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-api-docs-standards-'));
+  const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));
+  const write = (relative, source) => {
+    const file = path.join(dir, relative);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, source);
+    return file;
+  };
+  const run = files => spawnSync('java', [helper, ...files], { encoding: 'utf8' });
+  const controller = (name, tag, operation) => `package com.neocat.demo.api.http;
+      import io.swagger.v3.oas.annotations.Operation;
+      import io.swagger.v3.oas.annotations.tags.Tag;
+      ${tag}
+      @org.springframework.web.bind.annotation.RestController
+      class ${name} {
+        ${operation}
+        @org.springframework.web.bind.annotation.GetMapping("/x")
+        org.springframework.http.ResponseEntity<String> list() { return null; }
+      }`;
+  try {
+    const missing = run([write('backend/src/main/java/com/neocat/demo/api/http/DemoController.java',
+      controller('DemoController', '', ''))]);
+    assert.equal(missing.status, 1, missing.stderr);
+    assert.ok(missing.stderr.includes('对外 Controller 必须有 @Tag'), missing.stderr);
+    assert.ok(missing.stderr.includes('对外端点必须有 @Operation'), missing.stderr);
+
+    const documented = run([write('backend/src/main/java/com/neocat/demo/api/http/DemoController.java',
+      controller('DemoController', '@Tag(name = "演示", description = "演示接口")',
+        '@Operation(summary = "查询演示", operationId = "demoList")'))]);
+    assert.equal(documented.status, 0, documented.stderr);
+
+    const blankTag = run([write('backend/src/main/java/com/neocat/demo/api/http/DemoController.java',
+      controller('DemoController', '@Tag(name = " ", description = "x")',
+        '@Operation(summary = "查询演示", operationId = "demoList")'))]);
+    assert.equal(blankTag.status, 1, blankTag.stderr);
+    assert.ok(blankTag.stderr.includes('@Tag 的 name 与 description 不能为空'), blankTag.stderr);
+
+    const noDtoSchema = run([write('backend/src/main/java/com/neocat/demo/api/http/dto/Draft.java',
+      'package com.neocat.demo.api.http.dto; class Draft { String name; }')]);
+    assert.equal(noDtoSchema.status, 1, noDtoSchema.stderr);
+    assert.ok(noDtoSchema.stderr.includes('HTTP DTO 类必须有 @Schema'), noDtoSchema.stderr);
+
+    const duplicated = run([
+      write('backend/src/main/java/com/neocat/demo/api/http/DemoController.java',
+        controller('DemoController', '@Tag(name = "演示", description = "演示接口")',
+          '@Operation(summary = "查询演示", operationId = "demoList")')),
+      write('backend/src/main/java/com/neocat/demo/api/http/Dup2Controller.java',
+        controller('Dup2Controller', '@Tag(name = "演示2", description = "演示接口2")',
+          '@Operation(summary = "重复", operationId = "demoList")'))]);
+    assert.equal(duplicated.status, 1, duplicated.stderr);
+    assert.ok(duplicated.stderr.includes('operationId 必须全局唯一'), duplicated.stderr);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('空 JDK 容器工厂与 subList 禁止使用', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-collections-standards-'));
   const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));

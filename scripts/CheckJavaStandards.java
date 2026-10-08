@@ -1,9 +1,12 @@
+import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MemberReferenceTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
@@ -50,6 +53,35 @@ public final class CheckJavaStandards {
             tree = parentheses.getExpression();
         }
         return tree;
+    }
+
+    /** 注解简单名，如 {@code Tag}、{@code Operation}、{@code Schema}。 */
+    private static String annotationName(AnnotationTree annotation) {
+        String text = annotation.getAnnotationType().toString();
+        return text.substring(text.lastIndexOf('.') + 1);
+    }
+
+    /** 取注解的字符串字面量属性；缺失或非字面量返回 null。 */
+    private static String annotationText(AnnotationTree annotation, String key) {
+        for (var argument : annotation.getArguments()) {
+            if (argument instanceof AssignmentTree assignment
+                    && Objects.equals(assignment.getVariable().toString(), key)
+                    && assignment.getExpression() instanceof LiteralTree literal) {
+                return Objects.isNull(literal.getValue()) ? null : literal.getValue().toString();
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasAnnotation(ModifiersTree modifiers, String simpleName) {
+        return modifiers.getAnnotations().stream()
+                .anyMatch(annotation -> Objects.equals(annotationName(annotation), simpleName));
+    }
+
+    private static AnnotationTree annotation(ModifiersTree modifiers, String simpleName) {
+        return modifiers.getAnnotations().stream()
+                .filter(item -> Objects.equals(annotationName(item), simpleName))
+                .findFirst().orElse(null);
     }
 
     /** 只登记实际枚举声明，不通过全大写名称猜测常量类型。 */
@@ -105,6 +137,7 @@ public final class CheckJavaStandards {
             List<CompilationUnitTree> units = new ArrayList<>();
             task.parse().forEach(units::add);
             var enumConstants = enumConstants(units);
+            Map<String, String> operationIds = new HashMap<>();
             for (var unit : units) {
                 String source = Files.readString(Path.of(unit.getSourceFile().toUri()));
                 String filePath = Path.of(unit.getSourceFile().toUri()).toString().replace('\\', '/');
@@ -131,6 +164,8 @@ public final class CheckJavaStandards {
                 }.scan(unit, null);
                 boolean staticCollectorImport = unit.getImports().stream().anyMatch(i -> i.isStatic()
                         && i.getQualifiedIdentifier().toString().matches("java\\.util\\.stream\\.Collectors\\.(toMap|toConcurrentMap|\\*)"));
+                boolean apiHttpSource = backendProduction && filePath.contains("/api/http/");
+                boolean httpDtoSource = apiHttpSource && filePath.contains("/api/http/dto/");
                 new TreePathScanner<Void, Void>() {
                     private void error(long position, String message) {
                         failures[0]++;
@@ -145,8 +180,7 @@ public final class CheckJavaStandards {
                     }
 
                     /** 取 {@code Objects.isNull/isNonNull(x)} 的 x 文本，否则 null。 */
-                    private String nullCheckArgument(Tree tree, String method) {
-                        if (!(tree instanceof MethodInvocationTree call)) return null;
+                    private String nullCheckArgument(Tree tree, String method) {                        if (!(tree instanceof MethodInvocationTree call)) return null;
                         if (!call.getMethodSelect().toString().endsWith("Objects." + method) || call.getArguments().size() != 1) return null;
                         return text(call.getArguments().get(0));
                     }
@@ -329,12 +363,71 @@ public final class CheckJavaStandards {
                         return super.visitMethod(method, unused);
                     }
 
+                    /** 接口文档注解完整性（编码规范 http-api.md，强制）。 */
+                    private void checkApiDocumentation(ClassTree type) {
+                        if (!apiHttpSource) return;
+                        var modifiers = type.getModifiers();
+                        if (hasAnnotation(modifiers, "RestController")) {
+                            AnnotationTree tag = annotation(modifiers, "Tag");
+                            if (Objects.isNull(tag)) {
+                                error(trees.getSourcePositions().getStartPosition(unit, type),
+                                        "对外 Controller 必须有 @Tag(name=…, description=…)");
+                            } else if (Objects.isNull(annotationText(tag, "name")) || annotationText(tag, "name").isBlank()
+                                    || Objects.isNull(annotationText(tag, "description")) || annotationText(tag, "description").isBlank()) {
+                                error(trees.getSourcePositions().getStartPosition(unit, type), "@Tag 的 name 与 description 不能为空");
+                            }
+                            checkMappingMethods(type);
+                        }
+                        if (httpDtoSource && !Objects.equals(type.getKind(), Tree.Kind.ENUM)) {
+                            AnnotationTree schema = annotation(modifiers, "Schema");
+                            if (Objects.isNull(schema)) {
+                                error(trees.getSourcePositions().getStartPosition(unit, type),
+                                        "HTTP DTO 类必须有 @Schema(description=…)");
+                            } else if (Objects.isNull(annotationText(schema, "description"))
+                                    || annotationText(schema, "description").isBlank()) {
+                                error(trees.getSourcePositions().getStartPosition(unit, type), "@Schema 的 description 不能为空");
+                            }
+                        }
+                    }
+
+                    /** 每个映射方法必须有 @Operation，且 summary 与 operationId 完整、operationId 全局唯一。 */
+                    private void checkMappingMethods(ClassTree type) {
+                        for (var member : type.getMembers()) {
+                            if (!(member instanceof MethodTree method)) continue;
+                            AnnotationTree mapping = method.getModifiers().getAnnotations().stream()
+                                    .filter(item -> annotationName(item).matches("[A-Z]\\w*Mapping"))
+                                    .findFirst().orElse(null);
+                            if (Objects.isNull(mapping)) continue;
+                            AnnotationTree operation = annotation(method.getModifiers(), "Operation");
+                            if (Objects.isNull(operation)) {
+                                error(trees.getSourcePositions().getStartPosition(unit, method),
+                                        "对外端点必须有 @Operation(summary=…, operationId=…)");
+                                continue;
+                            }
+                            String summary = annotationText(operation, "summary");
+                            if (Objects.isNull(summary) || summary.isBlank()) {
+                                error(trees.getSourcePositions().getStartPosition(unit, method), "@Operation 的 summary 不能为空");
+                            }
+                            String operationId = annotationText(operation, "operationId");
+                            if (Objects.isNull(operationId) || operationId.isBlank()) {
+                                error(trees.getSourcePositions().getStartPosition(unit, method), "@Operation 的 operationId 不能为空");
+                            } else {
+                                String previous = operationIds.putIfAbsent(operationId, filePath);
+                                if (Objects.nonNull(previous)) {
+                                    error(trees.getSourcePositions().getStartPosition(unit, method),
+                                            "@Operation 的 operationId 必须全局唯一，重复：" + operationId);
+                                }
+                            }
+                        }
+                    }
+
                     @Override
                     public Void visitClass(ClassTree type, Void unused) {
                         boolean isEnum = Objects.equals(type.getKind(), Tree.Kind.ENUM);
                         if (Objects.equals(type.getKind().name(), "RECORD")) {
                             error(trees.getSourcePositions().getStartPosition(unit, type), "禁止声明 record");
                         }
+                        checkApiDocumentation(type);
                         VariableTree previous = null;
                         for (var member : type.getMembers()) {
                             if (!(member instanceof VariableTree field)) {

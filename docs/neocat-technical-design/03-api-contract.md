@@ -49,6 +49,15 @@
 - Protobuf `double`、ClickHouse `Float64` 列及整数直方图协议不改。Metric 在分析入口用 `BigDecimal.valueOf` 转换；Heartbeat 整数直接转换；JDBC 用 `getBigDecimal` 读取。既有输入/数据库浮点精度、SQL 浮点聚合、整数直方图量化与分箱估算误差仍然存在，十进制迁移不能恢复这些边界前已丢失的精度。
 - 前端按既有 JSON 数字契约使用 JavaScript `number`，仅用于展示与输入传输，不是任意精度十进制端到端协议。超过浏览器安全精度的阈值经现有 UI 仍可能失真；后台直接接收的十进制 JSON 文本则按原精度绑定。
 
+### 1.4 接口文档
+
+- 对外接口的机器可读文档由 SpringDoc 2.6.0（`springdoc-openapi-starter-webmvc-api`）生成，入口 `GET /v3/api-docs`（JSON）与 `/v3/api-docs.yaml`；**不提供 Swagger UI 页面**，依赖里不含 Swagger UI WebJar。
+- 文档入口默认关闭（`springdoc.api-docs.enabled=false`），由部署按需开启；开启后该路径在 `/api/**` 之外，不被会话拦截器覆盖，因此**不能默认匿名暴露**，需要部署侧自行限制访问。
+- 文档只描述 `/api/**` 下的对外端点；鉴权按真实实现声明为会话 Cookie `NC_SESSION`，`POST /api/login`、`GET /api/platform/init-status`、`POST /api/platform/initialize` 三个匿名端点显式清空安全要求。
+- Controller 用 `@Tag`、端点用 `@Operation`（`summary` 与全局唯一 `operationId`）、DTO 类用 `@Schema`；参数、可空、枚举、单位与精度在 `@Parameter`／`@Schema` 中说明。注解只描述现有行为，`@Schema` 不是运行时校验，未新增字段、状态码或校验。
+- Protobuf 端点继续声明 `application/x-protobuf` 的二进制请求与响应，媒体类型、状态码与报文体契约不变。
+- 离线回归：`node scripts/check-coding-standards.mjs` 检查注解完整性，后端 `OpenApiContractSpec` 真实生成 `/v3/api-docs` 并断言端点、tag、`operationId` 唯一性、鉴权与 schema；`scripts/check-contract-alignment.mjs` 继续校验前后端端点对齐。
+
 ---
 
 ## 2. 身份与会话（identity）

@@ -94,7 +94,6 @@ public class AlertEngine {
         }
 
         List<Long> appended = new ArrayList<>(current.getPoints());
-        // rules: 容器判断是否包含元素使用 Apache CollectionUtils
         if (!appended.contains(minute)) {
             appended.add(minute);
         }

@@ -68,7 +68,6 @@ public class AlertRuleService {
         if (Objects.isNull(draft)) {
             throw new IllegalArgumentException("规则不能为空");
         }
-        // rules: 容器的比较使用 Apache 的 CollectionUtils 判断
         if (CollectionUtils.isEmpty(draft.getConditions())) {
             throw new IllegalArgumentException("至少需要一个比较条件");
         }

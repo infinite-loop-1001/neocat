@@ -115,7 +115,6 @@ public class AccountService {
      * <p>「从收件人移除」由 {@code AccountStatusChanged} 的订阅方（alert 模块）完成，
      * 本用例只负责账号状态与会话，并在结果中声明副作用语义。
      */
-    // rules: 除非类名称冲突, 不然不要使用全限定类名称
     @Transactional
     @MySqlLocked("metadata")
     public AccountChangeResult disable(long accountId, Instant at) {
