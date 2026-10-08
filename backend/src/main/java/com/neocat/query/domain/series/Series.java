@@ -3,14 +3,18 @@ package com.neocat.query.domain.series;
 import com.neocat.query.domain.stat.Stat;
 
 import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 一条序列查询结果（技术方案 03 §4.10）。
  */
-@org.springframework.modulith.NamedInterface("query")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("query")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class Series {
     private final String service;
 
@@ -51,9 +55,3 @@ public class Series {
         return points.stream().filter(Point::partial).toList();
     }
 }
-
-
-
-
-
-

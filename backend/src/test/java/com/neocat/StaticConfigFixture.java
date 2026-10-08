@@ -1,7 +1,13 @@
 package com.neocat;
 
-import com.neocat.common.config.*;
-import com.neocat.common.config.impl.ApolloConfigGuard;
+import com.neocat.alert.config.AlertConfig;
+import com.neocat.ingest.config.IngestConfig;
+import com.neocat.analysis.config.AnalysisConfig;
+import com.neocat.analysis.config.ReportConfig;
+import com.neocat.analysis.config.MetricConfig;
+import com.neocat.trace.config.TraceConfig;
+import com.neocat.query.config.QueryConfig;
+import com.neocat.query.config.HeartbeatConfig;
 import link.cu1universe.dev.apollo.annotation.ApolloStaticValue;
 import org.springframework.core.convert.support.DefaultConversionService;
 

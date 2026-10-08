@@ -1,12 +1,12 @@
 package com.neocat.platform.domain.profile;
 
-import java.util.Optional;
+import org.springframework.lang.Nullable;
+import org.springframework.modulith.NamedInterface;
 
-@org.springframework.modulith.NamedInterface("platform")
-
+@NamedInterface("platform")
 public interface PlatformProfileRepository {
 
-    @org.springframework.lang.Nullable
+    @Nullable
     PlatformProfile load();
 
     void save(PlatformProfile profile);

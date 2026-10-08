@@ -1,17 +1,23 @@
 package com.neocat.alert.domain.engine;
 
+import java.math.BigDecimal;
+
 import com.neocat.alert.domain.rule.AlertRule;
 import com.neocat.alert.domain.rule.Combinator;
 import com.neocat.alert.domain.rule.Condition;
 import com.neocat.query.domain.stat.Stat;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+
+import java.util.Locale;
 
 /**
  * 预告警试算（PRD 06 §4）。
@@ -52,7 +58,7 @@ public class PreviewService {
         // fixme: 这里 MinutePointSource 需要提供批量接口, 不能循环调用每分钟的指标值
         for (int i = 0; i < window; i++) {
             long minute = latestMinute - (long) i * 60_000L;
-            Map<Stat, Double> values = points.values(rule.getTarget(), minute, requiredStats);
+            Map<Stat, BigDecimal> values = points.values(rule.getTarget(), minute, requiredStats);
 
             String missing = firstMissing(requiredStats, values);
             if (Objects.nonNull(missing)) {
@@ -71,6 +77,7 @@ public class PreviewService {
                 ? PreviewResultType.TRIGGER
                 : PreviewResultType.NO_TRIGGER, List.copyOf(evaluations));
     }
+
     /**
      * 合并单点的条件组合。
      *
@@ -78,15 +85,15 @@ public class PreviewService {
      * 缺数由调用方预先排除，此处只处理有值的点。
      */
     // fixme: 这里逻辑需要收束到 AlterWindowStateService 里
-    public boolean combine(AlertRule rule, Map<Stat, Double> values) {
+    public boolean combine(AlertRule rule, Map<Stat, BigDecimal> values) {
         List<Condition> conditions = rule.getConditions();
         if (CollectionUtils.isEmpty(conditions)) {
             return false;
         }
-        boolean and = rule.getCombinator() == Combinator.AND;
+        boolean and = Objects.equals(rule.getCombinator(), Combinator.AND);
         boolean aggregate = and;
         for (Condition condition : conditions) {
-            Double value = values.get(condition.getStat());
+            BigDecimal value = values.get(condition.getStat());
             boolean matched = condition.matches(value);
             aggregate = and ? (aggregate && matched) : (aggregate || matched);
         }
@@ -95,7 +102,9 @@ public class PreviewService {
 
     // ── 内部 ─────────────────────────────────────────────────
 
-    /** 该规则需要的全部统计项：条件统计项 ∪ 目标公式统计项。 */
+    /**
+     * 该规则需要的全部统计项：条件统计项 ∪ 目标公式统计项。
+     */
     // fixme: 这个逻辑应该收束成 AlterRule 聚合内部逻辑
     private List<Stat> requiredStats(AlertRule rule) {
         List<Stat> stats = new ArrayList<>();
@@ -107,13 +116,14 @@ public class PreviewService {
         }
         return List.copyOf(stats);
     }
+
     /**
      * 返回第一个缺失的统计项名；全部齐备返回 null。
      *
      * <p>注意：值为 0 是**已知值**，不算缺失；只有 {@code null} 或键不存在才算缺数。
      */
     // fixme: 这里逻辑需要收束到 AlterWindowStateService 里
-    private String firstMissing(List<Stat> requiredStats, Map<Stat, Double> values) {
+    private String firstMissing(List<Stat> requiredStats, Map<Stat, BigDecimal> values) {
         for (Stat stat : requiredStats) {
             if (MapUtils.isEmpty(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
                 return displayOf(stat);
@@ -121,11 +131,12 @@ public class PreviewService {
         }
         return null;
     }
+
     private String displayOf(Stat stat) {
         return switch (stat) {
             case FAILURE_RATE -> "failureRate";
             case AVG -> "avgDuration";
-            default -> stat.name().toLowerCase(java.util.Locale.ROOT);
+            default -> stat.name().toLowerCase(Locale.ROOT);
         };
     }
 }

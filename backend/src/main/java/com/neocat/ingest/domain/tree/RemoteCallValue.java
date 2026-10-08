@@ -1,12 +1,16 @@
 package com.neocat.ingest.domain.tree;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 跨服务调用载荷（PRD 04 §6）。被调用方未上报时，依赖边仍由调用方观测产生。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("tree")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class RemoteCallValue {
     private final String downstreamService;
 
@@ -24,4 +28,3 @@ public class RemoteCallValue {
     }
 
 }
-

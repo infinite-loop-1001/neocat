@@ -1,5 +1,7 @@
 package com.neocat.dashboard.domain.card
 
+import java.math.BigDecimal
+
 import com.neocat.dashboard.domain.formula.FormulaParser
 
 import com.neocat.query.domain.stat.Stat
@@ -78,10 +80,10 @@ class CardTargetSpec extends Specification {
     def "简单除法求值：failures / hits"() {
         when:
         def point = evaluator.evaluate(formula("failures / hits"),
-                [(Stat.HITS): 100.0d, (Stat.FAILURES): 25.0d], 1000L, 2000L)
+                [(Stat.HITS): 100.0, (Stat.FAILURES): 25.0], 1000L, 2000L)
 
         then:
-        point.getValue() == 0.25d
+        point.getValue() == 0.25
         point.getOutcome() == CardPointOutcome.OK
         point.getMissingInputs().isEmpty()
     }
@@ -89,37 +91,37 @@ class CardTargetSpec extends Specification {
     def "减法求值：tp99 - avgDuration"() {
         when:
         def point = evaluator.evaluate(formula("tp99 - avgDuration"),
-                [(Stat.TP99): 200.0d, (Stat.AVG): 50.0d], 1000L, 2000L)
+                [(Stat.TP99): 200.0, (Stat.AVG): 50.0], 1000L, 2000L)
 
         then:
-        point.getValue() == 150.0d
+        point.getValue() == 150.0
     }
 
     def "常数缩放"() {
         when:
         def point = evaluator.evaluate(formula("hits * 100"),
-                [(Stat.HITS): 3.0d], 1000L, 2000L)
+                [(Stat.HITS): 3.0], 1000L, 2000L)
 
         then:
-        point.getValue() == 300.0d
+        point.getValue() == 300.0
     }
 
     def "聚合函数包裹单个统计项"() {
         when:
         def point = evaluator.evaluate(formula("sum(hits)"),
-                [(Stat.HITS): 42.0d], 1000L, 2000L)
+                [(Stat.HITS): 42.0], 1000L, 2000L)
 
         then:
-        point.getValue() == 42.0d
+        point.getValue() == 42.0
     }
 
     def "括号改变求值顺序"() {
         when: "(tp99 - avgDuration) / 2"
         def point = evaluator.evaluate(formula("(tp99 - avgDuration) / 2"),
-                [(Stat.TP99): 200.0d, (Stat.AVG): 100.0d], 1000L, 2000L)
+                [(Stat.TP99): 200.0, (Stat.AVG): 100.0], 1000L, 2000L)
 
         then:
-        point.getValue() == 50.0d
+        point.getValue() == 50.0
     }
 
     // ── 缺数：不把缺数当 0 ───────────────────────────────────
@@ -127,22 +129,22 @@ class CardTargetSpec extends Specification {
     def "任一输入缺数时结果为缺口"() {
         when: "hits 缺数"
         def point = evaluator.evaluate(formula("failures / hits"),
-                [(Stat.HITS): null, (Stat.FAILURES): 25.0d], 1000L, 2000L)
+                [(Stat.HITS): null, (Stat.FAILURES): 25.0], 1000L, 2000L)
 
         then:
         point.getValue() == null
-        point.gap()
+        point.isGap()
         point.getMissingInputs() == ["hits"]
     }
 
     def "缺数不当作 0：failures / null 不返回 0 或无穷"() {
         when:
         def point = evaluator.evaluate(formula("failures / hits"),
-                [(Stat.HITS): null, (Stat.FAILURES): 25.0d], 1000L, 2000L)
+                [(Stat.HITS): null, (Stat.FAILURES): 25.0], 1000L, 2000L)
 
         then:
         point.getValue() == null
-        point.getValue() != 0.0d
+        point.getValue() != 0.0
         point.getOutcome() != CardPointOutcome.OK
     }
 
@@ -152,24 +154,24 @@ class CardTargetSpec extends Specification {
                 [(Stat.TP99): null, (Stat.AVG): null], 1000L, 2000L)
 
         then:
-        point.gap()
+        point.isGap()
         point.getMissingInputs() as Set == ["tp99", "avgDuration"] as Set
     }
 
     def "缺口点不沿用上一个点的值"() {
         given: "连续两个桶：第一个有值，第二个缺数"
-        def inputs1 = [(Stat.HITS): 100.0d, (Stat.FAILURES): 25.0d]
-        def inputs2 = [(Stat.HITS): null, (Stat.FAILURES): 25.0d]
+        def inputs1 = [(Stat.HITS): 100.0, (Stat.FAILURES): 25.0]
+        def inputs2 = [(Stat.HITS): null, (Stat.FAILURES): 25.0]
 
         when:
         def p1 = evaluator.evaluate(formula("failures / hits"), inputs1, 1000L, 2000L)
         def p2 = evaluator.evaluate(formula("failures / hits"), inputs2, 2000L, 3000L)
 
         then:
-        p1.getValue() == 0.25d
+        p1.getValue() == 0.25
         p2.getValue() == null
         p2.getValue() != p1.getValue()
-        p2.gap()
+        p2.isGap()
     }
 
     def "缺口点保留桶边界信息，供前端画断点"() {
@@ -179,18 +181,18 @@ class CardTargetSpec extends Specification {
         then:
         point.getBucketStart() == 5000L
         point.getBucketEnd() == 6000L
-        point.gap()
+        point.isGap()
     }
 
     def "输入值全部存在时不是缺口"() {
         when:
         def point = evaluator.evaluate(formula("hits"),
-                [(Stat.HITS): 0.0d], 1000L, 2000L)
+                [(Stat.HITS): 0.0], 1000L, 2000L)
 
         then: "确认无调用的 0 是有效值，不是缺口"
-        point.getValue() == 0.0d
+        point.getValue() == 0.0
         point.getOutcome() == CardPointOutcome.OK
-        !point.gap()
+        !point.isGap()
     }
 
     // ── 除零 ─────────────────────────────────────────────────
@@ -198,21 +200,21 @@ class CardTargetSpec extends Specification {
     def "除数为 0 时该点不可计算"() {
         when:
         def point = evaluator.evaluate(formula("failures / hits"),
-                [(Stat.HITS): 0.0d, (Stat.FAILURES): 0.0d], 1000L, 2000L)
+                [(Stat.HITS): 0.0, (Stat.FAILURES): 0.0], 1000L, 2000L)
 
         then:
         point.getValue() == null
-        point.undefined()
+        point.isUndefined()
         point.getOutcome() == CardPointOutcome.DIVIDE_BY_ZERO
-        !point.gap()
+        !point.isGap()
     }
 
     def "除零不是缺口：缺口表示缺数据，除零表示可计算但无定义"() {
         given:
         def zeroDivisor = evaluator.evaluate(formula("failures / hits"),
-                [(Stat.HITS): 0.0d, (Stat.FAILURES): 5.0d], 1000L, 2000L)
+                [(Stat.HITS): 0.0, (Stat.FAILURES): 5.0], 1000L, 2000L)
         def gap = evaluator.evaluate(formula("failures / hits"),
-                [(Stat.HITS): null, (Stat.FAILURES): 5.0d], 1000L, 2000L)
+                [(Stat.HITS): null, (Stat.FAILURES): 5.0], 1000L, 2000L)
 
         expect:
         zeroDivisor.getOutcome() == CardPointOutcome.DIVIDE_BY_ZERO
@@ -223,31 +225,31 @@ class CardTargetSpec extends Specification {
     def "嵌套除法中任一层除零都判为不可计算"() {
         when: "(tp99 - avgDuration) / (hits - hits)"
         def point = evaluator.evaluate(formula("(tp99 - avgDuration) / (hits - hits)"),
-                [(Stat.TP99): 200.0d, (Stat.AVG): 100.0d, (Stat.HITS): 5.0d], 1000L, 2000L)
+                [(Stat.TP99): 200.0, (Stat.AVG): 100.0, (Stat.HITS): 5.0], 1000L, 2000L)
 
         then:
-        point.undefined()
+        point.isUndefined()
         point.getValue() == null
     }
 
     def "常数为除数且非零时正常求值"() {
         when:
         def point = evaluator.evaluate(formula("hits / 2"),
-                [(Stat.HITS): 10.0d], 1000L, 2000L)
+                [(Stat.HITS): 10.0], 1000L, 2000L)
 
         then:
-        point.getValue() == 5.0d
+        point.getValue() == 5.0
         point.getOutcome() == CardPointOutcome.OK
     }
 
     def "缺数优先于除零：输入缺失时不报告除零"() {
         when: "hits 缺数，failures 为 5"
         def point = evaluator.evaluate(formula("failures / hits"),
-                [(Stat.HITS): null, (Stat.FAILURES): 5.0d], 1000L, 2000L)
+                [(Stat.HITS): null, (Stat.FAILURES): 5.0], 1000L, 2000L)
 
         then: "先判缺数"
-        point.gap()
-        !point.undefined()
+        point.isGap()
+        !point.isUndefined()
     }
 
     // ── 单位兼容的复合公式 ───────────────────────────────────
@@ -270,7 +272,7 @@ class CardTargetSpec extends Specification {
     }
 
     def inputs() {
-        return [(Stat.HITS): 100.0d, (Stat.FAILURES): 10.0d, (Stat.TP99): 200.0d, (Stat.AVG): 50.0d]
+        return [(Stat.HITS): 100.0, (Stat.FAILURES): 10.0, (Stat.TP99): 200.0, (Stat.AVG): 50.0]
     }
 
     def card(String service, String kind, String type, String name, String labels, String formulaExpr) {

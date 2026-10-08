@@ -1,22 +1,27 @@
 package com.neocat.ingest.domain.tree;
+import java.util.Map;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * JVM Heartbeat 载荷（PRD 03 §10）：堆内存、GC、线程数。
  * 一期仅覆盖 JVM，非 JVM 服务没有 Heartbeat 不影响其他报表。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("tree")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class HeartbeatValue {
-    private final java.util.Map<String, Long> values;
+    private final Map<String, Long> values;
 
-    public HeartbeatValue(java.util.Map<String, Long> values) {
+    public HeartbeatValue(Map<String, Long> values) {
         this.values = values;
     }
 
     public HeartbeatValue(long heapUsedBytes, long heapMaxBytes, long gcCount, long gcTimeMs, long threadCount) {
-        this(java.util.Map.of("heap-used", heapUsedBytes, "heap-max", heapMaxBytes,
+        this(Map.of("heap-used", heapUsedBytes, "heap-max", heapMaxBytes,
                 "gc-count", gcCount, "gc-time", gcTimeMs, "threads", threadCount));
     }
 

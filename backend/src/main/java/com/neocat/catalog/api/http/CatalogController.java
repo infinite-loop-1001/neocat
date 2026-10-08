@@ -1,5 +1,7 @@
 package com.neocat.catalog.api.http;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.catalog.api.http.dto.ServiceResponse;
 import com.neocat.catalog.api.http.convert.CatalogConvert;
 
@@ -15,8 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Locale;
 
 /**
  * 服务目录接口（技术方案 03-api-contract.md §4.1）。
@@ -32,11 +34,9 @@ public class CatalogController {
 
     private final CatalogService catalog;
 
-    private final java.time.Clock clock;
 
-    public CatalogController(CatalogService catalog, java.time.Clock clock) {
+    public CatalogController(CatalogService catalog) {
         this.catalog = catalog;
-        this.clock = clock;
     }
     @GetMapping
     public ResponseEntity<List<ServiceResponse>> services(
@@ -60,13 +60,13 @@ public class CatalogController {
         return ResponseEntity.ok(catalog.instancesWithData(service, parseKind(kind), range(from, to)));
     }
     private TimeRange range(Long from, Long to) {
-        Instant end = Objects.isNull(to) ? clock.instant() : Instant.ofEpochMilli(to);
+        Instant end = Objects.isNull(to) ? TimeProvider.now() : Instant.ofEpochMilli(to);
         Instant start = Objects.isNull(from) ? end.minusSeconds(3600) : Instant.ofEpochMilli(from);
         return new TimeRange(start, end);
     }
     private ReportKind parseKind(String kind) {
         try {
-            return ReportKind.valueOf(kind.toUpperCase(java.util.Locale.ROOT));
+            return ReportKind.valueOf(kind.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return ReportKind.TRANSACTION;
         }

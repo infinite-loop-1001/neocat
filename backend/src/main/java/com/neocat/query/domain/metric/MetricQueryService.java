@@ -1,5 +1,7 @@
 package com.neocat.query.domain.metric;
 
+import java.math.BigDecimal;
+
 import com.neocat.query.domain.series.Point;
 import com.neocat.query.domain.series.Quality;
 import com.neocat.query.domain.series.Series;
@@ -7,6 +9,7 @@ import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.common.time.bucket.Bucket;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +17,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
+
+import java.time.temporal.ChronoUnit;
+
+import org.springframework.modulith.NamedInterface;
 
 /**
  * Metric 查询（PRD 04 §2–5，链路 21）。
@@ -35,7 +43,7 @@ import org.apache.commons.collections4.CollectionUtils;
  *
  * <p>`other` 自身是独立序列，查询它时按普通序列处理，不标记缺口。
  */
-@org.springframework.modulith.NamedInterface("query")
+@NamedInterface("query")
 public class MetricQueryService {
 
     public Series series(String service, String metricName, String labels,
@@ -63,7 +71,7 @@ public class MetricQueryService {
                 points.add(new Point(start, end, null, Quality.NO_DATA, covered));
                 continue;
             }
-            Double value = calculator.compute(List.of(row), stat, covered);
+            BigDecimal value = calculator.compute(List.of(row), stat, covered);
             points.add(new Point(start, end, value, qualityOf(row, value), covered));
         }
 
@@ -73,7 +81,10 @@ public class MetricQueryService {
                 CollectionUtils.isEmpty(buckets) ? 0 : buckets.get(buckets.size() - 1).getEnd().toEpochMilli(),
                 List.copyOf(points));
     }
-    /** 该小时对该标签组合是否被并入 other。 */
+
+    /**
+     * 该小时对该标签组合是否被并入 other。
+     */
     public boolean mergedIntoOther(Long bucketStart, Set<Long> mergedHours) {
         return Objects.nonNull(bucketStart) && Objects.nonNull(mergedHours) && mergedHours.contains(bucketStart);
     }
@@ -92,6 +103,7 @@ public class MetricQueryService {
         }
         return mergedIntoOther(bucketStart, mergedHours);
     }
+
     /**
      * 按桶起点索引行，**同时校验序列身份**。
      *
@@ -112,7 +124,10 @@ public class MetricQueryService {
         }
         return byBucket;
     }
-    /** 行的序列身份是否与查询目标一致。 */
+
+    /**
+     * 行的序列身份是否与查询目标一致。
+     */
     private boolean matchesIdentity(AggregatedRow row, String service, String metricName, String labels) {
         if (Objects.nonNull(service) && !Objects.equals(service, row.key().getService())) {
             return false;
@@ -125,7 +140,8 @@ public class MetricQueryService {
         }
         return true;
     }
-    private Quality qualityOf(AggregatedRow row, Double value) {
+
+    private Quality qualityOf(AggregatedRow row, BigDecimal value) {
         if (Objects.isNull(value)) {
             return Quality.NO_DATA;
         }
@@ -134,10 +150,13 @@ public class MetricQueryService {
         }
         return Quality.OK;
     }
-    /** 便捷方法：由行的时间戳推导小时起点（测试与调用方共用）。 */
+
+    /**
+     * 便捷方法：由行的时间戳推导小时起点（测试与调用方共用）。
+     */
     public static long hourStartOf(long timestamp) {
         return Instant.ofEpochMilli(timestamp)
-                .truncatedTo(java.time.temporal.ChronoUnit.HOURS)
+                .truncatedTo(ChronoUnit.HOURS)
                 .toEpochMilli();
     }
 }

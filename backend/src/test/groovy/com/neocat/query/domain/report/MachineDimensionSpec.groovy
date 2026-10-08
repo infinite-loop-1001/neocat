@@ -225,7 +225,7 @@ class MachineDimensionSpec extends Specification {
         row.getTotal() == 100
         row.getFailures() == 5
         row.getAvgDuration() == 10.0d
-        row.getQps() == 100.0d / 3600
+        row.getQps() == 0.027778
     }
 
     def "空输入返回空视图"() {

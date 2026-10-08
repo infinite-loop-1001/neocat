@@ -10,6 +10,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.Duration
 
 /**
  * G0 任务1（红）+ G8 任务47：时间范围与桶解析契约。
@@ -81,7 +82,7 @@ class TimeBucketResolverSpec extends Specification {
         when:
         def buckets = resolver.resolve(new RangeSpec.QuickRange(quick, now), SH)
         def expectedCount = Math.ceil(
-                java.time.Duration.between(buckets[0].getStart(), now).getSeconds()
+                Duration.between(buckets[0].getStart(), now).getSeconds()
                         / (double) granularity.seconds()) as int
 
         then:

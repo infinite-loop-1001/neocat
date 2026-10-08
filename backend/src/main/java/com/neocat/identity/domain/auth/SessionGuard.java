@@ -13,6 +13,8 @@ import com.neocat.common.error.exception.AuthorizationException;
 import java.time.Instant;
 import java.util.Set;
 import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 会话守卫（PRD 01 §4.2 / §4.3）。
@@ -24,8 +26,8 @@ import java.util.Objects;
  *   <li>每次有效请求为会话续期。</li>
  * </ul>
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("identity")
+@Service
+@NamedInterface("identity")
 public class SessionGuard {
 
     /** 强制改密会话允许访问的端点。 */

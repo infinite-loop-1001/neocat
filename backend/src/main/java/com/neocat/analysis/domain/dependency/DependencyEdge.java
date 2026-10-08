@@ -2,6 +2,10 @@ package com.neocat.analysis.domain.dependency;
 
 import com.neocat.analysis.domain.bucket.SeriesKey;
 import com.neocat.analysis.domain.bucket.SeriesKind;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 依赖边（PRD 04 §6–7）。
@@ -12,10 +16,10 @@ import com.neocat.analysis.domain.bucket.SeriesKind;
  * @param downstreamService 下游（被调用方）服务名
  * @param callType          调用类型（RPC / HTTP / MQ …）
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("analysis")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class DependencyEdge {
     private final String upstreamService;
 

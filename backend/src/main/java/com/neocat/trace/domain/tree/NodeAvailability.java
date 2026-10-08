@@ -1,4 +1,5 @@
 package com.neocat.trace.domain.tree;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * Trace 节点的可用性状态（PRD 02 §10、"缺数据语义" 00 §6）。
@@ -11,7 +12,7 @@ package com.neocat.trace.domain.tree;
  * </ul>
  * 二者在界面与接口上表现不同，不能合并成一种"没有"。
  */
-@org.springframework.modulith.NamedInterface("trace")
+@NamedInterface("trace")
 public enum NodeAvailability {
     PRESENT,
     MISSING,

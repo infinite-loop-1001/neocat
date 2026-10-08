@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.List;
 
 /**
  * 账号仓储的 MyBatis 适配器（表 {@code nc_account}）。
@@ -37,7 +38,7 @@ public class AccountRepositoryAdapter implements AccountRepository {
         return Objects.isNull(row) ? null : toDomain(row);
     }
     @Override
-    public java.util.List<Account> findAll() {
+    public List<Account> findAll() {
         return mapper.selectAll().stream().map(AccountRepositoryAdapter::toDomain).toList();
     }
     @Override
@@ -164,7 +165,3 @@ public class AccountRepositoryAdapter implements AccountRepository {
         return row;
     }
 }
-
-
-
-

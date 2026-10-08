@@ -1,9 +1,9 @@
 package com.neocat.identity.domain.session;
 
 import java.time.Instant;
+import org.springframework.modulith.NamedInterface;
 
-@org.springframework.modulith.NamedInterface("identity")
-
+@NamedInterface("identity")
 public interface SessionRepository {
 
     Session create(long accountId, Instant at);

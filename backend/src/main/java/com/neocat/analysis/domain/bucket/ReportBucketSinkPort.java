@@ -2,6 +2,7 @@ package com.neocat.analysis.domain.bucket;
 
 import java.time.Instant;
 import java.util.List;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 桶写入与清理口（调度器侧）。
@@ -9,7 +10,7 @@ import java.util.List;
  * <p>与适配层的 {@code ReportBucketSink} 分开定义，使调度器只依赖领域层契约，
  * 不引入对适配层的编译依赖。
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public interface ReportBucketSinkPort {
 
     void writeMinuteBuckets(List<AggregatedRow> rows);

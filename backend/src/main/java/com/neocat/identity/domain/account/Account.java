@@ -1,15 +1,20 @@
 package com.neocat.identity.domain.account;
 
 import java.time.Instant;
+import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 账号聚合根。
  * PRD 01 §3.1：用户名一旦创建不可修改。
  */
-@org.springframework.modulith.NamedInterface("identity")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("identity")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class Account {
     private final long id;
 
@@ -45,10 +50,6 @@ public class Account {
         return new Account(id, username, newHash, role, status, requireChange, createdAt);
     }
     public boolean enabled() {
-        return status == AccountStatus.ENABLED;
+        return Objects.equals(status, AccountStatus.ENABLED);
     }
 }
-
-
-
-

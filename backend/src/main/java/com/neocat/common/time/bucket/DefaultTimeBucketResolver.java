@@ -13,6 +13,8 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.DayOfWeek;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * {@link TimeBucketResolver} 的默认实现。
@@ -28,7 +30,7 @@ import java.util.List;
  * <p>桶边界一律按平台时区的固定边界对齐（天/周/月对齐自然边界；分钟粒度对齐自然分钟）。
  */
 @Component
-@org.springframework.modulith.NamedInterface("time")
+@NamedInterface("time")
 public class DefaultTimeBucketResolver implements TimeBucketResolver {
 
     @Override
@@ -44,7 +46,7 @@ public class DefaultTimeBucketResolver implements TimeBucketResolver {
             return fixedRange(start, end, Granularity.MINUTE_10, zone);
         }
         if (spec instanceof RangeSpec.Week week) {
-            LocalDate monday = week.getAnyDateInWeek().with(java.time.DayOfWeek.MONDAY);
+            LocalDate monday = week.getAnyDateInWeek().with(DayOfWeek.MONDAY);
             Instant start = monday.atStartOfDay(zone).toInstant();
             Instant end = monday.plusWeeks(1).atStartOfDay(zone).toInstant();
             return fixedRange(start, end, Granularity.HOUR_1, zone);
@@ -123,7 +125,7 @@ public class DefaultTimeBucketResolver implements TimeBucketResolver {
             case RECENT_24H -> now.minus(Duration.ofHours(24));
             case TODAY -> now.atZone(zone).toLocalDate().atStartOfDay(zone).toInstant();
             case THIS_WEEK -> now.atZone(zone).toLocalDate()
-                    .with(java.time.DayOfWeek.MONDAY).atStartOfDay(zone).toInstant();
+                    .with(DayOfWeek.MONDAY).atStartOfDay(zone).toInstant();
         };
     }
     /** 显式范围：粒度由调用方给定；首尾桶按 from/to 计算覆盖秒数。 */

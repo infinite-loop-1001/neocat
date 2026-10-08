@@ -1,11 +1,12 @@
 package com.neocat.analysis.domain.analyzer;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 固定的 20 项 JVM 指标（PRD 02 §9、PRD 03 §10）。
  *
  * <p>与前端编目一致的接口 key，展示名称与单位由前端维护。
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public enum JvmMetric {
     HEAP_USED("heap-used"),
     HEAP_MAX("heap-max"),

@@ -15,6 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.Objects;
+import com.neocat.analysis.domain.bucket.MinuteBucketSource;
+import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /**
  * 当前小时报表的落库读取（技术方案 01-architecture.md §6.5、06 §9）。
@@ -24,8 +27,8 @@ import java.util.Objects;
  *
  * <p>同时提供「清空已定稿小时」的能力，让内存占用不随时长增长。
  */
-@org.springframework.stereotype.Component
-public class MinuteBucketReader implements com.neocat.analysis.domain.bucket.MinuteBucketSource {
+@Component
+public class MinuteBucketReader implements MinuteBucketSource {
 
     private final HourlyReportStore store;
 
@@ -94,11 +97,11 @@ public class MinuteBucketReader implements com.neocat.analysis.domain.bucket.Min
         return new AggregationRoller().roll(minuteRows, level, zone.get());
     }
     /** 当前小时内的全部序列类型统计（观测用）。 */
-    public java.util.Map<String, Long> seriesCountByService() {
+    public Map<String, Long> seriesCountByService() {
         return store.seriesCountByService();
     }
     /** 判断某序列是否为 Metric（落库时用于区分序列身份）。 */
     public static boolean isMetric(SeriesKey key) {
-        return key.getKind() == SeriesKind.METRIC;
+        return Objects.equals(key.getKind(), SeriesKind.METRIC);
     }
 }

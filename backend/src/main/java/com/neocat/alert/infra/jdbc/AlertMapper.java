@@ -1,5 +1,7 @@
 package com.neocat.alert.infra.jdbc;
 
+import java.math.BigDecimal;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -35,7 +37,7 @@ public interface AlertMapper {
     int insertCondition(@Param("ruleId") long ruleId,
                         @Param("stat") String stat,
                         @Param("comparator") String comparator,
-                        @Param("threshold") double threshold);
+                        @Param("threshold") BigDecimal threshold);
 
     void deleteConditions(@Param("ruleId") long ruleId);
 

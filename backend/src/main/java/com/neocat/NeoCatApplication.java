@@ -3,6 +3,7 @@ package com.neocat;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig;
 
 /**
  * NeoCat 单进程应用入口（技术方案 01-architecture.md §1.1、§6）。
@@ -19,7 +20,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @SpringBootApplication
 @EnableScheduling
-@com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig
+@EnableApolloConfig
 public class NeoCatApplication {
 
     public static void main(String[] args) {

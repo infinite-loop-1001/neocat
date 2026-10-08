@@ -1,4 +1,5 @@
 package com.neocat.common.queue;
+import java.util.List;
 
 /**
  * 有界丢队列：接收侧只做 {@code offer}，永不阻塞业务。
@@ -20,7 +21,7 @@ public interface BoundedDropQueue<T> {
      *
      * @return 取到的条目，可能为空列表
      */
-    java.util.List<T> pollBatch(int maxItems, long timeoutMillis) throws InterruptedException;
+    List<T> pollBatch(int maxItems, long timeoutMillis) throws InterruptedException;
 
     long droppedCount();
 

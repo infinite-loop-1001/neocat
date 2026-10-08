@@ -16,6 +16,9 @@ import static com.neocat.common.error.ErrorCode.ORG_NOT_FOUND;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+import com.neocat.common.locking.MySqlLocked;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 组织成员与有效叶子权限用例（PRD 01 §6）。
@@ -40,7 +43,7 @@ public class OrgMembershipService {
                                  EffectiveLeafRepository effectiveLeaves) {
         this(nodes, memberships, effectiveLeaves, null);
     }
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public OrgMembershipService(OrgNodeRepository nodes, MembershipRepository memberships,
                                 EffectiveLeafRepository effectiveLeaves, ApplicationEventPublisher events) {
         this.nodes = nodes;
@@ -49,23 +52,23 @@ public class OrgMembershipService {
         this.events = events;
     }
     /** §6 加入成员：任意节点可加人，随后立即重算该用户的有效叶子。 */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public void addMember(long orgId, long accountId) {
         requireNode(orgId);
         memberships.add(orgId, accountId);
         recompute(accountId);
     }
     /** §6 移除成员：立即重算；无任何路径时权限立即撤销。 */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public void removeMember(long orgId, long accountId) {
         memberships.remove(orgId, accountId);
         recompute(accountId);
     }
     /** §6 按当前树形与直接成员关系重算某用户的有效叶子集合。 */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public void recompute(long accountId) {
         Set<Long> previous = Objects.isNull(events) ? Sets.newHashSet() : effectiveLeaves.leavesOf(accountId);
         Set<Long> leaves = new HashSet<>();
@@ -83,8 +86,8 @@ public class OrgMembershipService {
         }
     }
     /** §6 重算所有用户（组织结构变化后调用）。 */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public void recomputeAll() {
         Set<Long> accounts = new HashSet<>();
         for (OrgNode node : nodes.findAll()) {
@@ -140,7 +143,7 @@ public class OrgMembershipService {
         return leaves;
     }
     private void requireNode(long orgId) {
-        if (java.util.Objects.isNull(nodes.findById(orgId))) {
+        if (Objects.isNull(nodes.findById(orgId))) {
             throw new ResourceNotFoundException(ORG_NOT_FOUND, orgId);
         }
     }

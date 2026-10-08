@@ -103,7 +103,7 @@
 
     <insert id="insertThresholdLine">
         INSERT INTO nc_card_threshold_line (card_id, direction, value)
-        VALUES (#{cardId}, #{direction}, #{value})
+        VALUES (#{cardId}, #{direction}, #{value,javaType=java.math.BigDecimal,jdbcType=DECIMAL})
     </insert>
 
 </mapper>

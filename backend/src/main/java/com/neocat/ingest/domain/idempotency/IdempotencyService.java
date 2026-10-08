@@ -3,7 +3,10 @@ package com.neocat.ingest.domain.idempotency;
 import java.time.Duration;
 import java.util.Objects;
 
-import com.neocat.common.config.IngestConfig;
+import com.neocat.ingest.config.IngestConfig;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 上报幂等用例（PRD 02 §6.1）。
@@ -12,9 +15,9 @@ import com.neocat.common.config.IngestConfig;
  * 只有判定为 {@link IdempotencyDecision#NEW} 时才写入窗口记忆，
  * 这样 DUPLICATE 与 CONFLICT 都不会污染窗口（也不会增加任何统计）。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@org.springframework.stereotype.Service
-@org.springframework.context.annotation.DependsOn("ingestConfig")
+@NamedInterface("tree")
+@Service
+@DependsOn("ingestConfig")
 public class IdempotencyService {
 
     private final IdempotencyStore store;

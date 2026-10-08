@@ -1,16 +1,20 @@
 package com.neocat.identity.domain.auth;
 
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 登录后的落点决策（PRD 01 §4.1）。
  *
  * @param targetService 最近访问服务名；为 null 表示进入服务列表
  */
-@org.springframework.modulith.NamedInterface("identity")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("identity")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class LoginTarget {
     private final String targetService;
 

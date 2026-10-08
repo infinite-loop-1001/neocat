@@ -2,11 +2,14 @@ package com.neocat.trace.infra.clickhouse;
 
 import com.neocat.trace.domain.tree.TraceNode;
 import com.neocat.trace.domain.tree.TraceRelation;
-import com.neocat.trace.domain.tree.TraceTree;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.lang.Nullable;
 
 /**
  * 原始树与 Trace 关系的存储查询（技术方案 06 §5–6）。
@@ -27,7 +30,7 @@ public interface RawTreeQuery {
 
     void insertRelation(TraceRelationRow row);
 
-    @org.springframework.lang.Nullable
+    @Nullable
     TraceTreeRow selectTree(String messageId);
 
     List<TraceTreeRow> selectTreesByRoot(String rootMessageId);
@@ -37,7 +40,7 @@ public interface RawTreeQuery {
     /** 关系索引查询：不受树清理影响。 */
     boolean existsRelation(String messageId);
 
-    @org.springframework.lang.Nullable
+    @Nullable
     TraceRelationRow selectRelation(String messageId);
 
     List<TraceRelationRow> selectRelationsByRoot(String rootMessageId);
@@ -50,10 +53,10 @@ public interface RawTreeQuery {
      *
      * @param payload 序列化后的树内容；由 {@link TreePayloadCodec} 编解码
      */
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static class TraceTreeRow {
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    class TraceTreeRow {
         private final String service;
 
         private final String instance;
@@ -85,10 +88,10 @@ public interface RawTreeQuery {
     /**
      * Trace 关系行（{@code nc_trace_relation}）。
      */
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static class TraceRelationRow {
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    class TraceRelationRow {
         private final String messageId;
 
         private final String rootMessageId;
@@ -129,13 +132,3 @@ public interface RawTreeQuery {
         List<TraceNode> decode(String payload);
     }
 }
-
-
-
-
-
-
-
-
-
-

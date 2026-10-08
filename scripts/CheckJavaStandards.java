@@ -2,6 +2,7 @@ import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.MemberReferenceTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.Tree;
@@ -18,6 +19,19 @@ import javax.tools.ToolProvider;
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaFileObject;
+import com.sun.source.tree.LiteralTree;
+import com.sun.source.tree.MemberSelectTree;
+import com.sun.source.tree.UnaryTree;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.ArrayList;
+import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.NewClassTree;
+import com.sun.source.util.TreePath;
 
 /** 仅解析语法树，不做依赖解析或生成代码；精确检查成员（含注释、注解、嵌套类与多行初始化）。 */
 public final class CheckJavaStandards {
@@ -28,22 +42,84 @@ public final class CheckJavaStandards {
         while (expression instanceof ParenthesizedTree parentheses) {
             expression = parentheses.getExpression();
         }
-        return expression.getKind() == Tree.Kind.NULL_LITERAL;
+        return Objects.equals(expression.getKind(), Tree.Kind.NULL_LITERAL);
+    }
+
+    private static Tree unwrapped(Tree tree) {
+        while (tree instanceof ParenthesizedTree parentheses) {
+            tree = parentheses.getExpression();
+        }
+        return tree;
+    }
+
+    /** 只登记实际枚举声明，不通过全大写名称猜测常量类型。 */
+    private static Map<String, Set<String>> enumConstants(List<CompilationUnitTree> units) {
+        Map<String, Set<String>> constants = new HashMap<>();
+        constants.put("com.sun.source.tree.Tree.Kind",
+                new HashSet<>(Arrays.stream(Tree.Kind.values()).map(Enum::name).toList()));
+        constants.put("javax.tools.Diagnostic.Kind",
+                new HashSet<>(Arrays.stream(Diagnostic.Kind.values()).map(Enum::name).toList()));
+        for (var unit : units) {
+            new TreePathScanner<Void, Void>() {
+                @Override
+                public Void visitClass(ClassTree type, Void unused) {
+                    if (Objects.equals(type.getKind(), Tree.Kind.ENUM)) {
+                        Set<String> names = new HashSet<>();
+                        for (var member : type.getMembers()) {
+                            if (member instanceof VariableTree field
+                                    && field.getInitializer() instanceof NewClassTree
+                                    && Objects.nonNull(field.getType())
+                                    && Objects.equals(field.getType().toString(), type.getSimpleName().toString())) {
+                                names.add(field.getName().toString());
+                            }
+                        }
+                        constants.put(className(unit, getCurrentPath()), names);
+                    }
+                    return super.visitClass(type, unused);
+                }
+            }.scan(unit, null);
+        }
+        return constants;
+    }
+
+    private static String className(CompilationUnitTree unit, TreePath path) {
+        List<String> names = new ArrayList<>();
+        for (; Objects.nonNull(path); path = path.getParentPath()) {
+            if (path.getLeaf() instanceof ClassTree type) {
+                names.add(0, type.getSimpleName().toString());
+            }
+        }
+        String packageName = Objects.isNull(unit.getPackageName()) ? "" : unit.getPackageName() + ".";
+        return packageName + String.join(".", names);
     }
 
     public static void main(String[] args) throws Exception {
         var compiler = ToolProvider.getSystemJavaCompiler();
         if (Objects.isNull(compiler)) throw new IllegalStateException("编码规范检查需要 JDK，不支持仅 JRE");
-        try (var manager = compiler.getStandardFileManager(null, null, java.nio.charset.StandardCharsets.UTF_8)) {
+        try (var manager = compiler.getStandardFileManager(null, null, StandardCharsets.UTF_8)) {
             var inputs = manager.getJavaFileObjectsFromStrings(Arrays.asList(args));
             var diagnostics = new DiagnosticCollector<JavaFileObject>();
             var task = (JavacTask) compiler.getTask(null, manager, diagnostics, List.of("-proc:none"), null, inputs);
             var trees = Trees.instance(task);
             int[] failures = {0};
-            for (var unit : task.parse()) {
+            List<CompilationUnitTree> units = new ArrayList<>();
+            task.parse().forEach(units::add);
+            var enumConstants = enumConstants(units);
+            for (var unit : units) {
                 String source = Files.readString(Path.of(unit.getSourceFile().toUri()));
+                String filePath = Path.of(unit.getSourceFile().toUri()).toString().replace('\\', '/');
+                boolean backendProduction = filePath.contains("/backend/src/main/java/");
+                String packageName = Objects.isNull(unit.getPackageName()) ? "" : unit.getPackageName().toString();
+                boolean timeImplementation = Objects.equals(packageName, "com.neocat.common.time.clock")
+                        && filePath.endsWith("/TimeProvider.java");
+                var staticWallTimeImports = unit.getImports().stream().filter(i -> i.isStatic())
+                        .map(i -> i.getQualifiedIdentifier().toString())
+                        .filter(i -> i.matches("java\\.time\\.(?:Instant|LocalDate|LocalDateTime|ZonedDateTime|OffsetDateTime|OffsetTime|LocalTime)\\.(?:now|\\*)")
+                                || i.matches("java\\.lang\\.System\\.(?:currentTimeMillis|\\*)")
+                                || i.matches("java\\.time\\.Clock\\.(?:system|systemUTC|systemDefaultZone|\\*)"))
+                        .toList();
                 // 无 classpath 的语法树检查无法解析类型；用同文件内变量声明的类型把 String 与容器区分开。
-                var declaredTypes = new java.util.HashMap<String, String>();
+                var declaredTypes = new HashMap<String, String>();
                 new TreePathScanner<Void, Void>() {
                     @Override
                     public Void visitVariable(VariableTree variable, Void unused) {
@@ -78,7 +154,7 @@ public final class CheckJavaStandards {
                     /** 取 {@code x.isEmpty()} 的 x 文本，否则 null。 */
                     private String emptyCallTarget(Tree tree) {
                         if (!(tree instanceof MethodInvocationTree call)) return null;
-                        if (!(call.getMethodSelect() instanceof com.sun.source.tree.MemberSelectTree select)) return null;
+                        if (!(call.getMethodSelect() instanceof MemberSelectTree select)) return null;
                         if (!Objects.equals(select.getIdentifier().toString(), "isEmpty") || !call.getArguments().isEmpty()) return null;
                         return text(select.getExpression());
                     }
@@ -90,15 +166,89 @@ public final class CheckJavaStandards {
                         return Objects.nonNull(declared) && declared.matches("(?:java\\.lang\\.)?String");
                     }
 
+                    /** 无 classpath：仅检查可由枚举声明与 import 确认的常量，其余交给类型检查。 */
+                    private boolean isEnumOperand(Tree operand) {
+                        Tree tree = unwrapped(operand);
+                        if (tree instanceof IdentifierTree identifier) {
+                            String name = identifier.getName().toString();
+                            String declared = declaredTypes.get(name);
+                            if (Objects.nonNull(declared) && !resolvedEnumTypes(declared).isEmpty()) return true;
+                            for (TreePath path = getCurrentPath(); Objects.nonNull(path); path = path.getParentPath()) {
+                                if (path.getLeaf() instanceof ClassTree type) {
+                                    if (!Objects.equals(type.getKind(), Tree.Kind.ENUM)) return false;
+                                    Set<String> names = enumConstants.get(className(unit, path));
+                                    return Objects.equals(name, "this") || Objects.nonNull(names) && names.contains(name)
+                                            && Objects.equals(declaredTypes.get(name), type.getSimpleName().toString());
+                                }
+                            }
+                            return false;
+                        }
+                        if (!(tree instanceof MemberSelectTree select)) return false;
+                        String owner = select.getExpression().toString();
+                        // 名字被变量遮蔽时不把变量字段当作类型常量。
+                        if (declaredTypes.containsKey(owner.split("\\.")[0])) return false;
+                        return resolvedEnumTypes(owner).stream()
+                                .anyMatch(candidate -> enumConstants.get(candidate).contains(select.getIdentifier().toString()));
+                    }
+
+                    private Set<String> resolvedEnumTypes(String owner) {
+                        Set<String> candidates = new HashSet<>();
+                        candidates.add(owner);
+                        candidates.add((packageName.isEmpty() ? "" : packageName + ".") + owner);
+                        for (var imported : unit.getImports()) {
+                            if (imported.isStatic()) continue;
+                            String qualified = imported.getQualifiedIdentifier().toString();
+                            if (qualified.endsWith(".*")) {
+                                candidates.add(qualified.substring(0, qualified.length() - 1) + owner);
+                            } else {
+                                String simple = qualified.substring(qualified.lastIndexOf('.') + 1);
+                                if (Objects.equals(owner, simple) || owner.startsWith(simple + ".")) {
+                                    candidates.add(qualified + owner.substring(simple.length()));
+                                }
+                            }
+                        }
+                        for (TreePath path = getCurrentPath(); Objects.nonNull(path); path = path.getParentPath()) {
+                            if (path.getLeaf() instanceof ClassTree) {
+                                candidates.add(className(unit, path) + "." + owner);
+                            }
+                        }
+                        candidates.removeIf(candidate -> !enumConstants.containsKey(candidate));
+                        return candidates;
+                    }
+
+                    @Override
+                    public Void visitVariable(VariableTree variable, Void unused) {
+                        if (backendProduction && !timeImplementation && Objects.nonNull(variable.getType())
+                                && variable.getType().toString().matches("(?:java\\.time\\.)?Clock|(?:com\\.neocat\\.common\\.time\\.clock\\.)?ClockProvider")) {
+                            error(trees.getSourcePositions().getStartPosition(unit, variable),
+                                    "生产代码禁止持有或注入 Clock / ClockProvider，使用公共静态 TimeProvider");
+                        }
+                        if (backendProduction && packageName.startsWith("com.neocat.common")
+                                && variable.getModifiers().getAnnotations().stream()
+                                .anyMatch(a -> a.getAnnotationType().toString().endsWith("ApolloStaticValue"))) {
+                            error(trees.getSourcePositions().getStartPosition(unit, variable),
+                                    "领域动态配置禁止放入 common，迁移至所属模块 config 包");
+                        }
+                        return super.visitVariable(variable, unused);
+                    }
+
                     @Override
                     public Void visitBinary(BinaryTree binary, Void unused) {
-                        if ((binary.getKind() == Tree.Kind.EQUAL_TO || binary.getKind() == Tree.Kind.NOT_EQUAL_TO)
+                        if ((Objects.equals(binary.getKind(), Tree.Kind.EQUAL_TO) || Objects.equals(binary.getKind(), Tree.Kind.NOT_EQUAL_TO))
                                 && (isNullLiteral(binary.getLeftOperand()) || isNullLiteral(binary.getRightOperand()))) {
                             error(trees.getSourcePositions().getStartPosition(unit, binary),
                                     "Java 判空必须使用 Objects.isNull / Objects.nonNull，禁止直接比较 null");
                         }
+                        // 对象与枚举相等必须使用 Objects.equals；只有原始类型保留 ==。
+                        if (Objects.equals(binary.getKind(), Tree.Kind.EQUAL_TO) || Objects.equals(binary.getKind(), Tree.Kind.NOT_EQUAL_TO)) {
+                            if (!isNullLiteral(binary.getLeftOperand()) && !isNullLiteral(binary.getRightOperand())
+                                    && (isEnumOperand(binary.getLeftOperand()) || isEnumOperand(binary.getRightOperand()))) {
+                                error(trees.getSourcePositions().getStartPosition(unit, binary),
+                                        "对象与枚举相等必须使用 Objects.equals，禁止 == / !=");
+                            }
+                        }
                         // 容器判空组合只出现在容器/Map 上，应改用 Apache 工具类。
-                        if (binary.getKind() == Tree.Kind.CONDITIONAL_OR) {
+                        if (Objects.equals(binary.getKind(), Tree.Kind.CONDITIONAL_OR)) {
                             String target = nullCheckArgument(binary.getLeftOperand(), "isNull");
                             if (Objects.nonNull(target) && Objects.equals(target, emptyCallTarget(binary.getRightOperand()))
                                     && !isStringTarget(target)) {
@@ -106,9 +256,9 @@ public final class CheckJavaStandards {
                                         "容器判空必须使用 CollectionUtils / MapUtils.isEmpty，禁止 Objects.isNull 与 isEmpty 组合");
                             }
                         }
-                        if (binary.getKind() == Tree.Kind.CONDITIONAL_AND
-                                && binary.getRightOperand() instanceof com.sun.source.tree.UnaryTree unary
-                                && unary.getKind() == Tree.Kind.LOGICAL_COMPLEMENT) {
+                        if (Objects.equals(binary.getKind(), Tree.Kind.CONDITIONAL_AND)
+                                && binary.getRightOperand() instanceof UnaryTree unary
+                                && Objects.equals(unary.getKind(), Tree.Kind.LOGICAL_COMPLEMENT)) {
                             String target = nullCheckArgument(binary.getLeftOperand(), "nonNull");
                             if (Objects.nonNull(target) && Objects.equals(target, emptyCallTarget(unary.getExpression()))
                                     && !isStringTarget(target)) {
@@ -125,21 +275,53 @@ public final class CheckJavaStandards {
                                         "容器判空必须使用 CollectionUtils / MapUtils，禁止 size() 与 0 比较");
                             }
                         }
+                        // 分钟点对齐属于公共时间能力，调用方不得手写 epoch 毫秒取整。
+                        if (backendProduction && (Objects.equals(binary.getKind(), Tree.Kind.DIVIDE)
+                                || Objects.equals(binary.getKind(), Tree.Kind.MULTIPLY))
+                                && epochMillis(binary.getLeftOperand()) && isMinuteMillis(binary.getRightOperand())) {
+                            error(trees.getSourcePositions().getStartPosition(unit, binary),
+                                    "分钟点对齐禁止手写毫秒取整，使用 TimeProvider.delayedMinuteStart(delaySeconds)");
+                        }
                         return super.visitBinary(binary, unused);
+                    }
+
+                    /** 左值为 epoch 毫秒读取（{@code toEpochMilli()} / {@code millis()}）。 */
+                    private boolean epochMillis(Tree tree) {
+                        return tree.toString().matches(".*\\.(?:toEpochMilli|millis)\\(\\)");
+                    }
+
+                    /** 一分钟的毫秒字面量，识别 60_000 / 60000 / 60 * 1000 的常见写法。 */
+                    private boolean isMinuteMillis(Tree tree) {
+                        if (tree instanceof LiteralTree literal) {
+                            return Objects.equals(literal.getValue(), 60_000) || Objects.equals(literal.getValue(), 60_000L);
+                        }
+                        if (tree instanceof BinaryTree product && Objects.equals(product.getKind(), Tree.Kind.MULTIPLY)) {
+                            return isLiteralValue(product.getLeftOperand(), 60) && isLiteralValue(product.getRightOperand(), 1_000);
+                        }
+                        return false;
+                    }
+
+                    private boolean isLiteralValue(Tree tree, int expected) {
+                        return tree instanceof LiteralTree literal && Objects.equals(literal.getValue(), expected);
                     }
 
                     private String sizeCall(Tree tree) {
                         if (!(tree instanceof MethodInvocationTree call)) return null;
-                        if (!(call.getMethodSelect() instanceof com.sun.source.tree.MemberSelectTree select)) return null;
+                        if (!(call.getMethodSelect() instanceof MemberSelectTree select)) return null;
                         return Objects.equals(select.getIdentifier().toString(), "size") ? text(select.getExpression()) : null;
                     }
 
                     private boolean isZeroLiteral(Tree tree) {
-                        return tree instanceof com.sun.source.tree.LiteralTree literal && Objects.equals(literal.getValue(), 0);
+                        return tree instanceof LiteralTree literal && Objects.equals(literal.getValue(), 0);
                     }
 
                     @Override
                     public Void visitMethod(MethodTree method, Void unused) {
+                        if (backendProduction && !timeImplementation && Objects.nonNull(method.getReturnType())
+                                && method.getReturnType().toString().matches("(?:java\\.time\\.)?Clock|(?:com\\.neocat\\.common\\.time\\.clock\\.)?ClockProvider")) {
+                            error(trees.getSourcePositions().getStartPosition(unit, method),
+                                    "生产代码禁止提供 Clock Bean，使用公共静态 TimeProvider");
+                        }
                         if (Objects.nonNull(method.getReturnType()) && method.getReturnType().toString()
                                 .matches("(?:java\\.util\\.)?Optional\\s*<.*>")) {
                             error(trees.getSourcePositions().getStartPosition(unit, method), "自有函数不返回 Optional，明确制定未找到语义");
@@ -149,6 +331,7 @@ public final class CheckJavaStandards {
 
                     @Override
                     public Void visitClass(ClassTree type, Void unused) {
+                        boolean isEnum = Objects.equals(type.getKind(), Tree.Kind.ENUM);
                         if (Objects.equals(type.getKind().name(), "RECORD")) {
                             error(trees.getSourcePositions().getStartPosition(unit, type), "禁止声明 record");
                         }
@@ -159,7 +342,7 @@ public final class CheckJavaStandards {
                                 continue;
                             }
                             // 枚举值不是需要单独空行的成员变量。
-                            if (Objects.isNull(field.getType()) || Objects.equals(type.getKind().name(), "ENUM")
+                            if (Objects.isNull(field.getType()) || isEnum
                                     && Objects.nonNull(field.getInitializer()) && Objects.equals(field.getInitializer().getKind().name(), "NEW_CLASS")) {
                                 previous = null;
                                 continue;
@@ -177,8 +360,33 @@ public final class CheckJavaStandards {
                     }
 
                     @Override
+                    public Void visitMemberReference(MemberReferenceTree reference, Void unused) {
+                        String method = reference.getQualifierExpression() + "." + reference.getName();
+                        if (backendProduction && !timeImplementation && isSystemWallTime(method)) {
+                            error(trees.getSourcePositions().getStartPosition(unit, reference),
+                                    "生产代码禁止直接读取系统墙上时间，使用 TimeProvider");
+                        }
+                        return super.visitMemberReference(reference, unused);
+                    }
+
+                    private boolean isSystemWallTime(String method) {
+                        return method.matches("(?:java\\.time\\.)?(?:Instant|LocalDate|LocalDateTime|ZonedDateTime|OffsetDateTime|OffsetTime|LocalTime)\\.now")
+                                || method.matches("(?:java\\.lang\\.)?System\\.currentTimeMillis")
+                                || method.matches("(?:java\\.time\\.)?Clock\\.system(?:UTC|DefaultZone)?")
+                                || staticWallTimeImports.stream().anyMatch(i ->
+                                i.endsWith("." + method) || i.endsWith(".*") &&
+                                (i.startsWith("java.time.Clock.") && method.matches("system|systemUTC|systemDefaultZone")
+                                        || i.startsWith("java.lang.System.") && Objects.equals(method, "currentTimeMillis")
+                                        || !i.startsWith("java.time.Clock.") && i.startsWith("java.time.") && Objects.equals(method, "now")));
+                    }
+
+                    @Override
                     public Void visitMethodInvocation(MethodInvocationTree call, Void unused) {
                         String method = call.getMethodSelect().toString();
+                        if (backendProduction && !timeImplementation && isSystemWallTime(method)) {
+                            error(trees.getSourcePositions().getStartPosition(unit, call),
+                                    "生产代码禁止直接读取系统墙上时间，使用 TimeProvider");
+                        }
                         if (method.matches("(?:java\\.util\\.)?(?:List|Set|Map)\\.(?:<.*>)?of") && call.getArguments().isEmpty()) {
                             error(trees.getSourcePositions().getStartPosition(unit, call),
                                     "空容器必须使用 Guava 可变工厂，禁止 List.of / Set.of / Map.of");
@@ -197,7 +405,7 @@ public final class CheckJavaStandards {
                 }.scan(unit, null);
             }
             for (var diagnostic : diagnostics.getDiagnostics()) {
-                if (diagnostic.getKind() == Diagnostic.Kind.ERROR) {
+                if (Objects.equals(diagnostic.getKind(), Diagnostic.Kind.ERROR)) {
                     failures[0]++;
                     System.err.println(diagnostic);
                 }

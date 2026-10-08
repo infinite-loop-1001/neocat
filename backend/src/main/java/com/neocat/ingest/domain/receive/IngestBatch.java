@@ -3,14 +3,18 @@ package com.neocat.ingest.domain.receive;
 import com.neocat.ingest.domain.tree.MessageTree;
 
 import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 一次上报批次（技术方案 04 §2）。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("tree")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class IngestBatch {
     private final String protocolVersion;
 

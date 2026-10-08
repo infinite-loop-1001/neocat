@@ -1,15 +1,19 @@
 package com.neocat.ingest.domain.tree;
 
 import java.util.Map;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * Metric 节点载荷：指标名 + 若干标签键值 + 数值。
  * 标签键由上报方自定，平台不预注册（PRD 04 §1）。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("tree")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class MetricValue {
     private final String name;
 

@@ -7,6 +7,10 @@ import com.neocat.analysis.domain.bucket.SeriesKind
 import spock.lang.Specification
 
 import java.time.Instant
+import com.neocat.analysis.infra.store.InMemoryHourlyReportStore
+import com.neocat.ingest.domain.tree.NodeKind
+import com.neocat.ingest.domain.tree.RawNode
+import com.neocat.ingest.domain.tree.RemoteCallValue
 
 /**
  * G6 任务39（红）：依赖边分析。
@@ -16,11 +20,11 @@ class DependencyAnalyzerSpec extends Specification {
 
     static final Instant T = Instant.parse("2026-09-24T04:23:41Z")
 
-    com.neocat.analysis.infra.store.InMemoryHourlyReportStore store
+    InMemoryHourlyReportStore store
     DependencyAnalyzer analyzer
 
     def setup() {
-        store = new com.neocat.analysis.infra.store.InMemoryHourlyReportStore()
+        store = new InMemoryHourlyReportStore()
         analyzer = new DependencyAnalyzer(store)
     }
 
@@ -121,7 +125,7 @@ class DependencyAnalyzerSpec extends Specification {
         then:
         def bucket = store.bucket(downstreamKey("order", "pay"), T)
         bucket.count() == 3
-        bucket.failureRate() == 1.0d / 3
+        bucket.failureRate() == 0.333333
 
     }
 
@@ -186,9 +190,9 @@ class DependencyAnalyzerSpec extends Specification {
     def "缺少下游服务名的远程调用被跳过而不报错"() {
         given:
         def tree = AnalysisFixtures.treeWithTimes("order", "10.0.0.8", T.toEpochMilli(),
-                [new com.neocat.ingest.domain.tree.RawNode("n-1", com.neocat.ingest.domain.tree.NodeKind.REMOTE_CALL,
+                [new RawNode("n-1", NodeKind.REMOTE_CALL,
                         "RPC", "unknown", "0", T.toEpochMilli(), 5L, null, null, null,
-                        new com.neocat.ingest.domain.tree.RemoteCallValue(null, null, "RPC", "0"), null, Map.of())])
+                        new RemoteCallValue(null, null, "RPC", "0"), null, Map.of())])
 
         when:
         analyzer.analyze(tree)

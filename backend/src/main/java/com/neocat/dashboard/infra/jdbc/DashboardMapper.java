@@ -1,9 +1,15 @@
 package com.neocat.dashboard.infra.jdbc;
 
+import java.math.BigDecimal;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 /**
  * 大盘与卡片 Mapper（表 {@code nc_dashboard} / {@code nc_card}）。
@@ -13,29 +19,29 @@ import java.util.List;
  */
 @Mapper
 public interface DashboardMapper {
-    long countCards(@org.apache.ibatis.annotations.Param("dashboardId") long dashboardId);
+    long countCards(@Param("dashboardId") long dashboardId);
 
-    java.util.List<ThresholdLineRow> selectThresholdLines(@org.apache.ibatis.annotations.Param("cardId") long cardId);
+    List<ThresholdLineRow> selectThresholdLines(@Param("cardId") long cardId);
 
-    void deleteThresholdLines(@org.apache.ibatis.annotations.Param("cardId") long cardId);
+    void deleteThresholdLines(@Param("cardId") long cardId);
 
-    void insertThresholdLine(@org.apache.ibatis.annotations.Param("cardId") long cardId,
-                             @org.apache.ibatis.annotations.Param("direction") String direction,
-                             @org.apache.ibatis.annotations.Param("value") double value);
+    void insertThresholdLine(@Param("cardId") long cardId,
+                             @Param("direction") String direction,
+                             @Param("value") BigDecimal value);
 
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static class ThresholdLineRow {
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    class ThresholdLineRow {
         private final String direction;
 
-        private final double value;
+        private final BigDecimal value;
 
-        public ThresholdLineRow(String direction, double value) {
+        public ThresholdLineRow(String direction, BigDecimal value) {
             this.direction = direction;
             this.value = value;
         }
- }
+    }
 
     DashboardRepositoryAdapter.DashboardRow selectDashboard(@Param("id") long id);
 

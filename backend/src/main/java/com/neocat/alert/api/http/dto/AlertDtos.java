@@ -1,10 +1,15 @@
 package com.neocat.alert.api.http.dto;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
 import java.util.List;
 
-/** 告警一期契约，无历史、严重度、确认字段。 */
+/**
+ * 告警一期契约，无历史、严重度、确认字段。
+ */
 // rules: 需要单独拆出文件, 不能都放到一个类里面
 public final class AlertDtos {
     private AlertDtos() {
@@ -59,7 +64,7 @@ public final class AlertDtos {
 
         private final String comparator;
 
-        private final double threshold;
+        private final BigDecimal threshold;
     }
 
     @Getter

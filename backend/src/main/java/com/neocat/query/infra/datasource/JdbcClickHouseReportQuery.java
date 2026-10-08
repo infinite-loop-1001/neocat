@@ -11,6 +11,17 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
+import com.neocat.analysis.domain.schedule.ReportSnapshotSql;
+
+import java.sql.Array;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.function.Supplier;
+
 /**
  * ClickHouse 报表查询的 JDBC 实现（技术方案 06 §10）。
  *
@@ -30,34 +41,39 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
 
     private final JdbcTemplate jdbc;
 
-    private final java.util.function.Supplier<java.time.ZoneId> zone;
+    private final Supplier<ZoneId> zone;
 
     public JdbcClickHouseReportQuery(DataSource dataSource) {
-        this(dataSource, () -> java.time.ZoneId.of("UTC"));
+        this(dataSource, () -> ZoneId.of("UTC"));
     }
+
     public JdbcClickHouseReportQuery(DataSource dataSource,
-                                     java.util.function.Supplier<java.time.ZoneId> zone) {
+                                     Supplier<ZoneId> zone) {
         this.jdbc = new JdbcTemplate(dataSource);
         this.zone = zone;
     }
+
     @Override
     public List<BucketRow> minuteRows(String service, String kind, String type, String name,
                                       String instance, Instant from, Instant to) {
         return queryBuckets("nc_minute_bucket", "minute", AggregationLevel.MINUTE,
                 service, kind, type, name, instance, from, to);
     }
+
     @Override
     public List<BucketRow> hourRows(String service, String kind, String type, String name,
                                     String instance, Instant from, Instant to) {
         return queryBuckets("nc_hour_bucket", "hour", AggregationLevel.HOUR,
                 service, kind, type, name, instance, from, to);
     }
+
     @Override
     public List<BucketRow> dayRows(String service, String kind, String type, String name,
                                    String instance, Instant from, Instant to) {
         return queryBuckets("nc_day_bucket", "day", AggregationLevel.DAY,
                 service, kind, type, name, instance, from, to);
     }
+
     /**
      * 通用桶查询：按 (服务, 类型, 分类, 名称, 实例, 桶) 分组，
      * 合并分子与分布数组，再回传原始分量（不在 SQL 里算 avg / 分位）。
@@ -85,18 +101,18 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
                 """.formatted(
                 bucketColumn,
                 "sumForEach(distribution)",
-                com.neocat.analysis.domain.schedule.ReportSnapshotSql.source(table, bucketColumn,
+                ReportSnapshotSql.source(table, bucketColumn,
                         "service = ? AND kind = ? AND " + bucketColumn + " >= ? AND " + bucketColumn + " < ?"), bucketColumn, bucketColumn));
 
-        List<Object> args = new java.util.ArrayList<>();
+        List<Object> args = new ArrayList<>();
         args.add(service);
         args.add(kind);
-        Object lower = level == AggregationLevel.DAY ? java.sql.Date.valueOf(from.atZone(zone.get()).toLocalDate()) : java.sql.Timestamp.from(from);
-        Object upper = level == AggregationLevel.DAY ? java.sql.Date.valueOf(to.atZone(zone.get()).toLocalDate()) : java.sql.Timestamp.from(to);
+        Object lower = Objects.equals(level, AggregationLevel.DAY) ? Date.valueOf(from.atZone(zone.get()).toLocalDate()) : Timestamp.from(from);
+        Object upper = Objects.equals(level, AggregationLevel.DAY) ? Date.valueOf(to.atZone(zone.get()).toLocalDate()) : Timestamp.from(to);
         args.add(lower);
         args.add(upper);
         // Snapshot branches are filtered before GROUP BY, avoiding a scan of all retained services.
-        args.addAll(new java.util.ArrayList<>(args));
+        args.addAll(new ArrayList<>(args));
         args.addAll(List.of(service, kind, lower, upper));
 
         if (Objects.nonNull(type)) {
@@ -117,48 +133,51 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
 
         return jdbc.query(sql.toString(), new BucketRowMapper(level, zone.get()), args.toArray());
     }
+
     @Override
     public List<String> distinctInstances(String service, String kind, Instant from, Instant to) {
         return jdbc.queryForList("""
-                SELECT DISTINCT instance
-                FROM (
-                  SELECT instance FROM neocat.nc_minute_bucket
-                  WHERE service = ? AND kind = ? AND minute >= ? AND minute < ? AND instance != 'all'
-                  UNION ALL
-                  SELECT instance FROM neocat.nc_hour_bucket
-                  WHERE service = ? AND kind = ? AND hour >= ? AND hour < ? AND instance != 'all'
-                  UNION ALL
-                  SELECT instance FROM neocat.nc_day_bucket
-                  WHERE service = ? AND kind = ? AND day >= ? AND day < ? AND instance != 'all'
-                )
-                ORDER BY instance
-                """, String.class,
-                service, kind, java.sql.Timestamp.from(from), java.sql.Timestamp.from(to),
-                service, kind, java.sql.Timestamp.from(from), java.sql.Timestamp.from(to),
-                service, kind, java.sql.Date.valueOf(from.atZone(zone.get()).toLocalDate()),
-                java.sql.Date.valueOf(to.atZone(zone.get()).toLocalDate()));
+                        SELECT DISTINCT instance
+                        FROM (
+                          SELECT instance FROM neocat.nc_minute_bucket
+                          WHERE service = ? AND kind = ? AND minute >= ? AND minute < ? AND instance != 'all'
+                          UNION ALL
+                          SELECT instance FROM neocat.nc_hour_bucket
+                          WHERE service = ? AND kind = ? AND hour >= ? AND hour < ? AND instance != 'all'
+                          UNION ALL
+                          SELECT instance FROM neocat.nc_day_bucket
+                          WHERE service = ? AND kind = ? AND day >= ? AND day < ? AND instance != 'all'
+                        )
+                        ORDER BY instance
+                        """, String.class,
+                service, kind, Timestamp.from(from), Timestamp.from(to),
+                service, kind, Timestamp.from(from), Timestamp.from(to),
+                service, kind, Date.valueOf(from.atZone(zone.get()).toLocalDate()),
+                Date.valueOf(to.atZone(zone.get()).toLocalDate()));
     }
+
     @Override
     public List<String> distinctTypes(String service, String kind, Instant from, Instant to) {
         return jdbc.queryForList("""
-                SELECT DISTINCT type
-                FROM (
-                  SELECT type FROM neocat.nc_minute_bucket
-                  WHERE service = ? AND kind = ? AND minute >= ? AND minute < ?
-                  UNION ALL
-                  SELECT type FROM neocat.nc_hour_bucket
-                  WHERE service = ? AND kind = ? AND hour >= ? AND hour < ?
-                  UNION ALL
-                  SELECT type FROM neocat.nc_day_bucket
-                  WHERE service = ? AND kind = ? AND day >= ? AND day < ?
-                )
-                ORDER BY type
-                """, String.class,
-                service, kind, java.sql.Timestamp.from(from), java.sql.Timestamp.from(to),
-                service, kind, java.sql.Timestamp.from(from), java.sql.Timestamp.from(to),
-                service, kind, java.sql.Date.valueOf(from.atZone(zone.get()).toLocalDate()),
-                java.sql.Date.valueOf(to.atZone(zone.get()).toLocalDate()));
+                        SELECT DISTINCT type
+                        FROM (
+                          SELECT type FROM neocat.nc_minute_bucket
+                          WHERE service = ? AND kind = ? AND minute >= ? AND minute < ?
+                          UNION ALL
+                          SELECT type FROM neocat.nc_hour_bucket
+                          WHERE service = ? AND kind = ? AND hour >= ? AND hour < ?
+                          UNION ALL
+                          SELECT type FROM neocat.nc_day_bucket
+                          WHERE service = ? AND kind = ? AND day >= ? AND day < ?
+                        )
+                        ORDER BY type
+                        """, String.class,
+                service, kind, Timestamp.from(from), Timestamp.from(to),
+                service, kind, Timestamp.from(from), Timestamp.from(to),
+                service, kind, Date.valueOf(from.atZone(zone.get()).toLocalDate()),
+                Date.valueOf(to.atZone(zone.get()).toLocalDate()));
     }
+
     @Override
     public List<String> distinctNames(String service, String kind, String type, Instant from, Instant to) {
         String nameColumn = "METRIC".equalsIgnoreCase(kind) ? "metric_labels" : "name";
@@ -175,11 +194,11 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
                   WHERE service = ? AND kind = ? AND day >= ? AND day < ?
                 )
                 """.formatted(nameColumn, nameColumn, nameColumn));
-        List<Object> args = new java.util.ArrayList<>(List.of(
-                service, kind, java.sql.Timestamp.from(from), java.sql.Timestamp.from(to),
-                service, kind, java.sql.Timestamp.from(from), java.sql.Timestamp.from(to),
-                service, kind, java.sql.Date.valueOf(from.atZone(zone.get()).toLocalDate()),
-                java.sql.Date.valueOf(to.atZone(zone.get()).toLocalDate())));
+        List<Object> args = new ArrayList<>(List.of(
+                service, kind, Timestamp.from(from), Timestamp.from(to),
+                service, kind, Timestamp.from(from), Timestamp.from(to),
+                service, kind, Date.valueOf(from.atZone(zone.get()).toLocalDate()),
+                Date.valueOf(to.atZone(zone.get()).toLocalDate())));
         if (Objects.nonNull(type)) {
             sql.append(" WHERE type = ?");
             args.add(type);
@@ -187,6 +206,7 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
         sql.append(" ORDER BY name");
         return jdbc.queryForList(sql.toString(), String.class, args.toArray());
     }
+
     /**
      * 该桶是否存在队列满丢弃事件（PRD 00 §6：丢弃必须显示为缺口而非零）。
      */
@@ -194,19 +214,21 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
     public boolean hasDropEvent(String service, String kind, String type, String name, Instant bucketStart) {
         return hasDropEvents(service, bucketStart, bucketStart.plusSeconds(60));
     }
+
     @Override
     public boolean hasDropEvents(String service, Instant from, Instant to) {
         Integer count = jdbc.queryForObject("""
-                SELECT count()
-                FROM neocat.nc_quality_event
-                WHERE event_type = 'QUEUE_FULL'
-                  AND service = ?
-                  AND event_time >= ? AND event_time < ?
-                """, Integer.class,
+                        SELECT count()
+                        FROM neocat.nc_quality_event
+                        WHERE event_type = 'QUEUE_FULL'
+                          AND service = ?
+                          AND event_time >= ? AND event_time < ?
+                        """, Integer.class,
                 service,
-                java.sql.Timestamp.from(from), java.sql.Timestamp.from(to));
+                Timestamp.from(from), Timestamp.from(to));
         return Objects.nonNull(count) && count > 0;
     }
+
     /**
      * 某 Metric 具体序列在某小时是否被并入 other（PRD 04 §3：该小时显示缺口，
      * **不得用 other 值冒充**）。
@@ -214,23 +236,26 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
     @Override
     public boolean mergedIntoOther(String service, String metricName, String labels, Instant hourStart) {
         Integer count = jdbc.queryForObject("""
-                SELECT count()
-                FROM neocat.nc_metric_label_metadata
-                WHERE service = ? AND metric_name = ? AND labels = ?
-                  AND hour = ? AND merged = 1
-                """, Integer.class,
+                        SELECT count()
+                        FROM neocat.nc_metric_label_metadata
+                        WHERE service = ? AND metric_name = ? AND labels = ?
+                          AND hour = ? AND merged = 1
+                        """, Integer.class,
                 service, metricName, labels,
-                java.sql.Timestamp.from(hourStart.truncatedTo(java.time.temporal.ChronoUnit.HOURS)));
+                Timestamp.from(hourStart.truncatedTo(ChronoUnit.HOURS)));
         return count > 0;
     }
-    /** 桶行映射：把分布数组还原为 long[]，其余列直接读出。 */
+
+    /**
+     * 桶行映射：把分布数组还原为 long[]，其余列直接读出。
+     */
     private static class BucketRowMapper implements RowMapper<ClickHouseReportQuery.BucketRow> {
 
         private final AggregationLevel level;
 
-        private final java.time.ZoneId zone;
+        private final ZoneId zone;
 
-        BucketRowMapper(AggregationLevel level, java.time.ZoneId zone) {
+        BucketRowMapper(AggregationLevel level, ZoneId zone) {
             this.level = level;
             this.zone = zone;
         }
@@ -252,13 +277,13 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
                     rs.getLong("total_duration"),
                     rs.getLong("min_duration"),
                     rs.getLong("max_duration"),
-                    rs.getDouble("total_value"),
+                    rs.getBigDecimal("total_value"),
                     rs.getLong("total_value_count"),
                     distributionOf(rs),
-                     rs.getLong("covered_seconds"),
-                     (Double) rs.getObject("last_value"),
-                     Objects.isNull(rs.getTimestamp("last_sample_time")) ? null : rs.getTimestamp("last_sample_time").toInstant(),
-                     rs.getBoolean("count_missing"));
+                    rs.getLong("covered_seconds"),
+                    rs.getBigDecimal("last_value"),
+                    Objects.isNull(rs.getTimestamp("last_sample_time")) ? null : rs.getTimestamp("last_sample_time").toInstant(),
+                    rs.getBoolean("count_missing"));
         }
 
         /**
@@ -269,14 +294,14 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
          * 把 2026-10-01 读成 2026-09-30T16:00Z，桶起点随即落到前一天 —— 按天取数
          * 的横轴会整体左移一天。因此日粒度按**平台时区当地 00:00** 还原。
          */
-        private java.time.Instant bucketStartOf(ResultSet rs) throws SQLException {
-            java.sql.Timestamp raw = rs.getTimestamp("bucket_start");
+        private Instant bucketStartOf(ResultSet rs) throws SQLException {
+            Timestamp raw = rs.getTimestamp("bucket_start");
             if (Objects.isNull(raw)) {
                 return null;
             }
-            if (level == AggregationLevel.DAY || level == AggregationLevel.WEEK
-                    || level == AggregationLevel.MONTH) {
-                java.time.LocalDate date = rs.getObject("bucket_start", java.time.LocalDate.class);
+            if (Objects.equals(level, AggregationLevel.DAY) || Objects.equals(level, AggregationLevel.WEEK)
+                    || Objects.equals(level, AggregationLevel.MONTH)) {
+                LocalDate date = rs.getObject("bucket_start", LocalDate.class);
                 if (Objects.nonNull(date)) {
                     return date.atStartOfDay(zone).toInstant();
                 }
@@ -299,7 +324,7 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
                 }
                 return segments;
             }
-            if (raw instanceof java.sql.Array array) {
+            if (raw instanceof Array array) {
                 Object content = array.getArray();
                 if (content instanceof Object[] values) {
                     for (int i = 0; i < Math.min(values.length, segments.length); i++) {

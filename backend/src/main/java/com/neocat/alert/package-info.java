@@ -7,7 +7,9 @@
  * <p>**一期不存在告警触发历史**：本模块只保存规则、条件、收件人与滑动窗口状态，
  * 正式触发只产生通知，不写站内记录（PRD 06 §11）。
  */
-@org.springframework.modulith.ApplicationModule(
+@ApplicationModule(
         displayName = "Alert",
         allowedDependencies = {"common", "common :: locking", "common :: error", "common :: http", "common :: config", "common :: time", "common :: queue", "query :: query", "query :: internal", "identity :: identity", "identity :: internal", "organization :: organization", "organization :: internal", "dashboard :: internal", "platform :: platform", "platform :: internal"})
 package com.neocat.alert;
+
+import org.springframework.modulith.ApplicationModule;

@@ -13,6 +13,11 @@ import static com.neocat.common.error.ErrorCode.LEAF_HAS_RESOURCES;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+import com.neocat.common.error.exception.BusinessRuleException;
+import com.neocat.common.locking.MySqlLocked;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 组织树用例（PRD 01 §5）。
@@ -33,7 +38,7 @@ public class OrgTreeService {
     public OrgTreeService(OrgNodeRepository nodes, OrgResourceGateway resources) {
         this(nodes, resources, null);
     }
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public OrgTreeService(OrgNodeRepository nodes, OrgResourceGateway resources,
                           OrgMembershipService membershipService) {
         this.nodes = nodes;
@@ -44,32 +49,32 @@ public class OrgTreeService {
      * §5.1 创建节点：校验父节点存在、同父下名称唯一。
      * 新建节点必然是叶子，且默认没有大盘与组织告警。
      */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public OrgNode createNode(String name, Long parentId) {
-        if (Objects.nonNull(parentId) && java.util.Objects.isNull(nodes.findById(parentId))) {
+        if (Objects.nonNull(parentId) && Objects.isNull(nodes.findById(parentId))) {
             throw new ResourceNotFoundException(PARENT_ORG_NOT_FOUND, parentId);
         }
         requireUniqueName(name, parentId, null);
         if (Objects.nonNull(parentId) && CollectionUtils.isEmpty(nodes.childrenOf(parentId))
                 && (resources.hasDashboards(parentId) || resources.hasAlertRules(parentId))) {
-            throw new com.neocat.common.error.exception.BusinessRuleException(LEAF_HAS_RESOURCES);
+            throw new BusinessRuleException(LEAF_HAS_RESOURCES);
         }
         OrgNode created = nodes.create(name, parentId);
         if (Objects.nonNull(parentId) && Objects.nonNull(membershipService)) membershipService.recomputeAll();
         return created;
     }
     /** §5.1 改名：同父下名称唯一，且节点必须存在。 */
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @MySqlLocked("metadata")
     public OrgNode rename(long orgId, String newName) {
-        OrgNode node = java.util.Optional.ofNullable(nodes.findById(orgId))
+        OrgNode node = Optional.ofNullable(nodes.findById(orgId))
                 .orElseThrow(() -> new ResourceNotFoundException(ORG_NOT_FOUND, orgId));
         requireUniqueName(newName, node.getParentId(), orgId);
         return nodes.save(new OrgNode(node.getId(), newName, node.getParentId()));
     }
     /** 叶子判定：不存在子节点（PRD 01 §5.1）。 */
     public boolean isLeaf(long orgId) {
-        java.util.Optional.ofNullable(nodes.findById(orgId))
+        Optional.ofNullable(nodes.findById(orgId))
                 .orElseThrow(() -> new ResourceNotFoundException(ORG_NOT_FOUND, orgId));
         return CollectionUtils.isEmpty(nodes.childrenOf(orgId));
     }

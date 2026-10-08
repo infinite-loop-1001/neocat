@@ -5,20 +5,24 @@ import com.neocat.common.time.bucket.Granularity;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 查询时间范围描述。
  * 固定周期（HOUR / DAY / WEEK / MONTH）、快捷范围、或显式 from/to。
  */
-@org.springframework.modulith.NamedInterface("time")
+@NamedInterface("time")
 public sealed interface RangeSpec {
 
     /** 某个整点小时。 */
-    @org.springframework.modulith.NamedInterface("time")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class Hour implements RangeSpec {
+    @NamedInterface("time")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class Hour implements RangeSpec {
         private final Instant hourStart;
 
         public Hour(Instant hourStart) {
@@ -27,11 +31,11 @@ public sealed interface RangeSpec {
 
     }
     /** 某个自然日（平台时区）。 */
-    @org.springframework.modulith.NamedInterface("time")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class Day implements RangeSpec {
+    @NamedInterface("time")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class Day implements RangeSpec {
         private final LocalDate date;
 
         public Day(LocalDate date) {
@@ -40,11 +44,11 @@ public sealed interface RangeSpec {
 
     }
     /** 某个自然周（平台时区周一 00:00 起）。 */
-    @org.springframework.modulith.NamedInterface("time")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class Week implements RangeSpec {
+    @NamedInterface("time")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class Week implements RangeSpec {
         private final LocalDate anyDateInWeek;
 
         public Week(LocalDate anyDateInWeek) {
@@ -53,11 +57,11 @@ public sealed interface RangeSpec {
 
     }
     /** 某个自然月（平台时区月初 00:00 起）。 */
-    @org.springframework.modulith.NamedInterface("time")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class Month implements RangeSpec {
+    @NamedInterface("time")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class Month implements RangeSpec {
         private final YearMonth month;
 
         public Month(YearMonth month) {
@@ -66,11 +70,11 @@ public sealed interface RangeSpec {
 
     }
     /** 快捷范围。 */
-    @org.springframework.modulith.NamedInterface("time")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class QuickRange implements RangeSpec {
+    @NamedInterface("time")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class QuickRange implements RangeSpec {
         private final RangeQuick quick;
 
         private final Instant now;
@@ -82,11 +86,11 @@ public sealed interface RangeSpec {
 
     }
     /** 显式范围；粒度可指定，缺省由范围长度推导。 */
-    @org.springframework.modulith.NamedInterface("time")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class Explicit implements RangeSpec {
+    @NamedInterface("time")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class Explicit implements RangeSpec {
         private final Instant from;
 
         private final Instant to;
@@ -101,4 +105,3 @@ public sealed interface RangeSpec {
 
     }
 }
-

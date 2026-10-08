@@ -4,10 +4,11 @@
 
 ## 实现
 
-- `backend/src/main/java/com/neocat/common/config/` 按用途拆分 8 个配置类，28 个动态键全部用 `@Configuration(proxyBeanMethods=false)` + `@ApolloStaticValue` + `public static volatile` 常量（常量命名：全大写 + 下划线）声明；无默认占位符。
+- 2026-10-03 在 `common/config/` 按用途拆分 8 个配置类；2026-10-08 迁至 `ingest/config`、`analysis/config`（Analysis / Report / Metric）、`trace/config`、`alert/config` 和 `query/config`（Query / Heartbeat）。28 个动态键仍全部用 `@Configuration(proxyBeanMethods=false)` + `@ApolloStaticValue` + `public static volatile` 字段（全大写 + 下划线）声明；键、类型与 Bean 名不变，无默认占位符。
 - 删除 `RuntimeConfig`、`DefaultRuntimeConfig` 和运行参数快照 Bean。业务在使用点直接读取字段，没有 getter、构造器参数副本或循环外批参数副本。
 - 删除自研的 HTTP 预检 `ApolloStartup` 与 `bootstrap.properties`：服务发现、远端读取、缓存回退都是 Apollo 客户端的职责，不再重复实现。`app.id` 由 `-Dapp.id`/`APP_ID`/`META-INF/app.properties` 提供，`apollo.meta` 由 `-Dapollo.meta`/`APOLLO_META` 提供。
 - 保留一个不重复实现发现的启动门禁：Apollo 客户端在远端不可用时会退回缓存或空值并照常启动，`@ApolloStaticValue` 转换失败也只记日志留旧值，两者叠加会让缺失配置以 0/null 静默进入运行期。`ApolloConfigGuard` 在原生属性源安装后、业务 Bean 之前校验必需键，缺键或非法值直接拒绝启动。
+- 2026-10-08：ApolloConfigGuard 与 RuntimeConfiguration 位于应用根包 `com.neocat`，避免 common 反向依赖领域配置；Clock Bean 已移除，后端统一通过公共静态 TimeProvider 取时。固定时间规格直接给 TimeProvider 的私有静态时钟字段赋值，结束后赋回系统 UTC 时钟，不使用隔离或恢复作用域。
 - `@EnableApolloConfig` 注册原生处理器，common-apollo 自动配置注册静态字段处理器与监听器；消费配置的 Spring Bean 显式 `@DependsOn` 相应配置 Bean。
 - 处理器 INFO 会打印原值，生产 `main` 把该类日志设为 ERROR；保留转换失败诊断。
 - common-apollo 转换失败保留旧字段值；运行期范围校验与多字段原子更新不是本次新增保证。运行期须发布合法值；多命名空间避免定义相同键（依赖按变更事件原值更新，不仲裁重复键）。

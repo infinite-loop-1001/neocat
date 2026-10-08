@@ -2,6 +2,10 @@ package com.neocat.analysis.domain.analyzer;
 
 import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 一次扇出的结果（PRD 02 §9：记录失败域而非整体失败）。
@@ -9,10 +13,10 @@ import org.apache.commons.collections4.CollectionUtils;
  * @param succeededDomains 成功处理的域
  * @param failures         失败域与原因
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("analysis")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class FanOutResult {
     private final List<String> succeededDomains;
 
@@ -28,10 +32,10 @@ public class FanOutResult {
      * @param reason  失败原因（异常消息）
      * @param messageId 对应的 MessageTree ID
      */
-    @org.springframework.modulith.NamedInterface("analysis")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("analysis")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class DomainFailure {
         private final String domain;
 
@@ -50,4 +54,3 @@ public class FanOutResult {
         return CollectionUtils.isNotEmpty(failures);
     }
 }
-

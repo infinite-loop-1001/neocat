@@ -1,12 +1,13 @@
 package com.neocat.common.time.bucket;
 
 import java.time.Duration;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 时间桶粒度。
  * 与 PRD 03 的固定周期和快捷范围一一对应，粒度定义不可随意改动。
  */
-@org.springframework.modulith.NamedInterface("time")
+@NamedInterface("time")
 public enum Granularity {
 
     MINUTE_1(Duration.ofMinutes(1)),

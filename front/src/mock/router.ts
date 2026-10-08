@@ -535,6 +535,8 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
       thresholdLines: card.thresholdLines,
       bucketSeconds: 600,
       points: d.buildSeries(d.now, card.targetType, card.targetName, card.formula),
+      // 当前 mock 不计算真实公式除零；契约要求即使没有除零点也输出数组。
+      isUndefined: [],
     } as T;
   }
   if (path === "/dashboards/targets" && method === "GET") {

@@ -12,6 +12,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.function.Supplier;
 import org.apache.commons.collections4.CollectionUtils;
+import java.time.DayOfWeek;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * 报表滚动编排（PRD 00 §10、PRD 03 §2.1，链路 23）。
@@ -34,11 +40,11 @@ import org.apache.commons.collections4.CollectionUtils;
  * @param sink    桶写入
  * @param zone    平台时区（决定自然日/周/月边界）
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
-@org.springframework.stereotype.Component
+@NamedInterface("analysis")
+@Getter
+@EqualsAndHashCode
+@ToString
+@Component
 public class ReportScheduler {
     private final MinuteBucketSource reader;
 
@@ -131,7 +137,7 @@ public class ReportScheduler {
      */
     public int rollupCompletedWeek(Instant now) {
         ZonedDateTime monday = now.atZone(zone.get()).truncatedTo(ChronoUnit.DAYS)
-                .with(java.time.DayOfWeek.MONDAY);
+                .with(DayOfWeek.MONDAY);
         Instant end = monday.toInstant();
         Instant start = monday.minusWeeks(1).toInstant();
         List<AggregatedRow> hourRows = sink.readBuckets(AggregationLevel.HOUR, start, end);
@@ -188,10 +194,10 @@ public class ReportScheduler {
         return Duration.between(completedMinute, now);
     }
     /** 清理结果。 */
-    @org.springframework.modulith.NamedInterface("analysis")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("analysis")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class EvictionResult {
         private final long minuteBuckets;
 
@@ -207,5 +213,4 @@ public class ReportScheduler {
 
     }
 }
-
 

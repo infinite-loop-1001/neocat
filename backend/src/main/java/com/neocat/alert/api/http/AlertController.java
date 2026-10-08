@@ -1,5 +1,7 @@
 package com.neocat.alert.api.http;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.alert.api.http.dto.AlertDtos.*;
 import com.neocat.alert.api.http.convert.AlertConvert;
 import com.neocat.alert.domain.rule.*;
@@ -11,12 +13,11 @@ import com.neocat.common.error.ErrorCode;
 import com.neocat.common.error.exception.AuthorizationException;
 import com.neocat.common.error.exception.ValidationException;
 import com.neocat.common.http.context.RequestActor;
-import com.neocat.common.config.AlertConfig;
+import com.neocat.alert.config.AlertConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -43,14 +44,12 @@ public class AlertController {
 
     private final RecipientGateway recipientGateway;
 
-    private final Clock clock;
-
     private final AlertConvert convert;
 
     public AlertController(AlertRuleRepository repository, AlertRuleService ruleService,
                            AlertLifecycleService lifecycle, PreviewService previewService,
                            RecipientService recipients, NotificationDispatcher dispatcher,
-                           RecipientGateway recipientGateway, Clock clock, AlertConvert convert) {
+                           RecipientGateway recipientGateway, AlertConvert convert) {
         // rules: controller 不能依赖 repository
         this.repository = repository;
         this.ruleService = ruleService;
@@ -59,7 +58,6 @@ public class AlertController {
         this.recipients = recipients;
         this.dispatcher = dispatcher;
         this.recipientGateway = recipientGateway;
-        this.clock = clock;
         this.convert = convert;
     }
 
@@ -95,8 +93,7 @@ public class AlertController {
     @PostMapping("/preview")
     public ResponseEntity<PreviewResponse> preview(@RequestBody AlertDraft draft) {
         AlertRule rule = convert.rule(draft, scope(draft));
-        long latestMinute = clock.instant().minusSeconds(AlertConfig.EVALUATE_DELAY_SECONDS).toEpochMilli()
-                / 60_000L * 60_000L;
+        long latestMinute = TimeProvider.delayedMinuteStart(AlertConfig.EVALUATE_DELAY_SECONDS).toEpochMilli();
         return ResponseEntity.ok(convert.preview(previewService.preview(rule, latestMinute)));
     }
 
@@ -104,7 +101,7 @@ public class AlertController {
     public ResponseEntity<RuleResponse> save(HttpServletRequest request, @RequestBody AlertDraft draft) {
         RequestActor account = RequestActor.current(request);
         AlertScope scope = scope(draft);
-        if (scope == AlertScope.ORGANIZATION) {
+        if (Objects.equals(scope, AlertScope.ORGANIZATION)) {
             if (Objects.isNull(draft.getOrgId())) {
                 throw new ValidationException(ErrorCode.ALERT_ORG_REQUIRED);
             }
@@ -124,7 +121,7 @@ public class AlertController {
     ) {
         RequestActor account = RequestActor.current(request);
         AlertScope scope = scope(draft);
-        if (scope == AlertScope.ORGANIZATION && Objects.nonNull(draft.getOrgId())) {
+        if (Objects.equals(scope, AlertScope.ORGANIZATION) && Objects.nonNull(draft.getOrgId())) {
             requireOrgMember(account.getId(), draft.getOrgId());
         }
         // fixme: 这里要由 AlterRuleService 处理
@@ -135,7 +132,7 @@ public class AlertController {
     // fixme: 这里指返回是否成功就可以了, 不需要返回全量数据
     public ResponseEntity<RuleResponse> enable(@PathVariable long id) {
         // fixme: 这里要由 AlterRuleService 处理
-        return ResponseEntity.ok(convert.response(lifecycle.enable(id, clock.millis())));
+        return ResponseEntity.ok(convert.response(lifecycle.enable(id, TimeProvider.millis())));
     }
 
     @PostMapping("/{id}/disable")

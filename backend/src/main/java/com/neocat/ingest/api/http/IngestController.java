@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * 上报接收接口（技术方案 04-ingest-protocol.md §1、§5）。
@@ -53,7 +54,7 @@ public class IngestController {
             return ResponseEntity.status(IngestResponseMapper.httpStatusOf(e))
                     .contentType(PROTOBUF)
                     .body(IngestResponseMapper.fromError(e, 0).toByteArray());
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (InvalidProtocolBufferException e) {
             // 仅反序列化失败是格式错误；其他未预期异常不能误报客户端错误
             IngestResponse response = IngestResponse.newBuilder()
                     .setStatus(Status.REJECTED)

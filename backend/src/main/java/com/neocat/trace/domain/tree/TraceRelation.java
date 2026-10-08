@@ -1,6 +1,10 @@
 package com.neocat.trace.domain.tree;
 
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * Trace 关系记录（技术方案 06 §6）。
@@ -17,10 +21,10 @@ import java.util.Objects;
  * @param instanceId      实例 ID
  * @param treeTimestamp   树事件时间（用于过期计算）
  */
-@org.springframework.modulith.NamedInterface("trace")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("trace")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class TraceRelation {
     private final String messageId;
 
@@ -47,5 +51,3 @@ public class TraceRelation {
         return Objects.nonNull(parentMessageId) && !parentMessageId.isBlank();
     }
 }
-
-

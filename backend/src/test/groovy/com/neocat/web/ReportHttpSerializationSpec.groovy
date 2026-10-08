@@ -16,12 +16,21 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import spock.lang.Specification
 import spock.lang.Unroll
 import java.time.*
+import com.neocat.common.time.bucket.DefaultTimeBucketResolver
+import com.neocat.common.time.clock.TimeProvider
+import com.neocat.trace.domain.sample.Sample
 
 /** 真正通过 Spring MVC 输出 JSON，对比重构前保留的读模型，而不是 DTO 的反射字段。 */
 class ReportHttpSerializationSpec extends Specification {
+    def cleanup() {
+        TimeProvider.clock = Clock.systemUTC()
+    }
+
     def json = new ObjectMapper()
 
     def clock = Clock.fixed(Instant.parse('2026-10-03T08:30:00Z'), ZoneOffset.UTC)
+
+    def setup() { TimeProvider.clock = clock }
 
     def data = Stub(ReportDataPort) {
         typesOf(*_) >> ['URL']
@@ -34,10 +43,10 @@ class ReportHttpSerializationSpec extends Specification {
         }
     }
 
-    def query = new ReportQueryService(data, new com.neocat.common.time.bucket.DefaultTimeBucketResolver(), new ReportTableService(),
+    def query = new ReportQueryService(data, new DefaultTimeBucketResolver(), new ReportTableService(),
             new StatCalculator(), new QualityResolver(), new MomAligner(), Stub(SamplePort) {
-                samples(*_) >> [new com.neocat.trace.domain.sample.Sample('m', 1, 2, '0', 'summary', true)]
-            }, { ZoneOffset.UTC }, clock)
+                samples(*_) >> [new Sample('m', 1, 2, '0', 'summary', true)]
+            }, { ZoneOffset.UTC })
 
     @Unroll
     def "报表 HTTP #route 保留读模型所有字段、null、空数组和数值类型"() {
@@ -83,7 +92,7 @@ class ReportHttpSerializationSpec extends Specification {
         }
         def metadata = Stub(MetricMetadataPort) { entries(*_) >> [] }
         def metricQuery = new MetricCountQueryService(metricData, metadata,
-                new com.neocat.common.time.bucket.DefaultTimeBucketResolver(), { ZoneOffset.UTC }, clock, json)
+                new DefaultTimeBucketResolver(), { ZoneOffset.UTC }, json)
         def mvc = MockMvcBuilders.standaloneSetup(new MetricCountController(metricQuery, new ReportConvert(json)))
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(json)).build()
         def expected = metricQuery."$method"(*arguments)

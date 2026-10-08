@@ -1,5 +1,7 @@
 package com.neocat.analysis.infra.jdbc;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neocat.analysis.domain.metric.MetricLabelMetadata;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -8,11 +10,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.jdbc.core.JdbcTemplate;
 import java.time.*;
 import java.util.*;
-import com.neocat.common.config.IngestConfig;
+import com.neocat.ingest.config.IngestConfig;
 import org.apache.commons.collections4.CollectionUtils;
+import com.neocat.analysis.domain.metric.MetricHourRank;
+import java.sql.Timestamp;
+import java.time.temporal.ChronoUnit;
+import javax.sql.DataSource;
+import org.springframework.context.annotation.DependsOn;
 
 @Component
-@org.springframework.context.annotation.DependsOn("ingestConfig")
+@DependsOn("ingestConfig")
 public class MetricMetadataFlushJob {
     private final MetricLabelMetadata memory;
 
@@ -20,22 +27,21 @@ public class MetricMetadataFlushJob {
 
     private final ObjectMapper json;
 
-    private final Clock clock;
 
-    private final com.neocat.analysis.domain.metric.MetricHourRank rank;
+    private final MetricHourRank rank;
 
-    public MetricMetadataFlushJob(MetricLabelMetadata memory, @Qualifier("clickHouseDataSource") javax.sql.DataSource source,
-                                  ObjectMapper json, Clock clock, com.neocat.analysis.domain.metric.MetricHourRank rank) {
-        this.memory = memory; this.jdbc = new JdbcTemplate(source); this.json = json; this.clock = clock;
+    public MetricMetadataFlushJob(MetricLabelMetadata memory, @Qualifier("clickHouseDataSource") DataSource source,
+                                  ObjectMapper json, MetricHourRank rank) {
+        this.memory = memory; this.jdbc = new JdbcTemplate(source); this.json = json;
         this.rank = rank;
     }
     @Scheduled(cron = "10 * * * * *")
     public void flush() {
-        Instant now = clock.instant();
+        Instant now = TimeProvider.now();
         var entries = memory.entries(Instant.EPOCH, now.plusSeconds(3600));
         if (CollectionUtils.isEmpty(entries)) return;
         List<Object[]> rows = entries.stream().map(e -> {
-            try { return new Object[] { e.getService(), e.getMetric(), java.sql.Timestamp.from(e.getHour()), e.getCanonicalLabels(),
+            try { return new Object[] { e.getService(), e.getMetric(), Timestamp.from(e.getHour()), e.getCanonicalLabels(),
                     json.writeValueAsString(e.getLabels()), e.isMerged() ? 1 : 0, e.getVersion(), e.getSource() }; }
             catch (Exception ex) { throw new IllegalStateException("Metric metadata serialization failed", ex); }
         }).toList();
@@ -45,10 +51,8 @@ public class MetricMetadataFlushJob {
                 """, rows);
         // Keep completed hours available through the normal hourly rollup grace period.
         Instant boundary = now.minusSeconds(Math.max(2, IngestConfig.ACCEPT_LATE_HOURS) * 3600L)
-                .truncatedTo(java.time.temporal.ChronoUnit.HOURS);
+                .truncatedTo(ChronoUnit.HOURS);
         memory.clearBefore(boundary);
         rank.clearBefore(boundary);
     }
 }
-
-

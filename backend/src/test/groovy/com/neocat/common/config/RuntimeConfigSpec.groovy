@@ -1,7 +1,11 @@
 package com.neocat.common.config
 
+import com.neocat.ingest.config.IngestConfig
+import com.neocat.analysis.config.MetricConfig
+import com.neocat.trace.config.TraceConfig
+
 import com.neocat.StaticConfigFixture
-import com.neocat.common.config.impl.ApolloConfigGuard
+import com.neocat.ApolloConfigGuard
 import link.cu1universe.dev.apollo.annotation.ApolloStaticValue
 import link.cu1universe.dev.apollo.processor.ApolloStaticValueProcessor
 import org.springframework.mock.env.MockEnvironment
@@ -9,12 +13,30 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import java.lang.reflect.Modifier
+import java.lang.reflect.Field
+import com.ctrip.framework.apollo.enums.PropertyChangeType
+import com.ctrip.framework.apollo.model.ConfigChange
+import com.ctrip.framework.apollo.model.ConfigChangeEvent
+import com.neocat.RuntimeConfiguration
+import java.time.Clock
+import org.springframework.context.annotation.Configuration
 
 class RuntimeConfigSpec extends Specification {
+    def "八个动态配置归属领域且键全集保持不变"() {
+        expect:
+        ApolloConfigGuard.DYNAMIC_CONFIG_TYPES.collectEntries { [(it.simpleName): it.packageName] } == [
+                AlertConfig: 'com.neocat.alert.config', IngestConfig: 'com.neocat.ingest.config',
+                AnalysisConfig: 'com.neocat.analysis.config', ReportConfig: 'com.neocat.analysis.config',
+                MetricConfig: 'com.neocat.analysis.config', TraceConfig: 'com.neocat.trace.config',
+                QueryConfig: 'com.neocat.query.config', HeartbeatConfig: 'com.neocat.query.config']
+        ApolloConfigGuard.DYNAMIC_CONFIG_TYPES.sum { it.declaredFields.length } == 28
+        RuntimeConfiguration.declaredMethods.every { it.returnType != Clock }
+    }
+
     def "动态配置键按用途声明为 Configuration 中的 public static volatile 常量，无默认占位符"() {
         expect: "字段是规范常量命名，且注解只含一个无默认值的占位符"
         ApolloConfigGuard.DYNAMIC_CONFIG_TYPES.every { type ->
-            type.getAnnotation(org.springframework.context.annotation.Configuration) != null &&
+            type.getAnnotation(Configuration) != null &&
                 type.declaredFields.every { field ->
                     Modifier.isPublic(field.modifiers) && Modifier.isStatic(field.modifiers) &&
                     Modifier.isVolatile(field.modifiers) && !Modifier.isFinal(field.modifiers) &&
@@ -50,13 +72,13 @@ class RuntimeConfigSpec extends Specification {
         def processor = new ApolloStaticValueProcessor()
         processor.setEnvironment(new MockEnvironment().withProperty('neocat.metric.top-n', '2'))
         processor.postProcessBeforeInitialization(new MetricConfig(), 'metricConfig')
-        def method = ApolloStaticValueProcessor.getDeclaredMethod('onConfigChange', com.ctrip.framework.apollo.model.ConfigChangeEvent)
+        def method = ApolloStaticValueProcessor.getDeclaredMethod('onConfigChange', ConfigChangeEvent)
         method.accessible = true
-        def change = new com.ctrip.framework.apollo.model.ConfigChange('neocat', 'application', 'neocat.metric.top-n', '2', '5',
-                com.ctrip.framework.apollo.enums.PropertyChangeType.MODIFIED)
+        def change = new ConfigChange('neocat', 'application', 'neocat.metric.top-n', '2', '5',
+                PropertyChangeType.MODIFIED)
 
         when:
-        method.invoke(processor, new com.ctrip.framework.apollo.model.ConfigChangeEvent('neocat', 'application', ['neocat.metric.top-n': change]))
+        method.invoke(processor, new ConfigChangeEvent('neocat', 'application', ['neocat.metric.top-n': change]))
 
         then:
         MetricConfig.TOP_N == 5
@@ -116,7 +138,7 @@ class RuntimeConfigSpec extends Specification {
         ApolloConfigGuard.validate(environment)
     }
 
-    private static String keyOf(java.lang.reflect.Field field) {
+    private static String keyOf(Field field) {
         def placeholder = field.getAnnotation(ApolloStaticValue).value()
         placeholder.substring(2, placeholder.length() - 1)
     }

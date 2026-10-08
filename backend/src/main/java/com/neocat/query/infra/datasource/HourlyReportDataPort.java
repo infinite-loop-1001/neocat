@@ -19,6 +19,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
+import com.neocat.analysis.domain.bucket.SeriesKind;
+import com.neocat.analysis.domain.metric.MetricLabelMetadata;
+import java.time.Duration;
+import java.util.function.Supplier;
 
 /**
  * 基于进程内当前小时报表的读取实现（技术方案 01-architecture.md §6.5）。
@@ -42,17 +46,17 @@ public class HourlyReportDataPort implements ReportDataPort {
 
     private final TimeBucketResolver buckets;
 
-    private final java.util.function.Supplier<ZoneId> zone;
+    private final Supplier<ZoneId> zone;
 
-    private final com.neocat.analysis.domain.metric.MetricLabelMetadata metadata;
+    private final MetricLabelMetadata metadata;
 
     public HourlyReportDataPort(HourlyReportStore store, TimeBucketResolver buckets,
-                                java.util.function.Supplier<ZoneId> zone) {
+                                Supplier<ZoneId> zone) {
         this(store, buckets, zone, null);
     }
     public HourlyReportDataPort(HourlyReportStore store, TimeBucketResolver buckets,
-                                java.util.function.Supplier<ZoneId> zone,
-                                com.neocat.analysis.domain.metric.MetricLabelMetadata metadata) {
+                                Supplier<ZoneId> zone,
+                                MetricLabelMetadata metadata) {
         this.store = store;
         this.buckets = buckets;
         this.zone = zone;
@@ -75,7 +79,7 @@ public class HourlyReportDataPort implements ReportDataPort {
             if (!matches(key, kind, service, type) || !targets.contains(key.getInstance())) {
                 continue;
             }
-            String seriesName = key.getKind() == com.neocat.analysis.domain.bucket.SeriesKind.METRIC
+            String seriesName = Objects.equals(key.getKind(), SeriesKind.METRIC)
                     ? key.getMetricLabels() : key.getName();
             if (Objects.nonNull(name) && !Objects.equals(name, seriesName)) {
                 continue;
@@ -101,7 +105,7 @@ public class HourlyReportDataPort implements ReportDataPort {
     private AggregatedRow fold(SeriesKey key, Bucket bucket, Granularity granularity) {
         // 目标桶覆盖的分钟数：粒度 ≤ 1 分钟时只有 1 个源桶
         long stepSeconds = granularity.seconds();
-        long spanSeconds = Math.min(stepSeconds, java.time.Duration.between(bucket.getStart(), bucket.getEnd()).getSeconds());
+        long spanSeconds = Math.min(stepSeconds, Duration.between(bucket.getStart(), bucket.getEnd()).getSeconds());
         int minuteCount = (int) Math.max(1, (spanSeconds + 59) / 60);
 
         AggregatedRow folded = null;
@@ -158,7 +162,7 @@ public class HourlyReportDataPort implements ReportDataPort {
                 continue;
             }
             if (hasDataInRange(key, from, to)) {
-                result.add(key.getKind() == com.neocat.analysis.domain.bucket.SeriesKind.METRIC
+                result.add(Objects.equals(key.getKind(), SeriesKind.METRIC)
                         ? key.getMetricLabels() : key.getName());
             }
         }
@@ -213,11 +217,5 @@ public class HourlyReportDataPort implements ReportDataPort {
             cursor = cursor.plusSeconds(60);
         }
         return false;
-    }
-
-
-
-    private com.neocat.analysis.domain.bucket.SeriesKind parseKind(String kind) {
-        return com.neocat.analysis.domain.bucket.SeriesKind.valueOf(kind.toUpperCase(java.util.Locale.ROOT));
     }
 }

@@ -1,14 +1,18 @@
 package com.neocat.organization.domain.tree;
 
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 组织节点（PRD 01 §5）：组织是树，允许多个根节点；只有叶子能拥有大盘。
  */
-@org.springframework.modulith.NamedInterface("isOrganization")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("isOrganization")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class OrgNode {
     private final long id;
 

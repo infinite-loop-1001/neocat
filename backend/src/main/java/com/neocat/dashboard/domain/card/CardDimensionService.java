@@ -1,5 +1,7 @@
 package com.neocat.dashboard.domain.card;
 
+import java.math.BigDecimal;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -10,15 +12,19 @@ import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 卡片维度下钻（PRD 05 §6、§7，技术方案 02 §9.3）。
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("dashboard")
+@Service
+@NamedInterface("dashboard")
 public class CardDimensionService {
 
-    /** 全机器聚合行的实例标识，下钻时必须排除。 */
+    /**
+     * 全机器聚合行的实例标识，下钻时必须排除。
+     */
     public static final String AGGREGATE_INSTANCE = "all";
 
     public CardDimensionView view(Card card, CardDrillRequest request,
@@ -54,7 +60,7 @@ public class CardDimensionService {
      * 无论哪种模式都排除全机器聚合行。
      */
     private List<CardDimensionView.MachineSeries> selectSeries(CardDrillRequest request,
-                                                              Map<String, List<CardPoint>> byInstance) {
+                                                               Map<String, List<CardPoint>> byInstance) {
         if (MapUtils.isEmpty(byInstance)) {
             return Lists.newArrayList();
         }
@@ -81,7 +87,8 @@ public class CardDimensionService {
 
         // Top N 模式：按贡献值降序
         candidates.sort(Comparator
-                .comparingDouble((CardDimensionView.MachineSeries s) -> firstValue(s)).reversed()
+                .comparing((CardDimensionView.MachineSeries s) -> firstValue(s),
+                        Comparator.nullsFirst(Comparator.<BigDecimal>naturalOrder())).reversed()
                 .thenComparing(CardDimensionView.MachineSeries::getInstance));
         int limit = Math.max(0, request.getTopN());
         if (candidates.size() <= limit) {
@@ -93,13 +100,16 @@ public class CardDimensionService {
         }
         return limited;
     }
-    /** 首个可用值，用作 Top N 排序依据。 */
-    private double firstValue(CardDimensionView.MachineSeries series) {
+
+    /**
+     * 首个可用值，用作 Top N 排序依据。
+     */
+    private BigDecimal firstValue(CardDimensionView.MachineSeries series) {
         for (CardPoint point : series.getPoints()) {
             if (Objects.nonNull(point.getValue())) {
                 return point.getValue();
             }
         }
-        return Double.NEGATIVE_INFINITY;
+        return null;
     }
 }

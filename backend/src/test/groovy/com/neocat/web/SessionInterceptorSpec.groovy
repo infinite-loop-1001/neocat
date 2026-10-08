@@ -22,6 +22,14 @@ import spock.lang.Unroll
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import com.neocat.common.error.exception.AuthenticationException
+import com.neocat.common.error.exception.AuthorizationException
+import com.neocat.common.error.exception.BusinessRuleException
+import com.neocat.common.error.exception.ConflictException
+import com.neocat.common.error.exception.ExpiredException
+import com.neocat.common.error.exception.ResourceNotFoundException
+import com.neocat.common.error.exception.ValidationException
+import com.neocat.common.time.clock.TimeProvider
 
 /**
  * G12 任务89（红）：会话拦截器与异常映射。
@@ -30,6 +38,10 @@ import java.time.ZoneOffset
  * <p>直接用替身驱动拦截器，不需要启动 Spring 上下文，也不需要任何中间件。
  */
 class SessionInterceptorSpec extends Specification {
+    def cleanup() {
+        TimeProvider.clock = Clock.systemUTC()
+    }
+
 
     static final Instant NOW = Instant.parse("2026-09-24T04:00:00Z")
 
@@ -42,8 +54,8 @@ class SessionInterceptorSpec extends Specification {
     def setup() {
         accounts = Stub(AccountRepository)
         sessions = Stub(SessionRepository)
-        interceptor = new SessionInterceptor(new SessionGuard(accounts, sessions),
-                Clock.fixed(NOW, ZoneOffset.UTC))
+        TimeProvider.clock = Clock.fixed(NOW, ZoneOffset.UTC)
+        interceptor = new SessionInterceptor(new SessionGuard(accounts, sessions))
         request = Mock()
         response = Mock()
     }
@@ -59,7 +71,8 @@ class SessionInterceptorSpec extends Specification {
             findSession('session-7') >> session
         }
         accounts = Stub(AccountRepository) { findById(user.getId()) >> user }
-        interceptor = new SessionInterceptor(new SessionGuard(accounts, sessions), Clock.fixed(NOW, ZoneOffset.UTC))
+        TimeProvider.clock = Clock.fixed(NOW, ZoneOffset.UTC)
+        interceptor = new SessionInterceptor(new SessionGuard(accounts, sessions))
         return session
     }
 
@@ -153,8 +166,8 @@ class SessionInterceptorSpec extends Specification {
         def alice = account("alice")
         def session = stubSession(alice)
         stubRequest("GET", "/api/services", session.getId())
-        def later = new SessionInterceptor(new SessionGuard(accounts, sessions),
-                Clock.fixed(NOW.plusSeconds(31 * 60), ZoneOffset.UTC))
+        TimeProvider.clock = Clock.fixed(NOW.plusSeconds(31 * 60), ZoneOffset.UTC)
+        def later = new SessionInterceptor(new SessionGuard(accounts, sessions))
 
         when:
         later.preHandle(request, response, new Object())
@@ -278,15 +291,15 @@ class SessionInterceptorSpec extends Specification {
 
         where:
         error                                                     | status
-        new com.neocat.common.error.exception.BusinessRuleException(ErrorCode.LEAF_HAS_RESOURCES)         | 422
-        new com.neocat.common.error.exception.AuthorizationException(ErrorCode.NOT_ORG_MEMBER)            | 403
-        new com.neocat.common.error.exception.ExpiredException(ErrorCode.TRACE_EXPIRED)                   | 410
-        new com.neocat.common.error.exception.ValidationException(ErrorCode.UNIT_MISMATCH)                | 400
-        new com.neocat.common.error.exception.ConflictException(ErrorCode.ID_CONFLICT)                    | 409
-        new com.neocat.common.error.exception.ConflictException(ErrorCode.USER_EXISTS, 'alice')           | 409
-        new com.neocat.common.error.exception.ConflictException(ErrorCode.HAS_CHILDREN)                   | 409
-        new com.neocat.common.error.exception.ResourceNotFoundException(ErrorCode.NOT_FOUND, '资源')       | 404
-        new com.neocat.common.error.exception.AuthenticationException(ErrorCode.UNAUTHENTICATED)          | 401
+        new BusinessRuleException(ErrorCode.LEAF_HAS_RESOURCES)         | 422
+        new AuthorizationException(ErrorCode.NOT_ORG_MEMBER)            | 403
+        new ExpiredException(ErrorCode.TRACE_EXPIRED)                   | 410
+        new ValidationException(ErrorCode.UNIT_MISMATCH)                | 400
+        new ConflictException(ErrorCode.ID_CONFLICT)                    | 409
+        new ConflictException(ErrorCode.USER_EXISTS, 'alice')           | 409
+        new ConflictException(ErrorCode.HAS_CHILDREN)                   | 409
+        new ResourceNotFoundException(ErrorCode.NOT_FOUND, '资源')       | 404
+        new AuthenticationException(ErrorCode.UNAUTHENTICATED)          | 401
     }
 
     def "参数错误映射为 400 且带 INVALID_PARAM"() {

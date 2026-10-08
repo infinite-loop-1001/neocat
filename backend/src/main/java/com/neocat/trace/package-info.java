@@ -5,7 +5,9 @@
  * 因此 {@code query} 通过本模块的 {@code domain} 具名接口读取，
  * 而不是直接访问存储。
  */
-@org.springframework.modulith.ApplicationModule(
+@ApplicationModule(
         displayName = "Trace",
         allowedDependencies = {"common", "common :: error", "common :: config", "common :: time", "common :: queue"})
 package com.neocat.trace;
+
+import org.springframework.modulith.ApplicationModule;

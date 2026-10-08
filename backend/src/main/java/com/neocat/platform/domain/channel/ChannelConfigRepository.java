@@ -1,9 +1,9 @@
 package com.neocat.platform.domain.channel;
 
 import java.util.List;
+import org.springframework.modulith.NamedInterface;
 
-@org.springframework.modulith.NamedInterface("platform")
-
+@NamedInterface("platform")
 public interface ChannelConfigRepository {
 
     List<ChannelConfig> findAll();

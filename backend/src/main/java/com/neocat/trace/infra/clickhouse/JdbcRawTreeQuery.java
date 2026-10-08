@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.util.List;
 
 import org.apache.commons.collections4.CollectionUtils;
+import java.sql.Timestamp;
+import org.springframework.jdbc.core.RowMapper;
 
 /**
  * 原始树与 Trace 关系的 JDBC 实现（技术方案 06 §5–6）。
@@ -34,7 +36,7 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 row.getService(), row.getInstance(), row.getMessageId(), row.getRootMessageId(),
-                row.getParentMessageId(), java.sql.Timestamp.from(row.getTreeTimestamp()),
+                row.getParentMessageId(), Timestamp.from(row.getTreeTimestamp()),
                 row.getFingerprint(), row.getPayload());
     }
     @Override
@@ -45,7 +47,7 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 row.getMessageId(), row.getRootMessageId(), row.getParentMessageId(),
-                row.getService(), row.getInstance(), java.sql.Timestamp.from(row.getTreeTimestamp()));
+                row.getService(), row.getInstance(), Timestamp.from(row.getTreeTimestamp()));
     }
     @Override
     public TraceTreeRow selectTree(String messageId) {
@@ -78,7 +80,7 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
                 WHERE service = ? AND tree_timestamp >= ? AND tree_timestamp < ?
                 ORDER BY tree_timestamp DESC
                 """, TREE_ROW_MAPPER, service,
-                java.sql.Timestamp.from(from), java.sql.Timestamp.from(to));
+                Timestamp.from(from), Timestamp.from(to));
     }
     @Override
     public boolean existsRelation(String messageId) {
@@ -118,19 +120,19 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
     public List<String> deleteTreesOlderThan(Instant threshold) {
         List<String> ids = jdbc.queryForList("""
                 SELECT message_id FROM neocat.nc_raw_tree WHERE tree_timestamp < ?
-                """, String.class, java.sql.Timestamp.from(threshold));
+                """, String.class, Timestamp.from(threshold));
 
         if (CollectionUtils.isEmpty(ids)) {
             return Lists.newArrayList();
         }
         jdbc.update("ALTER TABLE neocat.nc_raw_tree DELETE WHERE tree_timestamp < ?",
-                java.sql.Timestamp.from(threshold));
+                Timestamp.from(threshold));
         return ids;
     }
 
     // ── 行映射 ───────────────────────────────────────────────
 
-    private static final org.springframework.jdbc.core.RowMapper<TraceTreeRow> TREE_ROW_MAPPER =
+    private static final RowMapper<TraceTreeRow> TREE_ROW_MAPPER =
             (ResultSet rs, int rowNum) -> new TraceTreeRow(
                     rs.getString("service"),
                     rs.getString("instance"),
@@ -141,7 +143,7 @@ public class JdbcRawTreeQuery implements RawTreeQuery {
                     rs.getString("fingerprint"),
                     rs.getString("payload"));
 
-    private static final org.springframework.jdbc.core.RowMapper<TraceRelationRow> RELATION_ROW_MAPPER =
+    private static final RowMapper<TraceRelationRow> RELATION_ROW_MAPPER =
             (ResultSet rs, int rowNum) -> new TraceRelationRow(
                     rs.getString("message_id"),
                     rs.getString("root_message_id"),

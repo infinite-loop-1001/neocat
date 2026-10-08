@@ -10,6 +10,8 @@ import com.neocat.analysis.domain.schedule.*
 import com.neocat.common.time.bucket.Bucket
 import com.neocat.common.error.exception.ValidationException
 import java.time.Instant
+import com.neocat.analysis.infra.store.InMemoryMetricLabelMetadata
+import java.time.temporal.ChronoUnit
 
 class MetricCountBackendSpec extends Specification {
     def time = Instant.parse('2026-10-02T10:00:00Z')
@@ -57,7 +59,7 @@ class MetricCountBackendSpec extends Specification {
 
     def "标签分隔符不会碰撞，元数据记录实际写桶归属"() {
         given:
-        def memory = new com.neocat.analysis.infra.store.InMemoryMetricLabelMetadata()
+        def memory = new InMemoryMetricLabelMetadata()
         when:
         memory.record('order','m',[x:'a;b=c'], SeriesKey.OTHER_LABELS,time)
         then:
@@ -81,7 +83,7 @@ class MetricCountBackendSpec extends Specification {
         def legacy = row('x=1;',0)
         def modern = row('x=1;',4)
         def rolled = new AggregationRoller().roll([legacy,modern],AggregationLevel.DAY)
-        def day = time.truncatedTo(java.time.temporal.ChronoUnit.DAYS)
+        def day = time.truncatedTo(ChronoUnit.DAYS)
         expect:
         rolled[0].valueCount() == 4L
         rolled[0].valueCountMissing()
@@ -91,7 +93,7 @@ class MetricCountBackendSpec extends Specification {
 
     def "当前和历史小时聚到同一天仍按真实来源小时判断标签身份"() {
         given:
-        def day = time.truncatedTo(java.time.temporal.ChronoUnit.DAYS)
+        def day = time.truncatedTo(ChronoUnit.DAYS)
         def older = new AggregatedRow(SeriesKey.metric('order','m','city=上海;'),time.minusSeconds(3600),AggregationLevel.HOUR,3600)
         older.addValue(9d,3)
         def entries = [new MetricLabelMetadata.Entry('order','m',time.minusSeconds(3600),'city=上海;',[city:'上海'],false,1)]

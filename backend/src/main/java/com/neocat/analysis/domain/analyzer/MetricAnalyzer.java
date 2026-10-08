@@ -12,7 +12,13 @@ import com.neocat.ingest.domain.tree.NodeKind;
 import com.neocat.ingest.domain.tree.RawNode;
 
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.util.Objects;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * Metric 分析器（PRD 04 §1–4，链路 21）。
@@ -33,9 +39,9 @@ import java.util.Objects;
  *   <li>不使用 {@link SeriesKey#ALL} 之外的聚合：Metric 只按标签组合分序列，机器维度由查询层处理。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@org.springframework.stereotype.Component
-@org.springframework.context.annotation.DependsOn("metricConfig")
+@NamedInterface("analysis")
+@Component
+@DependsOn("metricConfig")
 public class MetricAnalyzer implements Analyzer {
 
     private final HourlyReportStore store;
@@ -47,20 +53,23 @@ public class MetricAnalyzer implements Analyzer {
     public MetricAnalyzer(HourlyReportStore store, MetricHourRank rank) {
         this(store, rank, null);
     }
-    @org.springframework.beans.factory.annotation.Autowired
+
+    @Autowired
     public MetricAnalyzer(HourlyReportStore store, MetricHourRank rank, MetricLabelMetadata metadata) {
         this.store = store;
         this.rank = rank;
         this.metadata = metadata;
     }
+
     @Override
     public String domain() {
         return "metric";
     }
+
     @Override
     public void analyze(MessageTree tree) {
         for (RawNode node : tree.getNodes()) {
-            if (node.getKind() != NodeKind.METRIC) {
+            if (!Objects.equals(node.getKind(), NodeKind.METRIC)) {
                 continue;
             }
             MetricValue metric = node.getMetric();
@@ -72,8 +81,9 @@ public class MetricAnalyzer implements Analyzer {
             String metricName = Objects.isNull(metric.getName()) ? node.getName() : metric.getName();
 
             String owner = rank.record(tree.getServiceName(), metricName, labels, eventTime);
-            store.addValue(SeriesKey.metric(tree.getServiceName(), metricName, owner), eventTime, metric.getValue());
-            if (Objects.nonNull(metadata)) metadata.record(tree.getServiceName(), metricName, metric.getLabels(), owner, eventTime);
+            store.addValue(SeriesKey.metric(tree.getServiceName(), metricName, owner), eventTime, BigDecimal.valueOf(metric.getValue()));
+            if (Objects.nonNull(metadata))
+                metadata.record(tree.getServiceName(), metricName, metric.getLabels(), owner, eventTime);
         }
     }
 }

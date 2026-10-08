@@ -12,6 +12,9 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
 import java.util.Objects;
+import java.sql.SQLException;
+import java.time.temporal.ChronoUnit;
+import javax.sql.DataSource;
 
 /** Versioned snapshots: merge flags are monotone; never sum a re-written metadata snapshot. */
 public  class JdbcMetricMetadataPort implements MetricMetadataPort {
@@ -21,7 +24,7 @@ public  class JdbcMetricMetadataPort implements MetricMetadataPort {
 
     private final MetricLabelMetadata memory;
 
-    public JdbcMetricMetadataPort(javax.sql.DataSource source, ObjectMapper json, MetricLabelMetadata memory) {
+    public JdbcMetricMetadataPort(DataSource source, ObjectMapper json, MetricLabelMetadata memory) {
         this.jdbc = new JdbcTemplate(source); this.json = json; this.memory = memory;
     }
     @Override
@@ -35,11 +38,11 @@ public  class JdbcMetricMetadataPort implements MetricMetadataPort {
                 """, (rs, index) -> {
             Map<String, String> labels;
             try { labels = json.readValue(rs.getString("decoded_labels"), new TypeReference<Map<String, String>>() {}); }
-            catch (Exception e) { throw new java.sql.SQLException("Invalid persisted Metric label metadata", e); }
+            catch (Exception e) { throw new SQLException("Invalid persisted Metric label metadata", e); }
             return new MetricLabelMetadata.Entry(rs.getString("service"), rs.getString("metric_name"),
                     rs.getTimestamp("hour").toInstant(), rs.getString("labels"), labels,
                     rs.getBoolean("is_merged"), rs.getLong("report_count"), rs.getString("source"));
-        }, service, metric, Timestamp.from(to), Timestamp.from(from.truncatedTo(java.time.temporal.ChronoUnit.HOURS))));
+        }, service, metric, Timestamp.from(to), Timestamp.from(from.truncatedTo(ChronoUnit.HOURS))));
         result.addAll(memory.entries(from, to).stream().filter(e -> Objects.equals(e.getService(), service) && Objects.equals(e.getMetric(), metric)).toList());
 
         @Getter
@@ -67,5 +70,4 @@ public  class JdbcMetricMetadataPort implements MetricMetadataPort {
         return List.copyOf(deduplicated.values());
     }
 }
-
 

@@ -1,5 +1,9 @@
 package com.neocat.common.config
 
+import java.lang.reflect.Field
+
+import com.neocat.analysis.config.MetricConfig
+
 import com.ctrip.framework.apollo.Config
 import com.ctrip.framework.apollo.ConfigChangeListener
 import com.ctrip.framework.apollo.ConfigService
@@ -8,7 +12,7 @@ import com.ctrip.framework.apollo.model.ConfigChange
 import com.ctrip.framework.apollo.model.ConfigChangeEvent
 import com.ctrip.framework.apollo.enums.PropertyChangeType
 import com.ctrip.framework.apollo.spring.annotation.ApolloAnnotationProcessor
-import com.neocat.common.config.impl.ApolloConfigGuard
+import com.neocat.ApolloConfigGuard
 import link.cu1universe.dev.apollo.autoconfigure.ApolloAutoConfiguration
 import link.cu1universe.dev.apollo.processor.ApolloStaticValueProcessor
 import org.springframework.boot.autoconfigure.AutoConfigurations
@@ -17,6 +21,12 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.DependsOn
 import spock.lang.Specification
+import com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig
+import com.neocat.RuntimeConfiguration
+import com.neocat.analysis.domain.bucket.SeriesKey
+import com.neocat.analysis.infra.store.InMemoryMetricHourRank
+import java.time.Instant
+import link.cu1universe.dev.apollo.annotation.ApolloStaticValue
 
 /**
  * 使用真实 common-apollo 自动配置与原生注解处理器，只替换 Apollo 的 ConfigManager
@@ -27,7 +37,7 @@ import spock.lang.Specification
  */
 class ApolloStaticWiringSpec extends Specification {
     @Configuration(proxyBeanMethods = false)
-    @com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig
+    @EnableApolloConfig
     static class NativeProcessor {
     }
 
@@ -55,11 +65,11 @@ class ApolloStaticWiringSpec extends Specification {
             assert context.getBean(ApolloAnnotationProcessor) != null
             assert context.getBean('initializedConsumer') != null
             assert !listeners.isEmpty()
-            def rank = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
-            def hour = java.time.Instant.parse('2026-10-03T00:00:00Z')
+            def rank = new InMemoryMetricHourRank()
+            def hour = Instant.parse('2026-10-03T00:00:00Z')
             assert rank.record('s', 'm', 'a', hour) == 'a'
             assert rank.record('s', 'm', 'b', hour) == 'b'
-            assert rank.record('s', 'm', 'c', hour) == com.neocat.analysis.domain.bucket.SeriesKey.OTHER_LABELS
+            assert rank.record('s', 'm', 'c', hour) == SeriesKey.OTHER_LABELS
             def event = new ConfigChangeEvent('neocat', 'application', [
                 'neocat.metric.top-n': new ConfigChange('neocat', 'application', 'neocat.metric.top-n', '2', '3', PropertyChangeType.MODIFIED)
             ])
@@ -78,7 +88,7 @@ class ApolloStaticWiringSpec extends Specification {
         def runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(ApolloAutoConfiguration))
             .withUserConfiguration(NativeProcessor, MetricConfig,
-                    com.neocat.common.config.impl.RuntimeConfiguration)
+                    RuntimeConfiguration)
 
         expect:
         runner.run { context ->
@@ -105,7 +115,7 @@ class ApolloStaticWiringSpec extends Specification {
         def runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(ApolloAutoConfiguration))
             .withUserConfiguration(NativeProcessor, MetricConfig,
-                    com.neocat.common.config.impl.RuntimeConfiguration)
+                    RuntimeConfiguration)
 
         expect:
         runner.run { context ->
@@ -116,8 +126,8 @@ class ApolloStaticWiringSpec extends Specification {
         restoreConfig()
     }
 
-    private static String keyOf(java.lang.reflect.Field field) {
-        def placeholder = field.getAnnotation(link.cu1universe.dev.apollo.annotation.ApolloStaticValue).value()
+    private static String keyOf(Field field) {
+        def placeholder = field.getAnnotation(ApolloStaticValue).value()
         placeholder.substring(2, placeholder.length() - 1)
     }
 

@@ -6,6 +6,9 @@ import com.neocat.analysis.domain.bucket.SeriesKind
 import spock.lang.Specification
 
 import java.time.Instant
+import com.neocat.analysis.infra.store.InMemoryHourlyReportStore
+import com.neocat.ingest.domain.tree.NodeKind
+import com.neocat.ingest.domain.tree.RawNode
 
 /**
  * G6 任务31（红）：Event 分析器。
@@ -17,10 +20,10 @@ class EventAnalyzerSpec extends Specification {
     static final Instant T = Instant.parse("2026-09-24T04:23:41Z")
 
     EventAnalyzer analyzer
-    com.neocat.analysis.infra.store.InMemoryHourlyReportStore store
+    InMemoryHourlyReportStore store
 
     def setup() {
-        store = new com.neocat.analysis.infra.store.InMemoryHourlyReportStore()
+        store = new InMemoryHourlyReportStore()
         analyzer = new EventAnalyzer(store)
     }
 
@@ -122,7 +125,7 @@ class EventAnalyzerSpec extends Specification {
     def "桶归属使用节点事件时间"() {
         given:
         def tree = AnalysisFixtures.treeWithTimes("order", "10.0.0.8", T.plusSeconds(300).toEpochMilli(),
-                [new com.neocat.ingest.domain.tree.RawNode("n-1", com.neocat.ingest.domain.tree.NodeKind.EVENT,
+                [new RawNode("n-1", NodeKind.EVENT,
                         "business", "e", "0", T.toEpochMilli(), 0L, null, null, null, null, null, Map.of())])
 
         when:

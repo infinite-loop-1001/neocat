@@ -1,6 +1,11 @@
 package com.neocat.common.time.bucket;
 
 import java.time.Instant;
+import java.time.Duration;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 一个左闭右开的时间桶：[start, end)。
@@ -11,10 +16,10 @@ import java.time.Instant;
  * @param partial      是否为部分覆盖桶（滚动范围首尾桶）
  * @param coveredSeconds 桶在查询范围内实际覆盖的秒数；完整桶等于桶长
  */
-@org.springframework.modulith.NamedInterface("time")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("time")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class Bucket {
     private final Instant start;
 
@@ -35,7 +40,6 @@ public class Bucket {
         return !instant.isBefore(start) && instant.isBefore(end);
     }
     public long totalSeconds() {
-        return java.time.Duration.between(start, end).getSeconds();
+        return Duration.between(start, end).getSeconds();
     }
 }
-

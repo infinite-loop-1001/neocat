@@ -1,10 +1,13 @@
 package com.neocat.query.domain.report;
 
+import java.math.BigDecimal;
+
 import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.PercentileMerger;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
 import com.neocat.analysis.domain.bucket.AggregatedRow;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -12,7 +15,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 依赖查询（PRD 04 §6、§8，链路 22）。
@@ -24,16 +32,16 @@ import org.apache.commons.collections4.CollectionUtils;
  * <p>列表按调用次数降序：值班人员最关心调用量最大的依赖。
  * 分位由合并分布重算（统一走 {@link PercentileMerger}），不平均各边分位。
  */
-@org.springframework.modulith.NamedInterface("query")
+@NamedInterface("query")
 public class DependencyQueryService {
 
     /**
      * 依赖列表行。
      */
-    @org.springframework.modulith.NamedInterface("query")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("query")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class DependencyRow {
         private final String peerService;
 
@@ -41,15 +49,15 @@ public class DependencyQueryService {
 
         private final long failures;
 
-        private final Double failureRate;
+        private final BigDecimal failureRate;
 
-        private final Double avgDuration;
+        private final BigDecimal avgDuration;
 
-        private final Double tp99;
+        private final BigDecimal tp99;
 
         private final String sampleMessageId;
 
-        public DependencyRow(String peerService, long calls, long failures, Double failureRate, Double avgDuration, Double tp99, String sampleMessageId) {
+        public DependencyRow(String peerService, long calls, long failures, BigDecimal failureRate, BigDecimal avgDuration, BigDecimal tp99, String sampleMessageId) {
             this.peerService = peerService;
             this.calls = calls;
             this.failures = failures;
@@ -60,6 +68,7 @@ public class DependencyQueryService {
         }
 
     }
+
     private final PercentileMerger percentiles;
 
     public DependencyQueryService() {
@@ -91,9 +100,9 @@ public class DependencyQueryService {
         List<DependencyRow> result = new ArrayList<>();
         grouped.forEach((peer, group) -> {
             StatCalculator.Merged merged = calculator.merge(group);
-            Double avg = calculator.computeFrom(merged, Stat.AVG, coveredSeconds);
-            Double rate = calculator.computeFrom(merged, Stat.FAILURE_RATE, coveredSeconds);
-            Double tp99 = percentiles.percentile(group, 0.99d);
+            BigDecimal avg = calculator.computeFrom(merged, Stat.AVG, coveredSeconds);
+            BigDecimal rate = calculator.computeFrom(merged, Stat.FAILURE_RATE, coveredSeconds);
+            BigDecimal tp99 = percentiles.percentile(group, Stat.TP99.percentileFraction());
             result.add(new DependencyRow(peer, merged.getCount(), merged.getFailCount(), rate, avg, tp99, null));
         });
 
@@ -102,5 +111,3 @@ public class DependencyQueryService {
         return result;
     }
 }
-
-

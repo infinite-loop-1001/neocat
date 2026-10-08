@@ -1,4 +1,6 @@
 package com.neocat.dashboard.domain.access;
+import java.util.Set;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 组织权限查询（PRD 01 §7.2、PRD 05 §1）。
@@ -8,7 +10,7 @@ package com.neocat.dashboard.domain.access;
  *
  * <p>由 isOrganization 模块实现，dashboard 只依赖抽象。
  */
-@org.springframework.modulith.NamedInterface("dashboard")
+@NamedInterface("dashboard")
 public interface OrgAccessGateway {
 
     /** 是否为该组织的有效成员（直系或祖先继承）。 */
@@ -18,5 +20,5 @@ public interface OrgAccessGateway {
     boolean isLeaf(long orgId);
 
     /** 该账号有权限的全部叶子组织（直系 + 祖先继承）。 */
-    java.util.Set<Long> effectiveLeaves(long accountId);
+    Set<Long> effectiveLeaves(long accountId);
 }

@@ -7,6 +7,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import javax.sql.DataSource;
 import java.util.Objects;
 import java.util.function.Supplier;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
 
 /** 主键行锁，事务提交/回滚释放；查询或加锁失败绝不执行临界区。 */
 @Component
@@ -15,9 +17,9 @@ public class MySqlDistributedLock {
 
     private final TransactionTemplate transactions;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public MySqlDistributedLock(@Qualifier("dataSource") DataSource source,
-                               @Qualifier("mysqlTransactionManager") org.springframework.transaction.PlatformTransactionManager manager) {
+                               @Qualifier("mysqlTransactionManager") PlatformTransactionManager manager) {
         this(new JdbcTemplate(source), new TransactionTemplate(manager));
     }
 

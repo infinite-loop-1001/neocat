@@ -1,10 +1,18 @@
 package com.neocat.query.domain.stat;
 
+import java.math.BigDecimal;
+
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.DurationDistribution;
+
 import java.util.List;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 分位合并（PRD 03 §3、PRD 04 §9，技术方案 03 §8.1）。
@@ -18,7 +26,7 @@ import org.apache.commons.collections4.CollectionUtils;
  * 一旦有任一侧已退化为分箱，合并结果也按分箱估算，避免用部分精确值
  * 冒充全局精确值。
  */
-@org.springframework.modulith.NamedInterface("query")
+@NamedInterface("query")
 public class PercentileMerger {
 
     /**
@@ -28,10 +36,11 @@ public class PercentileMerger {
      * @param p    分位（0–1）
      * @return 分位值；无样本时返回 {@code null}
      */
-    public Double percentile(List<AggregatedRow> rows, double p) {
+    public BigDecimal percentile(List<AggregatedRow> rows, BigDecimal p) {
         DurationDistribution merged = mergeDistribution(rows);
         return merged.percentile(p);
     }
+
     /**
      * 合并多行的分布，返回新的合并分布对象（不修改输入行）。
      */
@@ -46,38 +55,42 @@ public class PercentileMerger {
         }
         return Objects.isNull(merged) ? new DurationDistribution() : merged;
     }
-    /** 一次算出的标准分位集合。 */
+
+    /**
+     * 一次算出的标准分位集合。
+     */
     public Percentiles percentiles(List<AggregatedRow> rows) {
         DurationDistribution merged = mergeDistribution(rows);
         return new Percentiles(
-                merged.percentile(0.50d),
-                merged.percentile(0.90d),
-                merged.percentile(0.95d),
-                merged.percentile(0.99d),
-                merged.percentile(0.999d),
-                merged.percentile(0.9999d));
+                merged.percentile(Stat.TP50.percentileFraction()),
+                merged.percentile(Stat.TP90.percentileFraction()),
+                merged.percentile(Stat.TP95.percentileFraction()),
+                merged.percentile(Stat.TP99.percentileFraction()),
+                merged.percentile(Stat.TP999.percentileFraction()),
+                merged.percentile(Stat.TP9999.percentileFraction()));
     }
+
     /**
      * 标准分位集合。
      */
-    @org.springframework.modulith.NamedInterface("query")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("query")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class Percentiles {
-        private final Double tp50;
+        private final BigDecimal tp50;
 
-        private final Double tp90;
+        private final BigDecimal tp90;
 
-        private final Double tp95;
+        private final BigDecimal tp95;
 
-        private final Double tp99;
+        private final BigDecimal tp99;
 
-        private final Double tp999;
+        private final BigDecimal tp999;
 
-        private final Double tp9999;
+        private final BigDecimal tp9999;
 
-        public Percentiles(Double tp50, Double tp90, Double tp95, Double tp99, Double tp999, Double tp9999) {
+        public Percentiles(BigDecimal tp50, BigDecimal tp90, BigDecimal tp95, BigDecimal tp99, BigDecimal tp999, BigDecimal tp9999) {
             this.tp50 = tp50;
             this.tp90 = tp90;
             this.tp95 = tp95;
@@ -88,5 +101,3 @@ public class PercentileMerger {
 
     }
 }
-
-

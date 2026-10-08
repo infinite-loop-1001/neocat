@@ -1,5 +1,7 @@
 package com.neocat.alert.infra.adapter
 
+import java.math.BigDecimal
+
 import com.neocat.alert.domain.rule.AlertTarget
 import com.neocat.dashboard.api.internal.CardResults
 import com.neocat.query.api.internal.ReportPoints
@@ -21,8 +23,8 @@ class ReportMinutePointSourceSpec extends Specification {
 
         then:
         1 * reports.values('TRANSACTION', 'order', 'URL', '/a', from, from.plusSeconds(60),
-                ['HITS', 'AVG'], []) >> [HITS: 0.0d, AVG: null]
-        values.containsKey(Stat.HITS) && values[Stat.HITS] == 0.0d
+                ['HITS', 'AVG'], []) >> [HITS: 0.0, AVG: null]
+        values.containsKey(Stat.HITS) && values[Stat.HITS] == 0.0
         values.containsKey(Stat.AVG) && values[Stat.AVG] == null
     }
 
@@ -38,8 +40,8 @@ class ReportMinutePointSourceSpec extends Specification {
         def values = source.values(target, from.toEpochMilli(), [Stat.HITS])
 
         then:
-        1 * cards.value(12L, from, from.plusSeconds(60)) >> 7.0d
+        1 * cards.value(12L, from, from.plusSeconds(60)) >> 7.0
         0 * reports._
-        values[Stat.HITS] == 7.0d
+        values[Stat.HITS] == 7.0
     }
 }

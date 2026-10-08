@@ -1,16 +1,22 @@
 package com.neocat.query.domain.report;
 
+import java.math.BigDecimal;
+
 import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
 import com.neocat.analysis.domain.bucket.AggregatedRow;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * Type / Name 表查询（PRD 03 §7.1、§7.2、§8、§9）。
@@ -30,8 +36,8 @@ import org.apache.commons.collections4.CollectionUtils;
  * <p>Type 层只做分类汇总，返回行的 {@code name} 为 {@code null}；
  * Name 层把范围限定在指定 Type 内。
  */
-@org.springframework.modulith.NamedInterface("query")
-@org.springframework.stereotype.Service
+@NamedInterface("query")
+@Service
 public class ReportTableService {
 
     private static final String KIND_EVENT = "EVENT";
@@ -40,11 +46,16 @@ public class ReportTableService {
 
     private static final String CATEGORY_EXCEPTION = "EXCEPTION";
 
-    /** Type 汇总表：按 Type 分组，按总量降序。 */
+    /**
+     * Type 汇总表：按 Type 分组，按总量降序。
+     */
     public List<ReportRow> typeTable(String kind, List<AggregatedRow> rows, long coveredSeconds) {
         return table(kind, rows, null, coveredSeconds);
     }
-    /** Name 列表：限定在指定 Type 内，按总量降序。 */
+
+    /**
+     * Name 列表：限定在指定 Type 内，按总量降序。
+     */
     public List<ReportRow> nameTable(String kind, String type, List<AggregatedRow> rows, long coveredSeconds) {
         return table(kind, rows, type, coveredSeconds);
     }
@@ -85,21 +96,22 @@ public class ReportTableService {
         result.sort(Comparator.comparingLong(ReportRow::getTotal).reversed());
         return result;
     }
+
     private ReportRow toRow(String kind, String type, String name, List<AggregatedRow> group,
                             StatCalculator calculator, long coveredSeconds) {
         StatCalculator.Merged merged = calculator.merge(group);
         boolean durationVisible = durationVisible(kind, type);
         boolean percentileVisible = percentileVisible(kind, type);
 
-        Double avg = durationVisible ? calculator.computeFrom(merged, Stat.AVG, coveredSeconds) : null;
-        Double tp50 = percentileVisible ? calculator.computeFrom(merged, Stat.TP50, coveredSeconds) : null;
-        Double tp90 = percentileVisible ? calculator.computeFrom(merged, Stat.TP90, coveredSeconds) : null;
-        Double tp95 = percentileVisible ? calculator.computeFrom(merged, Stat.TP95, coveredSeconds) : null;
-        Double tp99 = percentileVisible ? calculator.computeFrom(merged, Stat.TP99, coveredSeconds) : null;
-        Double tp999 = percentileVisible ? calculator.computeFrom(merged, Stat.TP999, coveredSeconds) : null;
-        Double tp9999 = percentileVisible ? calculator.computeFrom(merged, Stat.TP9999, coveredSeconds) : null;
-        Double failureRate = calculator.computeFrom(merged, Stat.FAILURE_RATE, coveredSeconds);
-        Double qps = calculator.computeFrom(merged, Stat.QPS, coveredSeconds);
+        BigDecimal avg = durationVisible ? calculator.computeFrom(merged, Stat.AVG, coveredSeconds) : null;
+        BigDecimal tp50 = percentileVisible ? calculator.computeFrom(merged, Stat.TP50, coveredSeconds) : null;
+        BigDecimal tp90 = percentileVisible ? calculator.computeFrom(merged, Stat.TP90, coveredSeconds) : null;
+        BigDecimal tp95 = percentileVisible ? calculator.computeFrom(merged, Stat.TP95, coveredSeconds) : null;
+        BigDecimal tp99 = percentileVisible ? calculator.computeFrom(merged, Stat.TP99, coveredSeconds) : null;
+        BigDecimal tp999 = percentileVisible ? calculator.computeFrom(merged, Stat.TP999, coveredSeconds) : null;
+        BigDecimal tp9999 = percentileVisible ? calculator.computeFrom(merged, Stat.TP9999, coveredSeconds) : null;
+        BigDecimal failureRate = calculator.computeFrom(merged, Stat.FAILURE_RATE, coveredSeconds);
+        BigDecimal qps = calculator.computeFrom(merged, Stat.QPS, coveredSeconds);
 
         return new ReportRow(
                 type,
@@ -113,6 +125,7 @@ public class ReportTableService {
                 tp50, tp90, tp95, tp99, tp999, tp9999,
                 qps);
     }
+
     /**
      * 耗时字段是否可见。
      *
@@ -125,7 +138,10 @@ public class ReportTableService {
         }
         return !CATEGORY_EXCEPTION.equalsIgnoreCase(type);
     }
-    /** 分位字段是否可见：与耗时字段同规则。 */
+
+    /**
+     * 分位字段是否可见：与耗时字段同规则。
+     */
     private boolean percentileVisible(String kind, String type) {
         return durationVisible(kind, type);
     }

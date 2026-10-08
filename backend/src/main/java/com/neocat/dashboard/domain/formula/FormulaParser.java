@@ -6,6 +6,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.math.BigDecimal;
+
+import com.neocat.common.error.ErrorCode;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 公式解析与单位校验（PRD 05 §4，技术方案 02 §9.2）。
@@ -24,20 +31,20 @@ import java.util.Objects;
  * <p>单位校验在解析过程中同步进行：加减两侧单位不兼容即返回 {@code UNIT_MISMATCH}，
  * 因此「不兼容的公式不能保存」由本类保证。
  */
-@org.springframework.modulith.NamedInterface("dashboard")
+@NamedInterface("dashboard")
 public class FormulaParser {
 
-    public static final String FORMULA_INVALID = com.neocat.common.error.ErrorCode.FORMULA_INVALID.name();
+    public static final String FORMULA_INVALID = ErrorCode.FORMULA_INVALID.name();
 
-    public static final String UNIT_MISMATCH = com.neocat.common.error.ErrorCode.UNIT_MISMATCH.name();
+    public static final String UNIT_MISMATCH = ErrorCode.UNIT_MISMATCH.name();
 
     /**
      * 解析结果。
      */
-    @org.springframework.modulith.NamedInterface("dashboard")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("dashboard")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class ParseOutcome {
         private final Formula formula;
 
@@ -61,6 +68,7 @@ public class FormulaParser {
             return new ParseOutcome(null, error);
         }
     }
+
     public ParseOutcome parse(String expression) {
         if (Objects.isNull(expression) || expression.isBlank()) {
             return ParseOutcome.fail(FORMULA_INVALID);
@@ -79,7 +87,10 @@ public class FormulaParser {
             return ParseOutcome.fail(UNIT_MISMATCH);
         }
     }
-    /** 对已解析的公式复核单位（解析期已校验，此处供外部单独调用）。 */
+
+    /**
+     * 对已解析的公式复核单位（解析期已校验，此处供外部单独调用）。
+     */
     public String validateUnits(Formula formula) {
         if (Objects.isNull(formula)) {
             return FORMULA_INVALID;
@@ -106,6 +117,7 @@ public class FormulaParser {
         }
         return left;
     }
+
     private Formula parseTerm(Cursor cursor) {
         Formula left = parseFactor(cursor);
         while (cursor.accept("*") || cursor.accept("/")) {
@@ -116,6 +128,7 @@ public class FormulaParser {
         }
         return left;
     }
+
     private Formula parseFactor(Cursor cursor) {
         if (cursor.accept("(")) {
             Formula inner = parseExpression(cursor);
@@ -146,7 +159,7 @@ public class FormulaParser {
         }
         if (isNumber(token)) {
             cursor.next();
-            return new Formula.Constant(Double.parseDouble(token));
+            return new Formula.Constant(new BigDecimal(token));
         }
         Stat stat = tryParseStat(token);
         if (Objects.isNull(stat)) {
@@ -162,12 +175,15 @@ public class FormulaParser {
         if (formula instanceof Formula.Binary binary) {
             validate(binary.getLeft());
             validate(binary.getRight());
-            if (binary.getOp() == FormulaOperator.ADD || binary.getOp() == FormulaOperator.SUBTRACT) {
+            if (Objects.equals(binary.getOp(), FormulaOperator.ADD) || Objects.equals(binary.getOp(), FormulaOperator.SUBTRACT)) {
                 requireAdditiveCompatibility(binary);
             }
         }
     }
-    /** 加减要求单位兼容，否则保存被拒。 */
+
+    /**
+     * 加减要求单位兼容，否则保存被拒。
+     */
     private void requireAdditiveCompatibility(Formula.Binary binary) {
         Unit left = binary.getLeft().unit();
         Unit right = binary.getRight().unit();
@@ -211,10 +227,12 @@ public class FormulaParser {
         }
         return tokens;
     }
+
     private boolean isAggregate(String token) {
         String lower = token.toLowerCase(Locale.ROOT);
         return Objects.equals(lower, "sum") || Objects.equals(lower, "avg") || Objects.equals(lower, "min") || Objects.equals(lower, "max");
     }
+
     private FormulaAggregate aggregateOf(String token) {
         return switch (token.toLowerCase(Locale.ROOT)) {
             case "sum" -> FormulaAggregate.SUM;
@@ -224,6 +242,7 @@ public class FormulaParser {
             default -> throw new InvalidFormulaException();
         };
     }
+
     private Stat tryParseStat(String token) {
         if (Objects.isNull(token)) {
             return null;
@@ -245,6 +264,7 @@ public class FormulaParser {
             default -> null;
         };
     }
+
     private boolean isNumber(String token) {
         if (Objects.isNull(token) || token.isEmpty()) {
             return false;
@@ -252,11 +272,16 @@ public class FormulaParser {
         char first = token.charAt(0);
         return Character.isDigit(first) || (first == '.' && token.length() > 1);
     }
+
     private static class InvalidFormulaException extends RuntimeException {
     }
+
     private static class UnitMismatchException extends RuntimeException {
     }
-    /** 简单的 token 游标。 */
+
+    /**
+     * 简单的 token 游标。
+     */
     private static class Cursor {
         private final List<String> tokens;
 
@@ -303,4 +328,3 @@ public class FormulaParser {
         }
     }
 }
-

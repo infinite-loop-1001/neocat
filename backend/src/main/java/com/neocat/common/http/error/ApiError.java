@@ -1,6 +1,10 @@
 package com.neocat.common.http.error;
 
 import com.neocat.common.error.ErrorCode;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * API 错误响应体（技术方案 03-api-contract.md §1.1）。
@@ -8,10 +12,10 @@ import com.neocat.common.error.ErrorCode;
  * @param code    稳定错误码
  * @param message 面向用户的可读消息
  */
-@org.springframework.modulith.NamedInterface("http")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("http")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class ApiError {
     private final int code;
 

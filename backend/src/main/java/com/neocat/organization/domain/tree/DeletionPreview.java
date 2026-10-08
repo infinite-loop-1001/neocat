@@ -1,6 +1,10 @@
 package com.neocat.organization.domain.tree;
 
 import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 删除叶子的影响预览（PRD 01 §5.3）。
@@ -12,10 +16,10 @@ import java.util.List;
  * 因为管理员需要判断「删掉的是哪几块大盘」，
  * 只看到「3 块大盘」无法判断后果（PRD 01 §5.3「展示影响范围」）。
  */
-@org.springframework.modulith.NamedInterface("isOrganization")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("isOrganization")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class DeletionPreview {
     private final long orgId;
 
@@ -36,10 +40,10 @@ public class DeletionPreview {
     }
 
     /** 受影响的大盘概况。 */
-    @org.springframework.modulith.NamedInterface("isOrganization")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("isOrganization")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class DashboardSummary {
         private final long id;
 
@@ -63,7 +67,3 @@ public class DeletionPreview {
         return dashboards.stream().mapToLong(DashboardSummary::getCardCount).sum();
     }
 }
-
-
-
-

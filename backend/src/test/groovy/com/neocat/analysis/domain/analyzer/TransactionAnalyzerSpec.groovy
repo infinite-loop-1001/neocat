@@ -8,6 +8,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import java.time.Instant
+import com.neocat.analysis.infra.store.InMemoryHourlyReportStore
 
 /**
  * G6 任务31（红）：Transaction 与 Event 分析器。
@@ -18,10 +19,10 @@ class TransactionAnalyzerSpec extends Specification {
     static final Instant T = Instant.parse("2026-09-24T04:23:41Z")
 
     TransactionAnalyzer analyzer
-    com.neocat.analysis.infra.store.InMemoryHourlyReportStore store
+    InMemoryHourlyReportStore store
 
     def setup() {
-        store = new com.neocat.analysis.infra.store.InMemoryHourlyReportStore()
+        store = new InMemoryHourlyReportStore()
         analyzer = new TransactionAnalyzer(store)
     }
 

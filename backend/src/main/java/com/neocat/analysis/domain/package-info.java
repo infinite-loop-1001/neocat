@@ -8,5 +8,7 @@
  * 「先合并分子与分布，再算 avg / 分位」（{@code DurationDistribution}、
  * 「缺数不等于零」（{@code MinuteBucket} 返回 null 而非 0）。
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 package com.neocat.analysis.domain;
+
+import org.springframework.modulith.NamedInterface;

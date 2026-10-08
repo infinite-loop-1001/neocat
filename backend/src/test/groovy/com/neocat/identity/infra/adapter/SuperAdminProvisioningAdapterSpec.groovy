@@ -11,8 +11,13 @@ import spock.lang.Specification
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import com.neocat.common.time.clock.TimeProvider
 
 class SuperAdminProvisioningAdapterSpec extends Specification {
+    def cleanup() {
+        TimeProvider.clock = Clock.systemUTC()
+    }
+
     static final Instant NOW = Instant.parse('2026-09-24T04:00:00Z')
 
     def 'first super admin is persisted with hashed password and forced change'() {
@@ -32,7 +37,8 @@ class SuperAdminProvisioningAdapterSpec extends Specification {
         given:
         def accounts = Mock(AccountRepository)
         def passwords = Mock(PasswordHasher)
-        def directory = new AccountDirectoryService(accounts, passwords, Clock.fixed(NOW, ZoneOffset.UTC))
+        TimeProvider.clock = Clock.fixed(NOW, ZoneOffset.UTC)
+        def directory = new AccountDirectoryService(accounts, passwords)
 
         when:
         def id = directory.createInitialSuperAdmin('root', 'secret123')

@@ -1,16 +1,22 @@
 package com.neocat.query.infra.datasource;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.query.infra.port.ReportDataPort;
 
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.common.time.bucket.Granularity;
 
-import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.function.Supplier;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 /** 已结束小时查 ClickHouse，当前小时查内存；跨界范围拆分后合并。 */
 public  class ReportDataPortRouter implements ReportDataPort {
@@ -18,23 +24,21 @@ public  class ReportDataPortRouter implements ReportDataPort {
 
     private final ReportDataPort current;
 
-    private final Clock clock;
 
     private final Supplier<ZoneId> zone;
 
-    public ReportDataPortRouter(ReportDataPort history, ReportDataPort current, Clock clock,
+    public ReportDataPortRouter(ReportDataPort history, ReportDataPort current,
                                 Supplier<ZoneId> zone) {
         this.history = history;
         this.current = current;
-        this.clock = clock;
         this.zone = zone;
     }
     private Instant boundary() {
-        return clock.instant().atZone(zone.get()).truncatedTo(java.time.temporal.ChronoUnit.HOURS).toInstant();
+        return TimeProvider.now().atZone(zone.get()).truncatedTo(ChronoUnit.HOURS).toInstant();
     }
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     private static class Split {
         private final Instant historyEnd;
 
@@ -63,7 +67,7 @@ public  class ReportDataPortRouter implements ReportDataPort {
     public List<AggregatedRow> metricSourceRows(String service, String metric, Instant from, Instant to,
                                                Granularity granularity) {
         Split split = split(from, to);
-        var result = new java.util.ArrayList<AggregatedRow>();
+        var result = new ArrayList<AggregatedRow>();
         if (split.isHasHistory()) result.addAll(history.metricSourceRows(service, metric, from, split.getHistoryEnd(), granularity));
         if (split.isHasCurrent()) result.addAll(current.metricSourceRows(service, metric, split.getCurrentStart(), to, granularity));
         return result;
@@ -73,7 +77,7 @@ public  class ReportDataPortRouter implements ReportDataPort {
                                     Instant from, Instant to, Granularity granularity,
                                     List<String> instances) {
         Split split = split(from, to);
-        var result = new java.util.ArrayList<AggregatedRow>();
+        var result = new ArrayList<AggregatedRow>();
         if (split.isHasHistory()) {
             result.addAll(history.rows(kind, service, type, name, from, split.getHistoryEnd(),
                     granularity, instances));
@@ -123,7 +127,3 @@ public  class ReportDataPortRouter implements ReportDataPort {
                 : current.mergedIntoOther(service, metricName, labels, hourStart);
     }
 }
-
-
-
-

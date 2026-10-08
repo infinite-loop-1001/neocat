@@ -3,6 +3,7 @@ package com.neocat.identity.api.http.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 /** 身份 HTTP 契约；不暴露口令哈希或会话 ID。 */
 public final class IdentityDtos {
@@ -34,13 +35,13 @@ public final class IdentityDtos {
     }
 
     @Getter
-    @AllArgsConstructor(onConstructor_ = @com.fasterxml.jackson.annotation.JsonCreator(mode = com.fasterxml.jackson.annotation.JsonCreator.Mode.PROPERTIES))
+    @AllArgsConstructor(onConstructor_ = @JsonCreator(mode = JsonCreator.Mode.PROPERTIES))
     public static class PasswordDraft {
         private final String password;
     }
 
     @Getter
-    @AllArgsConstructor(onConstructor_ = @com.fasterxml.jackson.annotation.JsonCreator(mode = com.fasterxml.jackson.annotation.JsonCreator.Mode.PROPERTIES))
+    @AllArgsConstructor(onConstructor_ = @JsonCreator(mode = JsonCreator.Mode.PROPERTIES))
     public static class RoleDraft {
         private final String role;
     }

@@ -22,7 +22,7 @@ class NotificationSpec extends Specification {
     AlertRule rule(List<AlertChannel> channels, List<Long> recipients = [1L]) {
         new AlertRule(1L, AlertScope.SERVICE, null, '订单失败率', '',
                 AlertTarget.rawMetric('order', 'TRANSACTION', 'URL', '/a'),
-                Combinator.AND, 1, [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05d)],
+                Combinator.AND, 1, [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05)],
                 recipients, channels, true, false, T)
     }
 

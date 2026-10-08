@@ -2,12 +2,12 @@ package com.neocat.common.error;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.Objects;
+import org.springframework.lang.Nullable;
 
 /**
  * 稳定业务错误码。各业务域占用独立万位区间；HTTP 状态另见 ErrorCodeMapping。
@@ -107,7 +107,7 @@ public enum ErrorCode {
     public int code() {
         return code;
     }
-    @org.springframework.lang.Nullable
+    @Nullable
     public static ErrorCode fromCode(int code) {
         return BY_CODE.get(code);
     }

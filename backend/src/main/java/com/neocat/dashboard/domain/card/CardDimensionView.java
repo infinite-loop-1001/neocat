@@ -3,6 +3,10 @@ package com.neocat.dashboard.domain.card;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 卡片维度视图（PRD 05 §6、§7）。
@@ -20,10 +24,10 @@ import org.apache.commons.collections4.CollectionUtils;
  * @param drilled    当前是否为下钻模式
  * @param thresholdLines 阈值线（始终作用于聚合结果）
  */
-@org.springframework.modulith.NamedInterface("dashboard")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("dashboard")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class CardDimensionView {
     private final List<CardPoint> aggregated;
 
@@ -43,10 +47,10 @@ public class CardDimensionView {
     /**
      * 某台机器在卡片公式下的序列。
      */
-    @org.springframework.modulith.NamedInterface("dashboard")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("dashboard")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class MachineSeries {
         private final String instance;
 
@@ -65,9 +69,9 @@ public class CardDimensionView {
         }
         return aggregated.stream()
                 .filter(p -> Objects.nonNull(p.getValue()))
-                .filter(p -> thresholdLines.stream().anyMatch(line -> line.getDirection() == ThresholdDirection.ABOVE
-                        ? p.getValue() > line.getValue()
-                        : p.getValue() < line.getValue()))
+                .filter(p -> thresholdLines.stream().anyMatch(line -> Objects.equals(line.getDirection(), ThresholdDirection.ABOVE)
+                        ? p.getValue().compareTo(line.getValue()) > 0
+                        : p.getValue().compareTo(line.getValue()) < 0))
                 .count();
     }
 }

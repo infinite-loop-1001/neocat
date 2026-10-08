@@ -1,5 +1,7 @@
 package com.neocat.dashboard.domain.card;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.google.common.collect.Lists;
 import com.neocat.dashboard.domain.access.OrgAccessGateway;
 import com.neocat.dashboard.domain.dashboard.Dashboard;
@@ -29,6 +31,13 @@ import static com.neocat.common.error.ErrorCode.FORMULA_INVALID;
 import static com.neocat.common.error.ErrorCode.NOT_ORG_MEMBER;
 import static com.neocat.common.error.ErrorCode.UNIT_MISMATCH;
 import org.apache.commons.collections4.CollectionUtils;
+import com.neocat.common.locking.MySqlLocked;
+import java.util.Locale;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 卡片用例（PRD 05 §2–§9）。
@@ -45,8 +54,8 @@ import org.apache.commons.collections4.CollectionUtils;
  * 原始统计项按 (服务, 指标对象, 统计项) 去重，卡片结果按其 identity 去重。
  * {@link #stillReferenced} **只统计指定叶子的大盘**，其他叶子对同一目标的引用不算数。
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("dashboard")
+@Service
+@NamedInterface("dashboard")
 public class CardService {
 
     private final DashboardRepository dashboards;
@@ -59,8 +68,6 @@ public class CardService {
 
     private final CardSeriesService seriesService;
 
-    private final java.time.Clock clock;
-
     public CardService(DashboardRepository dashboards, OrgAccessGateway orgAccess,
                        CardEventPublisher events) {
         this(dashboards, orgAccess, events, null);
@@ -69,23 +76,17 @@ public class CardService {
      * @param seriesService 卡片序列组装器；为 null 表示该部署未启用卡片求值
      *                      （此时 {@link #series} 会明确报错而非返回空数据）
      */
+    @Autowired
     public CardService(DashboardRepository dashboards, OrgAccessGateway orgAccess,
-                        CardEventPublisher events, CardSeriesService seriesService) {
-        this(dashboards, orgAccess, events, seriesService, java.time.Clock.systemUTC());
-    }
-
-    @org.springframework.beans.factory.annotation.Autowired
-    public CardService(DashboardRepository dashboards, OrgAccessGateway orgAccess,
-                       CardEventPublisher events, CardSeriesService seriesService, java.time.Clock clock) {
+                       CardEventPublisher events, CardSeriesService seriesService) {
         this.dashboards = dashboards;
         this.orgAccess = orgAccess;
         this.events = events;
         this.seriesService = seriesService;
         this.evaluator = new CardEvaluator();
-        this.clock = clock;
     }
     /** 新建卡片：校验目标与公式单位。 */
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @MySqlLocked("metadata")
     public Card createCard(long accountId, long dashboardId, Card draft) {
         Dashboard dashboard = requireDashboard(accountId, dashboardId);
         validate(draft);
@@ -100,8 +101,8 @@ public class CardService {
      * <p>仅当**目标或公式**发生变化时发布 {@link CardEvent.CardTargetChanged}：
      * 该事件会让关联的组织告警跟随新公式、保存为关闭并清零窗口。
      */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public Card updateCard(long accountId, long cardId, Card draft) {
         Card existing = requireCard(accountId, cardId);
         validate(draft);
@@ -120,8 +121,8 @@ public class CardService {
         return saved;
     }
     /** 删除卡片：发布 {@link CardEvent.CardDeleted}。 */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public void deleteCard(long accountId, long cardId) {
         Card existing = requireCard(accountId, cardId);
         dashboards.deleteCard(cardId);
@@ -130,7 +131,7 @@ public class CardService {
                 existing.targetIdentity(), statNames(existing.getFormula())));
     }
     /** 调整卡片顺序：不发布任何事件，因而不影响任何规则。 */
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @MySqlLocked("metadata")
     public void reorder(long accountId, long dashboardId, List<Long> cardIds) {
         Dashboard dashboard = requireDashboard(accountId, dashboardId);
         if (CollectionUtils.isEmpty(cardIds)) {
@@ -138,7 +139,7 @@ public class CardService {
         }
         int order = 0;
         for (Long cardId : cardIds) {
-            Card card = java.util.Optional.ofNullable(dashboards.findCard(cardId))
+            Card card = Optional.ofNullable(dashboards.findCard(cardId))
                     .orElseThrow(() -> new ResourceNotFoundException(CARD_NOT_FOUND, cardId));
             if (card.getDashboardId() != dashboard.getId()) {
                 throw new ValidationException(CARD_NOT_IN_DASHBOARD);
@@ -152,7 +153,7 @@ public class CardService {
      * 组织的卡片列表（需成员资格）。
      */
     public List<Card> cardsOf(long accountId, long dashboardId) {
-        Dashboard dashboard = java.util.Optional.ofNullable(dashboards.findById(dashboardId))
+        Dashboard dashboard = Optional.ofNullable(dashboards.findById(dashboardId))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, dashboardId));
         requireMember(accountId, dashboard.getOrgId());
         return dashboards.cardsOf(dashboardId);
@@ -163,9 +164,9 @@ public class CardService {
      * <p>要求成员资格；非成员按不可见处理。
      */
     public Map<String, Object> series(long accountId, long cardId, String range) {
-        Card card = java.util.Optional.ofNullable(dashboards.findCard(cardId))
+        Card card = Optional.ofNullable(dashboards.findCard(cardId))
                 .orElseThrow(() -> new ResourceNotFoundException(CARD_NOT_FOUND, cardId));
-        Dashboard dashboard = java.util.Optional.ofNullable(dashboards.findById(card.getDashboardId()))
+        Dashboard dashboard = Optional.ofNullable(dashboards.findById(card.getDashboardId()))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, card.getDashboardId()));
         requireMember(accountId, dashboard.getOrgId());
         if (Objects.isNull(seriesService)) {
@@ -173,7 +174,7 @@ public class CardService {
         }
 
         long bucketSeconds = bucketSecondsOf(range);
-        Instant to = clock.instant();
+        Instant to = TimeProvider.now();
         Instant from = to.minusSeconds(bucketSeconds * 12L);
         List<CardPoint> points = seriesService.series(card, from, to, bucketSeconds);
 
@@ -183,7 +184,7 @@ public class CardService {
     }
     /** 时间范围的默认粒度（与 PRD 03 §2.2 的快捷范围一致）。 */
     private long bucketSecondsOf(String range) {
-        return switch (Objects.isNull(range) ? "RECENT_24H" : range.toUpperCase(java.util.Locale.ROOT)) {
+        return switch (Objects.isNull(range) ? "RECENT_24H" : range.toUpperCase(Locale.ROOT)) {
             case "RECENT_1H" -> 60L;
             case "RECENT_3H" -> 300L;
             case "RECENT_6H" -> 600L;
@@ -238,7 +239,7 @@ public class CardService {
         }
         for (Dashboard dashboard : dashboards.byOrg(orgId)) {
             for (Card card : dashboards.cardsOf(dashboard.getId())) {
-                if (target.getKind() == AlertableTargetKind.CARD_RESULT) {
+                if (Objects.equals(target.getKind(), AlertableTargetKind.CARD_RESULT)) {
                     if (card.getId() == target.getCardId()) {
                         return true;
                     }
@@ -276,7 +277,7 @@ public class CardService {
         }
     }
     private Dashboard requireDashboard(long accountId, long dashboardId) {
-        Dashboard dashboard = java.util.Optional.ofNullable(dashboards.findById(dashboardId))
+        Dashboard dashboard = Optional.ofNullable(dashboards.findById(dashboardId))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, dashboardId));
         if (!orgAccess.isEffectiveMember(accountId, dashboard.getOrgId())) {
             throw new AuthorizationException(NOT_ORG_MEMBER);
@@ -284,9 +285,9 @@ public class CardService {
         return dashboard;
     }
     private Card requireCard(long accountId, long cardId) {
-        Card card = java.util.Optional.ofNullable(dashboards.findCard(cardId))
+        Card card = Optional.ofNullable(dashboards.findCard(cardId))
                 .orElseThrow(() -> new ResourceNotFoundException(CARD_NOT_FOUND, cardId));
-        Dashboard dashboard = java.util.Optional.ofNullable(dashboards.findById(card.getDashboardId()))
+        Dashboard dashboard = Optional.ofNullable(dashboards.findById(card.getDashboardId()))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, card.getDashboardId()));
         if (!orgAccess.isEffectiveMember(accountId, dashboard.getOrgId())) {
             throw new AuthorizationException(NOT_ORG_MEMBER);
@@ -294,14 +295,14 @@ public class CardService {
         return card;
     }
     private long orgIdOf(Card card) {
-        return java.util.Optional.ofNullable(dashboards.findById(card.getDashboardId())).map(Dashboard::getOrgId).orElse(0L);
+        return Optional.ofNullable(dashboards.findById(card.getDashboardId())).map(Dashboard::getOrgId).orElse(0L);
     }
     private boolean targetOrFormulaChanged(Card before, Card after) {
         return !Objects.equals(normalize(before.getFormula()), normalize(after.getFormula()))
                 || !Objects.equals(before.targetIdentity(), after.targetIdentity());
     }
     private String normalize(String formula) {
-        return Objects.isNull(formula) ? "" : formula.replaceAll("\\s+", "").toLowerCase(java.util.Locale.ROOT);
+        return Objects.isNull(formula) ? "" : formula.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
     }
     private List<String> statNames(String formula) {
         return statsOf(formula).stream().map(Enum::name).toList();
@@ -325,7 +326,7 @@ public class CardService {
         return card.targetIdentity();
     }
     private String rawPrefixOf(AlertableTarget target) {
-        return target.getKind() == AlertableTargetKind.RAW_STAT
+        return Objects.equals(target.getKind(), AlertableTargetKind.RAW_STAT)
                 ? target.getService() + "|" + target.getTargetKind() + "|"
                   + (Objects.isNull(target.getTargetType()) ? "" : target.getTargetType()) + "|"
                   + (Objects.isNull(target.getTargetName()) ? "" : target.getTargetName()) + "|"

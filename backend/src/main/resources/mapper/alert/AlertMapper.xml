@@ -33,7 +33,7 @@
     <resultMap id="conditionRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertConditionRow">
         <result property="stat" column="stat"/>
         <result property="comparator" column="comparator"/>
-        <result property="threshold" column="threshold"/>
+        <result property="threshold" column="threshold" javaType="java.math.BigDecimal" jdbcType="DECIMAL"/>
     </resultMap>
 
     <resultMap id="recipientRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertRecipientRow">
@@ -114,7 +114,7 @@
 
     <insert id="insertCondition">
         INSERT INTO nc_alert_condition (rule_id, stat, comparator, threshold)
-        VALUES (#{ruleId}, #{stat}, #{comparator}, #{threshold})
+        VALUES (#{ruleId}, #{stat}, #{comparator}, #{threshold,javaType=java.math.BigDecimal,jdbcType=DECIMAL})
     </insert>
 
     <delete id="deleteConditions">

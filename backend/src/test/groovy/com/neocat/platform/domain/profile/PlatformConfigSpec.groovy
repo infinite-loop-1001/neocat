@@ -1,19 +1,16 @@
 package com.neocat.platform.domain.profile
 
+import com.neocat.alert.config.AlertConfig
+import com.neocat.ingest.config.IngestConfig
 import com.neocat.platform.domain.channel.ChannelConfig
 import com.neocat.platform.domain.channel.ChannelConfigRepository
 import com.neocat.platform.domain.channel.ChannelType
 import com.neocat.platform.domain.init.SuperAdminProvisioner
-
-import com.neocat.common.config.IngestConfig
-import com.neocat.common.config.TraceConfig
-import com.neocat.common.config.AlertConfig
+import com.neocat.trace.config.TraceConfig
 import spock.lang.Specification
 
 import java.time.Instant
 import java.time.ZoneId
-
-import static com.neocat.common.error.ErrorCode.*
 
 /**
  * G3 任务15（红）：平台配置与 Apollo 兜底。

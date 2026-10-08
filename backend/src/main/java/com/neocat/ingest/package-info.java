@@ -10,8 +10,10 @@
  * （见 {@code ingest/infra/IngestWiring} 和 {@code catalog/api/internal}）。这让上报接收链路可以
  * 独立测试与独立演进，也避免了 ingest ↔ catalog 的双向耦合。
  */
-@org.springframework.modulith.ApplicationModule(
+@ApplicationModule(
         displayName = "Ingest",
         allowedDependencies = {"common", "common :: error", "common :: config",
                 "common :: time", "common :: queue", "catalog :: internal", "trace :: internal", "platform :: platform", "protocol :: v1"})
 package com.neocat.ingest;
+
+import org.springframework.modulith.ApplicationModule;

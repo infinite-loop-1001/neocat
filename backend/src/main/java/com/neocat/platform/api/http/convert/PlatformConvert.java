@@ -7,6 +7,7 @@ import com.neocat.platform.domain.profile.PlatformProfile;
 import com.neocat.platform.domain.profile.SlowThresholds;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
 
 public final class PlatformConvert {
     private PlatformConvert() {
@@ -36,6 +37,6 @@ public final class PlatformConvert {
     }
 
     private static boolean available(List<ChannelConfig> configs, ChannelType type) {
-        return configs.stream().anyMatch(config -> config.getType() == type && config.isEnabled());
+        return configs.stream().anyMatch(config -> Objects.equals(config.getType(), type) && config.isEnabled());
     }
 }

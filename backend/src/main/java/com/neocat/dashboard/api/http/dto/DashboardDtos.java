@@ -1,7 +1,10 @@
 package com.neocat.dashboard.api.http.dto;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
 import java.util.List;
 
 public final class DashboardDtos {
@@ -51,7 +54,7 @@ public final class DashboardDtos {
     public static class Threshold {
         private final String direction;
 
-        private final double value;
+        private final BigDecimal value;
 
     }
 
@@ -106,7 +109,7 @@ public final class DashboardDtos {
 
         private final long bucketEnd;
 
-        private final Double value;
+        private final BigDecimal value;
 
         private final String outcome;
     }
@@ -142,7 +145,7 @@ public final class DashboardDtos {
 
         private final List<Gap> gaps;
 
-        private final List<Undefined> undefined;
+        private final List<Undefined> isUndefined;
     }
 
     @Getter

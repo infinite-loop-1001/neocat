@@ -81,7 +81,7 @@
 2. **禁止**启动或连接 MySQL、ClickHouse、Apollo、Redis、SMTP、钉钉、飞书。
 3. **禁止** H2 / Testcontainers 冒充中间件。
 4. Mapper 与 DAO 的**连通性留待人工**：提供 `infra` 实现但不写集成测；`@Tag("integration")` 标记，默认不执行。
-5. 时钟统一经 `Clock` 注入，禁止在领域代码里 `Instant.now()`，保证时间桶与窗口可测。
+5. 后端时间统一经公共静态 `TimeProvider.now()` / `millis()` 获取，不通过 Spring 注入 Clock，TimeProvider 不提供设置时钟的方法，禁止在领域代码里 `Instant.now()`。Groovy 单测直接给 `TimeProvider` 的私有静态时钟字段赋值，结束后在 cleanup / finally 中赋回 `Clock.systemUTC()`；不做线程隔离、嵌套或作用域恢复，所有线程共享时钟，修改时钟的测试串行运行。
 6. 动态配置只在使用点直接读静态字段；测试用 `StaticConfigFixture` 设置小值，每个 Spock 用例由扩展保存/恢复静态字段，禁止并行运行共享静态值的规格。不使用生产离线默认值工厂。
 7. 外部通道实现 `NotificationSender` 接口，单测断言「调用了几次、参数是什么」，不判真实投递。
 8. **领域对象不得依赖框架注解**：曾用 `record` 的不可变类型现为普通类 + Lombok（`@Getter`/`@EqualsAndHashCode`/`@ToString` + 显式全参构造器）。这是**编译期**依赖，不是运行期框架依赖，符合本项目「领域类是 POJO」的纪律。

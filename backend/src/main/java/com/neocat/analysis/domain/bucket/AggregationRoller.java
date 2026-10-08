@@ -9,6 +9,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.time.DayOfWeek;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 分钟 → 小时 → 日 / 周 / 月 的滚动聚合（PRD 00 §10、PRD 03 §2.1，链路 23）。
@@ -23,7 +29,7 @@ import java.util.Map;
  *
  * <p>桶起点一律按**平台时区**对齐：日 = 自然日 00:00，周 = 周一 00:00，月 = 月初 00:00。
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public class AggregationRoller {
 
     /**
@@ -44,9 +50,9 @@ public class AggregationRoller {
      * @return 每个 (序列, 目标桶) 一行，顺序与首次出现顺序一致
      */
     public List<AggregatedRow> roll(List<AggregatedRow> rows, AggregationLevel level, ZoneId zone) {
-        @lombok.Getter
-        @lombok.EqualsAndHashCode
-        @lombok.ToString
+        @Getter
+        @EqualsAndHashCode
+        @ToString
         class RollKey {
             private final SeriesKey series;
 
@@ -66,7 +72,7 @@ public class AggregationRoller {
             target.addCount(row.count(), row.failCount(), row.durationSum(),
                     row.durationMin(), row.durationMax());
             target.addValue(row.valueSum(), row.valueCount());
-            target.markValueCountMissing(row.valueCountMissing() || row.key().getKind() == SeriesKind.METRIC && row.valueCount() == 0);
+            target.markValueCountMissing(row.valueCountMissing() || Objects.equals(row.key().getKind(), SeriesKind.METRIC) && row.valueCount() == 0);
             target.mergeLastValue(row.valueLast(), row.valueLastTime());
             // 分布必须一起合并：分位在查询期由合并后的分布重算（PRD 03 §3）。
             // 漏掉这一步，小时/日/周/月层级的 tp* 会全部变成无值，而且不会报错。
@@ -84,7 +90,7 @@ public class AggregationRoller {
             case HOUR -> local.truncatedTo(ChronoUnit.HOURS);
             case DAY -> local.toLocalDate().atStartOfDay(zone);
             case WEEK -> local.toLocalDate()
-                    .with(java.time.DayOfWeek.MONDAY)
+                    .with(DayOfWeek.MONDAY)
                     .atStartOfDay(zone);
             case MONTH -> local.toLocalDate()
                     .withDayOfMonth(1)
@@ -108,7 +114,7 @@ public class AggregationRoller {
             return 0;
         }
         long covered = Duration.between(bucketStart, effectiveEnd).getSeconds();
-        if (level == AggregationLevel.HOUR && !effectiveEnd.isBefore(bucketEnd)) {
+        if (Objects.equals(level, AggregationLevel.HOUR) && !effectiveEnd.isBefore(bucketEnd)) {
             // 完整历史小时固定 3600，避免夏令时等导致的非 3600 秒差异
             return 3600L;
         }

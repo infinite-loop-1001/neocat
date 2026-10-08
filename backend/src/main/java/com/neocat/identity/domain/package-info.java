@@ -3,5 +3,7 @@
  *
  * <p>{@code alert} 需要校验收件人是否启用，因此本包对外暴露。
  */
-@org.springframework.modulith.NamedInterface("identity")
+@NamedInterface("identity")
 package com.neocat.identity.domain;
+
+import org.springframework.modulith.NamedInterface;

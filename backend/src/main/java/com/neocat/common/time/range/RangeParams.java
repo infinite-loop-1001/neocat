@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Locale;
 import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * `range` 查询参数解析（技术方案 03-api-contract.md §4.1）。
@@ -22,7 +23,7 @@ import java.util.Objects;
  * <p>无法识别或取值非法时一律回退到 {@code RECENT_1H}，不向调用方抛 500——
  * 时间参数写错不应该让整个报表页报错。
  */
-@org.springframework.modulith.NamedInterface("time")
+@NamedInterface("time")
 public class RangeParams {
 
     private RangeParams() {

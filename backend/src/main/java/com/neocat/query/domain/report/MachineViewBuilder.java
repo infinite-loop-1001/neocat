@@ -1,5 +1,7 @@
 package com.neocat.query.domain.report;
 
+import java.math.BigDecimal;
+
 import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
@@ -9,7 +11,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 机器维度视图构建（PRD 03 §7.3、§10；技术方案 03 §4.3）。
@@ -25,7 +29,7 @@ import org.apache.commons.collections4.CollectionUtils;
  *   <li>Heartbeat（{@code mergeOther = false}）Top N 之外不合并，全量仍在 {@code all} 中可查。</li>
  * </ol>
  */
-@org.springframework.modulith.NamedInterface("query")
+@NamedInterface("query")
 public class MachineViewBuilder {
 
     public MachineView build(List<AggregatedRow> rows, Stat stat, int topN,
@@ -35,7 +39,8 @@ public class MachineViewBuilder {
 
         List<AggregatedRow> sorted = new ArrayList<>(machines);
         sorted.sort(Comparator
-                .comparingDouble((AggregatedRow row) -> contribution(row, calculator, stat, coveredSeconds))
+                .comparing((AggregatedRow row) -> contribution(row, calculator, stat, coveredSeconds),
+                        Comparator.nullsFirst(Comparator.<BigDecimal>naturalOrder()))
                 .reversed()
                 .thenComparing(row -> row.key().getInstance()));
 
@@ -72,7 +77,9 @@ public class MachineViewBuilder {
 
     // ── 内部 ─────────────────────────────────────────────────
 
-    /** 排除全机器聚合行。 */
+    /**
+     * 排除全机器聚合行。
+     */
     private List<AggregatedRow> filterMachineRows(List<AggregatedRow> rows) {
         if (CollectionUtils.isEmpty(rows)) {
             return Lists.newArrayList();
@@ -87,6 +94,7 @@ public class MachineViewBuilder {
         }
         return machines;
     }
+
     private MachineRow toMachineRow(AggregatedRow row, StatCalculator calculator, Stat stat, long coveredSeconds) {
         StatCalculator.Merged merged = calculator.merge(List.of(row));
         return new MachineRow(
@@ -98,6 +106,7 @@ public class MachineViewBuilder {
                 calculator.computeFrom(merged, Stat.QPS, coveredSeconds),
                 contributionOf(merged, stat, coveredSeconds));
     }
+
     /**
      * 合并 Top N 之外的机器为一行 other。
      *
@@ -116,13 +125,15 @@ public class MachineViewBuilder {
                 calculator.computeFrom(merged, Stat.QPS, coveredSeconds),
                 contributionOf(merged, stat, coveredSeconds));
     }
-    private double contribution(AggregatedRow row, StatCalculator calculator, Stat stat, long coveredSeconds) {
-        Double value = calculator.compute(List.of(row), stat, coveredSeconds);
-        return Objects.isNull(value) ? Double.NEGATIVE_INFINITY : value;
+
+    private BigDecimal contribution(AggregatedRow row, StatCalculator calculator, Stat stat, long coveredSeconds) {
+        return calculator.compute(List.of(row), stat, coveredSeconds);
     }
-    private Double contributionOf(StatCalculator.Merged merged, Stat stat, long coveredSeconds) {
+
+    private BigDecimal contributionOf(StatCalculator.Merged merged, Stat stat, long coveredSeconds) {
         return new StatCalculator().computeFrom(merged, stat, coveredSeconds);
     }
+
     /**
      * 内部小工具：避免直接依赖 analysis 模块的常量名。
      */

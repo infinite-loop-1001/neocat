@@ -1,5 +1,8 @@
 package com.neocat.common.config
 
+import com.neocat.ingest.config.IngestConfig
+import com.neocat.analysis.config.MetricConfig
+
 import com.neocat.ingest.domain.idempotency.*
 import com.neocat.ingest.domain.validation.*
 import com.neocat.ingest.domain.receive.IngestBatch

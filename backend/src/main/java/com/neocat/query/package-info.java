@@ -8,7 +8,9 @@
  * 都必须通过本模块取数，不得直连 ClickHouse 报表表 —— 这样
  * 「时间桶、QPS 口径、缺数语义、分位合并」只有一份实现。
  */
-@org.springframework.modulith.ApplicationModule(
+@ApplicationModule(
         displayName = "Query",
-        allowedDependencies = {"common", "common :: error", "common :: config", "common :: time", "common :: queue", "analysis :: analysis", "trace :: trace", "platform :: platform", "catalog :: catalog"})
+        allowedDependencies = {"common", "common :: error", "common :: config", "common :: time", "common :: queue", "analysis :: analysis", "trace :: trace", "trace :: config", "platform :: platform", "catalog :: catalog"})
 package com.neocat.query;
+
+import org.springframework.modulith.ApplicationModule;

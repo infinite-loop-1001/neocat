@@ -1,5 +1,7 @@
 package com.neocat.identity.api.http;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.identity.api.http.dto.IdentityDtos.*;
 import com.neocat.identity.api.http.convert.IdentityConvert;
 
@@ -20,10 +22,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.Clock;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * 身份与会话接口（技术方案 03-api-contract.md §2）。
@@ -46,19 +44,17 @@ public class IdentityController {
 
     private final ServiceAvailability availability;
 
-    private final Clock clock;
 
     public IdentityController(AuthenticationService authentication, AccountService accounts,
-                              ServiceAvailability availability, Clock clock) {
+                              ServiceAvailability availability) {
         this.authentication = authentication;
         this.accounts = accounts;
         this.availability = availability;
-        this.clock = clock;
     }
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request,
                                                      HttpServletResponse response) {
-        LoginResult result = authentication.login(request.getUsername(), request.getPassword(), clock.instant());
+        LoginResult result = authentication.login(request.getUsername(), request.getPassword(), TimeProvider.now());
 
         Cookie cookie = new Cookie(SessionInterceptor.SESSION_COOKIE, result.getSession().getId());
         cookie.setHttpOnly(true);
@@ -90,8 +86,7 @@ public class IdentityController {
     public ResponseEntity<Success> changePassword(@RequestBody ChangePasswordRequest body,
                                                               HttpServletRequest request) {
         Account account = SessionInterceptor.currentAccount(request);
-        accounts.changePassword(account.getId(), body.getOldPassword(), body.getNewPassword(), clock.instant());
+        accounts.changePassword(account.getId(), body.getOldPassword(), body.getNewPassword(), TimeProvider.now());
         return ResponseEntity.ok(new Success(true));
     }
 }
-

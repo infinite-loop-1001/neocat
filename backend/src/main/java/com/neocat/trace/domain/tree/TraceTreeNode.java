@@ -2,6 +2,8 @@ package com.neocat.trace.domain.tree;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 组装后的跨服务调用树节点（PRD 02 §10）。
@@ -9,7 +11,7 @@ import java.util.List;
  * <p>{@code availability} 与 {@code missingReason} 共同表达缺失语义：
  * 已知父子关系但子树未收到 → MISSING；子树曾收到但已过期 → EXPIRED。
  */
-@org.springframework.modulith.NamedInterface("trace")
+@NamedInterface("trace")
 public class TraceTreeNode {
 
     private final String messageId;
@@ -70,20 +72,16 @@ public class TraceTreeNode {
         children.add(child);
     }
     public boolean present() {
-        return availability == NodeAvailability.PRESENT;
+        return Objects.equals(availability, NodeAvailability.PRESENT);
     }
     /** 递归统计缺失节点数。 */
     public long countMissing() {
-        long self = availability == NodeAvailability.MISSING ? 1 : 0;
+        long self = Objects.equals(availability, NodeAvailability.MISSING) ? 1 : 0;
         return self + children.stream().mapToLong(TraceTreeNode::countMissing).sum();
     }
     /** 递归统计过期节点数。 */
     public long countExpired() {
-        long self = availability == NodeAvailability.EXPIRED ? 1 : 0;
+        long self = Objects.equals(availability, NodeAvailability.EXPIRED) ? 1 : 0;
         return self + children.stream().mapToLong(TraceTreeNode::countExpired).sum();
     }
 }
-
-
-
-

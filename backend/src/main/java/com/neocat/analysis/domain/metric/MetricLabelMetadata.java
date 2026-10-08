@@ -3,15 +3,19 @@ package com.neocat.analysis.domain.metric;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /** Actual ingest-time ownership, not a later ranking that could contradict written buckets. */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public interface MetricLabelMetadata {
 
-    @org.springframework.modulith.NamedInterface("analysis")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("analysis")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     class Entry {
         private final String service;
 
@@ -53,8 +57,3 @@ public interface MetricLabelMetadata {
     List<Entry> entries(Instant from, Instant to);
     void clearBefore(Instant boundary);
 }
-
-
-
-
-

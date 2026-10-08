@@ -2,6 +2,11 @@ package com.neocat.analysis.domain.bucket;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+import com.neocat.common.DecimalMath;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 耗时分位分布：16 段对数分箱 + 低基数精确值双轨（技术方案 01 §6.7、06 §10.1.1）。
@@ -17,12 +22,14 @@ import java.util.Objects;
  * 超过上限后丢弃精确值、只保留分箱，分位由分箱插值估算。两个分布合并时，
  * 只要有一侧不是精确模式，结果就不是精确模式（避免用部分精确值冒充全局精确）。
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public class DurationDistribution {
 
     public static final int SEGMENTS = 16;
 
-    /** 精确值保留上限，与 {@code neocat.report.exact-values.max} 默认值一致。 */
+    /**
+     * 精确值保留上限，与 {@code neocat.report.exact-values.max} 默认值一致。
+     */
     public static final int DEFAULT_EXACT_LIMIT = 200;
 
     private final long[] segments;
@@ -38,12 +45,16 @@ public class DurationDistribution {
     public DurationDistribution() {
         this(DEFAULT_EXACT_LIMIT);
     }
+
     public DurationDistribution(int exactLimit) {
         this.segments = new long[SEGMENTS];
         this.exactValues = exactLimit > 0 ? new long[exactLimit] : null;
         this.exactMode = exactLimit > 0;
     }
-    /** 记录一个耗时样本。 */
+
+    /**
+     * 记录一个耗时样本。
+     */
     public void record(long durationMs) {
         long value = Math.max(0L, durationMs);
         segments[segmentOf(value)]++;
@@ -57,24 +68,35 @@ public class DurationDistribution {
             }
         }
     }
-    /** 本分布是否由精确值支撑（分位完全准确）。 */
+
+    /**
+     * 本分布是否由精确值支撑（分位完全准确）。
+     */
     public boolean exact() {
         return exactMode;
     }
+
     public long count() {
         return total;
     }
-    /** 分箱快照（长度 16）；返回副本以防外部修改内部状态。 */
+
+    /**
+     * 分箱快照（长度 16）；返回副本以防外部修改内部状态。
+     */
     public long[] segments() {
         return Arrays.copyOf(segments, SEGMENTS);
     }
-    /** 精确值快照；非精确模式或未记录时返回空数组。 */
+
+    /**
+     * 精确值快照；非精确模式或未记录时返回空数组。
+     */
     public long[] exactValues() {
         if (!exactMode || Objects.isNull(exactValues) || exactCount == 0) {
             return new long[0];
         }
         return Arrays.copyOf(exactValues, exactCount);
     }
+
     /**
      * 合并另一个分布：逐段相加。
      *
@@ -103,6 +125,7 @@ public class DurationDistribution {
         }
         return merged;
     }
+
     /**
      * 从已持久化的分箱数组重建分布（技术方案 06 §2：{@code distribution} 列）。
      *
@@ -124,6 +147,7 @@ public class DurationDistribution {
         }
         return distribution;
     }
+
     /**
      * 复制当前分布（含精确值模式），用于跨桶聚合时不修改源对象。
      */
@@ -138,28 +162,40 @@ public class DurationDistribution {
         }
         return copy;
     }
+
     /**
      * 估算分位；空分布返回 {@code null}（PRD 03 §5：无调用时分位显示无值）。
      *
      * <p>精确模式下直接从排序后的原始值取第 {@code ceil(p * n)} 个；
      * 分箱模式下定位到覆盖率超过 {@code p} 的段，段内按线性插值估计。
      */
-    public Double percentile(double p) {
+    public BigDecimal percentile(BigDecimal p) {
+        return DecimalMath.result(percentileIntermediate(p));
+    }
+
+    /**
+     * 后续统计或公式的中间输入，不提前舍入到六位。
+     */
+    public BigDecimal percentileIntermediate(BigDecimal p) {
         if (total == 0) {
             return null;
         }
-        double clamped = Math.max(0.0d, Math.min(1.0d, p));
+        BigDecimal clamped = p.max(BigDecimal.ZERO).min(BigDecimal.ONE);
         if (exactMode && Objects.nonNull(exactValues) && exactCount > 0) {
             long[] sorted = Arrays.copyOf(exactValues, exactCount);
             Arrays.sort(sorted);
-            int index = (int) Math.ceil(clamped * sorted.length) - 1;
-            return (double) sorted[Math.max(0, Math.min(sorted.length - 1, index))];
+            int index = clamped.multiply(BigDecimal.valueOf(sorted.length))
+                    .setScale(0, RoundingMode.CEILING).intValueExact() - 1;
+            return BigDecimal.valueOf(sorted[Math.max(0, Math.min(sorted.length - 1, index))]);
         }
         return percentileFromSegments(clamped);
     }
-    /** 分桶模式下的分位估计：定位分段并按段内累计权重线性插值。 */
-    private Double percentileFromSegments(double p) {
-        long target = (long) Math.ceil(p * total);
+
+    /**
+     * 分桶模式下的分位估计：定位分段并按段内累计权重线性插值。
+     */
+    private BigDecimal percentileFromSegments(BigDecimal p) {
+        long target = p.multiply(BigDecimal.valueOf(total)).setScale(0, RoundingMode.CEILING).longValueExact();
         if (target <= 0) {
             target = 1;
         }
@@ -170,24 +206,33 @@ public class DurationDistribution {
                 continue;
             }
             if (cumulative + bucketCount >= target) {
-                double lower = segmentLowerBound(i);
-                double upper = segmentUpperBound(i);
-                double within = (double) (target - cumulative) / bucketCount;
-                return lower + (upper - lower) * within;
+                BigDecimal lower = segmentLowerBound(i);
+                BigDecimal upper = segmentUpperBound(i);
+                BigDecimal within = DecimalMath.divide(target - cumulative, bucketCount);
+                return lower.add(upper.subtract(lower).multiply(within));
             }
             cumulative += bucketCount;
         }
         return segmentUpperBound(SEGMENTS - 1);
     }
-    /** 第 i 段下界 = 2^i（i=0 时为 0）。 */
-    private double segmentLowerBound(int index) {
-        return index == 0 ? 0.0d : Math.pow(2, index);
+
+    /**
+     * 第 i 段下界 = 2^i（i=0 时为 0）。
+     */
+    private BigDecimal segmentLowerBound(int index) {
+        return index == 0 ? BigDecimal.ZERO : BigDecimal.valueOf(1L << index);
     }
-    /** 第 i 段上界 = 2^(i+1)。 */
-    private double segmentUpperBound(int index) {
-        return Math.pow(2, index + 1);
+
+    /**
+     * 第 i 段上界 = 2^(i+1)。
+     */
+    private BigDecimal segmentUpperBound(int index) {
+        return BigDecimal.valueOf(1L << (index + 1));
     }
-    /** 样本值 → 分段索引。 */
+
+    /**
+     * 样本值 → 分段索引。
+     */
     private int segmentOf(long value) {
         if (value <= 1L) {
             return 0;

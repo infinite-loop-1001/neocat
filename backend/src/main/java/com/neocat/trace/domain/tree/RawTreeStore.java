@@ -2,7 +2,9 @@ package com.neocat.trace.domain.tree;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
+
+import org.springframework.lang.Nullable;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 原始 MessageTree 与 Trace 关系存储（PRD 02 §10、技术方案 06 §5–6）。
@@ -10,13 +12,13 @@ import java.util.Optional;
  * <p>由 ClickHouse 实现；领域单测使用 Mock/Stub 隔离外部存储。
  * 两类数据的留存期可以不同：关系索引用于识别「曾收到但已过期」。
  */
-@org.springframework.modulith.NamedInterface("trace")
+@NamedInterface("trace")
 public interface RawTreeStore {
 
     /** 保存一棵树，同时写入其关系记录。 */
     void save(TraceTree tree);
 
-    @org.springframework.lang.Nullable
+    @Nullable
     TraceTree findByMessageId(String messageId);
 
     /** 按 root 取同一 Trace 下仍在留存期内的全部树。 */
@@ -26,14 +28,14 @@ public interface RawTreeStore {
     boolean everExisted(String messageId);
 
     /** 该 messageId 的关系记录；用于在树缺失时给出服务名等展示信息。 */
-    @org.springframework.lang.Nullable
+    @Nullable
     TraceRelation relationOf(String messageId);
 
     /** 同一 Trace 的全部关系记录（含树已被清理的）。 */
     List<TraceRelation> relationsByRoot(String rootMessageId);
 
     /** 该树的写入指纹；未存过返回空。 */
-    @org.springframework.lang.Nullable
+    @Nullable
     String fingerprintOf(String messageId);
 
     /**

@@ -1,14 +1,18 @@
 package com.neocat.identity.domain.session;
 
 import java.time.Instant;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 登录会话。滑动有效期为 30 分钟（PRD 01 §4.2）。
  */
-@org.springframework.modulith.NamedInterface("identity")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("identity")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class Session {
     private final String id;
 

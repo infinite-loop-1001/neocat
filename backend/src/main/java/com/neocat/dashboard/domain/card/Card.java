@@ -6,6 +6,10 @@ import com.neocat.query.domain.stat.Stat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 卡片（PRD 05 §3、§4、§7）。
@@ -27,10 +31,10 @@ import java.util.Objects;
  * @param orderNo        卡片顺序
  * @param thresholdLines 阈值线：纯视觉对照，**不驱动告警阈值也不按机器展开**（PRD 05 §7）
  */
-@org.springframework.modulith.NamedInterface("dashboard")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("dashboard")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class Card {
     private final long id;
 
@@ -80,7 +84,7 @@ public class Card {
                 instanceScope, formula, timeRange, orderNo, Lists.newArrayList());
     }
     /** 卡片目标是否覆盖某个统计项（供组织告警可用目标并集计算）。 */
-    public boolean references(Stat stat) {
+    public boolean refer1ences(Stat stat) {
         return Objects.nonNull(formula) && formula.toLowerCase(Locale.ROOT)
                 .contains(stat.name().toLowerCase(Locale.ROOT).replace("_", ""));
     }
@@ -91,11 +95,3 @@ public class Card {
                 + "|" + (Objects.isNull(metricLabels) ? "" : metricLabels);
     }
 }
-
-
-
-
-
-
-
-

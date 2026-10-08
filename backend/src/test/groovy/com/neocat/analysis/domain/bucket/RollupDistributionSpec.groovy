@@ -78,7 +78,7 @@ class RollupDistributionSpec extends Specification {
         90.times { h2.distribution().record(10) }
 
         when:
-        def row = roller.roll([h1, h2], com.neocat.analysis.domain.bucket.AggregationLevel.DAY, ZoneOffset.UTC)[0]
+        def row = roller.roll([h1, h2], AggregationLevel.DAY, ZoneOffset.UTC)[0]
 
         then: "100 个样本，p50 落在大量 10ms 样本上"
         row.distribution().count() == 100

@@ -1,5 +1,9 @@
 package com.neocat.ingest.domain.receive
 
+import java.time.ZoneOffset
+
+import java.time.Clock
+
 import com.neocat.ingest.domain.idempotency.HistoricalFingerprintLookup
 import com.neocat.ingest.domain.idempotency.IdempotencyService
 import com.neocat.ingest.domain.tree.IngestFixtures
@@ -19,12 +23,19 @@ import java.time.ZonedDateTime
 
 import static com.neocat.ingest.domain.receive.IngestStatus.*
 import static com.neocat.ingest.domain.receive.QualityType.*
+import com.neocat.common.time.clock.TimeProvider
+import com.neocat.ingest.infra.InMemoryIdempotencyStore
+import java.util.function.Supplier
 
 /**
  * G5 任务27（红）：过载丢弃与接收编排。
  * 对应 PRD 02 §4（接收流程）、§5（发现先于入队）、§8（有界队列不阻塞）、§11（验收）。
  */
 class IngestOverloadSpec extends Specification {
+    def cleanup() {
+        TimeProvider.clock = Clock.systemUTC()
+    }
+
 
     static final ZoneId SH = ZoneId.of("Asia/Shanghai")
     static final Instant NOW = ZonedDateTime.of(2026, 9, 24, 12, 23, 41, 0, SH).toInstant()
@@ -44,17 +55,17 @@ class IngestOverloadSpec extends Specification {
                                        String messageId, String detail, Instant at -> qualityTypes.add(type) }
         }
         queue = new BoundedDropQueueFactory().create(4)
+        TimeProvider.clock = Clock.fixed(NOW, ZoneOffset.UTC)
         service = new IngestService(
                 new TreeValidator(),
                 new LatenessPolicy(),
-                new IdempotencyService(new com.neocat.ingest.infra.InMemoryIdempotencyStore(),
+                new IdempotencyService(new InMemoryIdempotencyStore(),
                          Stub(HistoricalFingerprintLookup) {
                              fingerprintOf(_ as String) >> null
                           }),
                 new FingerprintCalculator(),
                 catalog, queue, quality,
-                { NOW } as com.neocat.common.time.clock.ClockProvider,
-                { SH } as java.util.function.Supplier<ZoneId>)
+                { SH } as Supplier<ZoneId>)
     }
 
     static IngestBatch batch(MessageTree... trees) {

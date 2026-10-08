@@ -8,6 +8,7 @@ import com.neocat.platform.domain.profile.SlowThresholds;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @Component
 public class PlatformReadService implements PlatformReadModel {
@@ -23,14 +24,14 @@ public class PlatformReadService implements PlatformReadModel {
     public Thresholds slowThresholds() {
         // Analysis beans are created before the first administrator can initialize the platform.
         // The pre-initialization thresholds are part of the platform domain, not an Apollo fallback.
-        var thresholds = java.util.Optional.ofNullable(profiles.load()).map(p -> p.getSlowThresholds())
+        var thresholds = Optional.ofNullable(profiles.load()).map(p -> p.getSlowThresholds())
                 .orElseGet(SlowThresholds::defaults);
         return new Thresholds(thresholds.getUrlMs(), thresholds.getSqlMs(), thresholds.getCallMs(), thresholds.getCacheMs());
     }
     @Override
     public boolean channelEnabled(String channel) {
         ChannelType type = ChannelType.valueOf(channel);
-        return channels.findAll().stream().anyMatch(c -> c.getType() == type && c.isEnabled()
+        return channels.findAll().stream().anyMatch(c -> Objects.equals(c.getType(), type) && c.isEnabled()
                 && Objects.nonNull(c.getConfig()) && !c.getConfig().isBlank());
     }
 }

@@ -9,19 +9,23 @@ import com.neocat.analysis.domain.bucket.SeriesKind
 
 import spock.lang.Specification
 import java.time.Instant
+import com.neocat.analysis.infra.store.InMemoryHourlyReportStore
+import com.neocat.ingest.domain.tree.HeartbeatValue
+import com.neocat.ingest.domain.tree.MessageTree
+import com.neocat.ingest.domain.tree.RawNode
 
 class HeartbeatLastValueSpec extends Specification {
     def "新载荷仅写有效指标，未定义不上报而合法零入桶，每实例独立"() {
         given:
-        def store = new com.neocat.analysis.infra.store.InMemoryHourlyReportStore()
+        def store = new InMemoryHourlyReportStore()
         def analyzer = new HeartbeatAnalyzer(store)
         def time = Instant.parse('2026-10-02T10:00:00Z')
         def original = AnalysisFixtures.heartbeatTree('order','one',time.toEpochMilli())
         def node = original.getNodes()[0]
-        def payload = new com.neocat.ingest.domain.tree.HeartbeatValue(['young-used': 0L, 'metaspace-max': -1L, 'full-gc-count': 2L])
-        def replacement = new com.neocat.ingest.domain.tree.RawNode(node.getNodeId(),node.getKind(),node.getCategory(),node.getName(),node.getStatus(),node.getTimestamp(),node.getDurationMs(),node.getParentNodeId(),node.getMetric(),payload,node.getRemoteCall(),node.getException(),node.getTags())
+        def payload = new HeartbeatValue(['young-used': 0L, 'metaspace-max': -1L, 'full-gc-count': 2L])
+        def replacement = new RawNode(node.getNodeId(),node.getKind(),node.getCategory(),node.getName(),node.getStatus(),node.getTimestamp(),node.getDurationMs(),node.getParentNodeId(),node.getMetric(),payload,node.getRemoteCall(),node.getException(),node.getTags())
         when:
-        analyzer.analyze(new com.neocat.ingest.domain.tree.MessageTree(original.getServiceName(),original.getInstanceId(),original.getMessageId(),original.getRootMessageId(),original.getParentMessageId(),original.getTreeTimestamp(),[replacement]))
+        analyzer.analyze(new MessageTree(original.getServiceName(),original.getInstanceId(),original.getMessageId(),original.getRootMessageId(),original.getParentMessageId(),original.getTreeTimestamp(),[replacement]))
         then:
         store.seriesKeys().size() == 2
         store.seriesKeys().every { it.getInstance() == 'one' }

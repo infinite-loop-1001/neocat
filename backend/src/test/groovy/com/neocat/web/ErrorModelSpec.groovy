@@ -14,6 +14,7 @@ import com.neocat.common.error.exception.IngestException
 import com.neocat.ingest.infra.protocol.IngestResponseMapper
 import com.fasterxml.jackson.databind.ObjectMapper
 import spock.lang.Specification
+import com.neocat.ingest.domain.receive.IngestResult
 
 class ErrorModelSpec extends Specification {
     def "错误码分段且唯一，可反查"() {
@@ -101,7 +102,7 @@ class ErrorModelSpec extends Specification {
     def "上报异常输出数字字符串，正常结果码不变"() {
         expect:
         IngestResponseMapper.fromError(new IngestException(ErrorCode.MALFORMED_TREE, '请求体为空'), 1).code == '60002'
-        IngestResponseMapper.toResponse(com.neocat.ingest.domain.receive.IngestResult.rejected('ID_CONFLICT', 1)).code == '60006'
-        IngestResponseMapper.toResponse(com.neocat.ingest.domain.receive.IngestResult.accepted(1)).code == 'OK'
+        IngestResponseMapper.toResponse(IngestResult.rejected('ID_CONFLICT', 1)).code == '60006'
+        IngestResponseMapper.toResponse(IngestResult.accepted(1)).code == 'OK'
     }
 }

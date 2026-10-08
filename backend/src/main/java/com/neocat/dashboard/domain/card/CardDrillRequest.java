@@ -1,8 +1,12 @@
 package com.neocat.dashboard.domain.card;
 
 import java.util.List;
-import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 卡片维度下钻（PRD 05 §6、§7，技术方案 02 §9.3）。
@@ -14,10 +18,10 @@ import org.apache.commons.collections4.CollectionUtils;
  * @param topN          Top N 机器
  * @param thresholdLines 阈值线（作用于聚合结果）
  */
-@org.springframework.modulith.NamedInterface("dashboard")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("dashboard")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class CardDrillRequest {
     private final long cardId;
 

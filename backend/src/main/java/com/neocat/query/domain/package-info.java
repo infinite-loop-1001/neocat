@@ -5,5 +5,7 @@
  * 统计项、分位合并、时间桶、环比、质量标记都由此提供。
  * 这是「query 是唯一报表读模型出口」在包层面的落点。
  */
-@org.springframework.modulith.NamedInterface("query")
+@NamedInterface("query")
 package com.neocat.query.domain;
+
+import org.springframework.modulith.NamedInterface;

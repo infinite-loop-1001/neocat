@@ -10,33 +10,38 @@ import com.neocat.query.infra.port.MetricMetadataPort;
 import com.neocat.query.infra.port.ReportDataPort;
 import com.neocat.query.infra.port.SamplePort;
 
-import com.neocat.query.domain.series.MomAligner;
-import com.neocat.query.domain.series.QualityResolver;
-import com.neocat.query.domain.report.ReportTableService;
-import com.neocat.query.domain.stat.StatCalculator;
-
 import com.neocat.trace.domain.sample.SampleService;
 import org.springframework.context.annotation.Bean;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.neocat.analysis.domain.bucket.HourlyReportStore;
+import com.neocat.analysis.domain.metric.MetricLabelMetadata;
+import com.neocat.common.time.bucket.TimeBucketResolver;
+import java.time.ZoneId;
+import java.util.function.Supplier;
+import javax.sql.DataSource;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
-@org.springframework.context.annotation.Configuration
-@org.springframework.context.annotation.DependsOn("traceConfig")
+@Configuration
+@DependsOn("traceConfig")
 public class QueryWiring {
 
     @Bean
     public MetricMetadataPort metricMetadataPort(
-            @org.springframework.beans.factory.annotation.Qualifier("clickHouseDataSource") javax.sql.DataSource source,
-            com.fasterxml.jackson.databind.ObjectMapper json, com.neocat.analysis.domain.metric.MetricLabelMetadata memory) {
+            @Qualifier("clickHouseDataSource") DataSource source,
+            ObjectMapper json, MetricLabelMetadata memory) {
         return new JdbcMetricMetadataPort(source, json, memory);
     }
     @Bean
-    public SamplePort samplePort(SampleService sampleService, java.time.Clock clock) {
-        return SamplePort.of(sampleService, clock);
+    public SamplePort samplePort(SampleService sampleService) {
+        return SamplePort.of(sampleService);
     }
     @Bean
     public ClickHouseReportQuery clickHouseReportQuery(
-            @org.springframework.beans.factory.annotation.Qualifier("clickHouseDataSource")
-            javax.sql.DataSource dataSource,
-            java.util.function.Supplier<java.time.ZoneId> platformZone) {
+            @Qualifier("clickHouseDataSource")
+            DataSource dataSource,
+            Supplier<ZoneId> platformZone) {
         return new JdbcClickHouseReportQuery(dataSource, platformZone);
     }
     // ── 查询 ─────────────────────────────────────────────────
@@ -48,12 +53,12 @@ public class QueryWiring {
      */
     @Bean
     public ReportDataPort reportDataPort(ClickHouseReportQuery query,
-            com.neocat.analysis.domain.bucket.HourlyReportStore store,
-            com.neocat.common.time.bucket.TimeBucketResolver buckets,
-            java.util.function.Supplier<java.time.ZoneId> platformZone, java.time.Clock clock,
-            com.neocat.analysis.domain.metric.MetricLabelMetadata metadata) {
-        return new ReportDataPortRouter(new ClickHouseReportDataPort(query, buckets, platformZone, clock),
-                new HourlyReportDataPort(store, buckets, platformZone, metadata), clock, platformZone);
+            HourlyReportStore store,
+            TimeBucketResolver buckets,
+            Supplier<ZoneId> platformZone,
+            MetricLabelMetadata metadata) {
+        return new ReportDataPortRouter(new ClickHouseReportDataPort(query, buckets, platformZone),
+                new HourlyReportDataPort(store, buckets, platformZone, metadata), platformZone);
     }
 
 }

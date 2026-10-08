@@ -13,4 +13,4 @@
 - 统一返回 ResponseEntity，保留 URL、请求参数、状态码、错误码、ApiError、Cookie 与鉴权语义。
 - `null`、省略字段、空集合不互换；缺数不得改为 0。
 - Protobuf 上报继续使用生成的协议类型及 `ResponseEntity<byte[]>`，不能改为 JSON，协议仍由唯一 proto 生成。
-- 时间来自注入 Clock。对 DTO 实际执行 Jackson 绑定和序列化测试，不仅检查反射或 Mock 返回值。
+- 当前时间来自公共静态 TimeProvider，不注入 Clock，也不提供设置时钟的方法；Groovy 单测直接给其私有静态时钟字段赋值，结束后赋回系统 UTC 时钟，不提供隔离或恢复作用域。对 DTO 实际执行 Jackson 绑定和序列化测试，不仅检查反射或 Mock 返回值。

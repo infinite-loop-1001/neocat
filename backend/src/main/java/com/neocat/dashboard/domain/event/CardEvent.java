@@ -1,6 +1,10 @@
 package com.neocat.dashboard.domain.event;
 
 import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 卡片变更事件（PRD 05 §8，技术方案 02 §4.2）。
@@ -8,7 +12,7 @@ import java.util.List;
  * <p>dashboard 通过事件通知 alert，避免模块间双向编译依赖。
  * 事件载荷必须包含足以让 alert 重新解析目标与判断失效的全部信息。
  */
-@org.springframework.modulith.NamedInterface("dashboard")
+@NamedInterface("dashboard")
 public sealed interface CardEvent {
 
     long getCardId();
@@ -18,11 +22,11 @@ public sealed interface CardEvent {
     long getOrgId();
 
     /** 卡片公式被修改：关联规则应跟随新公式，并保存为关闭、窗口清零。 */
-    @org.springframework.modulith.NamedInterface("dashboard")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class CardTargetChanged implements CardEvent {
+    @NamedInterface("dashboard")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class CardTargetChanged implements CardEvent {
         private final long cardId;
 
         private final long dashboardId;
@@ -62,11 +66,11 @@ public sealed interface CardEvent {
      *
      * @param removedTargetIdentity 被删除卡片的目标标识，用于判断是否仍有其他卡片引用同一目标
      */
-    @org.springframework.modulith.NamedInterface("dashboard")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class CardDeleted implements CardEvent {
+    @NamedInterface("dashboard")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class CardDeleted implements CardEvent {
         private final long cardId;
 
         private final long dashboardId;
@@ -87,14 +91,3 @@ public sealed interface CardEvent {
 
     }
 }
-
-
-
-
-
-
-
-
-
-
-

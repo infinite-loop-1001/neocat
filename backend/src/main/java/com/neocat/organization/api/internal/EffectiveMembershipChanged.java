@@ -1,9 +1,12 @@
 package com.neocat.organization.api.internal;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 /** Synchronous update after an account's effective leaf permissions are recalculated. */
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@Getter
+@EqualsAndHashCode
+@ToString
 public class EffectiveMembershipChanged {
     private final long accountId;
 

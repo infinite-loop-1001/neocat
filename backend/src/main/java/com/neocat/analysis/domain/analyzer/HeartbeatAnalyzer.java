@@ -10,7 +10,11 @@ import com.neocat.ingest.domain.tree.NodeKind;
 import com.neocat.ingest.domain.tree.RawNode;
 
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.util.Objects;
+
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * Heartbeat 分析器（PRD 02 §9、PRD 03 §10）。
@@ -25,8 +29,8 @@ import java.util.Objects;
  *   <li>缺少 Heartbeat 载荷的节点跳过，不影响其他节点。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@org.springframework.stereotype.Component
+@NamedInterface("analysis")
+@Component
 public class HeartbeatAnalyzer implements Analyzer {
 
     private final HourlyReportStore store;
@@ -34,14 +38,16 @@ public class HeartbeatAnalyzer implements Analyzer {
     public HeartbeatAnalyzer(HourlyReportStore store) {
         this.store = store;
     }
+
     @Override
     public String domain() {
         return "heartbeat";
     }
+
     @Override
     public void analyze(MessageTree tree) {
         for (RawNode node : tree.getNodes()) {
-            if (node.getKind() != NodeKind.HEARTBEAT) {
+            if (!Objects.equals(node.getKind(), NodeKind.HEARTBEAT)) {
                 continue;
             }
             HeartbeatValue hb = node.getHeartbeat();
@@ -55,6 +61,7 @@ public class HeartbeatAnalyzer implements Analyzer {
             }
         }
     }
+
     /**
      * 写入实例级序列。注意 category 固定为 {@code jvm}，instance 为真实实例 ID，
      * 绝不使用 {@link SeriesKey#ALL}。
@@ -62,6 +69,6 @@ public class HeartbeatAnalyzer implements Analyzer {
     private void record(MessageTree tree, Instant eventTime, JvmMetric metric, long value) {
         SeriesKey key = SeriesKey.of(tree.getServiceName(), SeriesKind.HEARTBEAT,
                 "jvm", metric.seriesName(), tree.getInstanceId());
-        store.addValue(key, eventTime, (double) value);
+        store.addValue(key, eventTime, BigDecimal.valueOf(value));
     }
 }

@@ -1,5 +1,7 @@
 package com.neocat.alert.domain.engine;
 
+import java.math.BigDecimal;
+
 import com.google.common.collect.Lists;
 import com.neocat.alert.domain.recipient.RecipientGateway;
 import com.neocat.alert.domain.rule.AlertChannel;
@@ -13,11 +15,13 @@ import lombok.ToString;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -116,6 +120,7 @@ public class AlertEngine {
         List<AlertNotification> sent = notify(rule, minute);
         return new EvaluationResult(true, sent, advanced);
     }
+
     /**
      * 判定单个分钟点的条件组合。
      *
@@ -123,7 +128,7 @@ public class AlertEngine {
      */
     public boolean pointSatisfied(AlertRule rule, long minute) {
         List<Stat> required = requiredStats(rule);
-        Map<Stat, Double> values = points.values(rule.getTarget(), minute, required);
+        Map<Stat, BigDecimal> values = points.values(rule.getTarget(), minute, required);
         for (Stat stat : required) {
             if (MapUtils.isEmpty(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
                 return false;
@@ -134,8 +139,10 @@ public class AlertEngine {
 
     // ── 内部 ─────────────────────────────────────────────────
 
-    /** AND：全部条件满足；OR：任一条件满足。 */
-    private boolean combine(AlertRule rule, Map<Stat, Double> values) {
+    /**
+     * AND：全部条件满足；OR：任一条件满足。
+     */
+    private boolean combine(AlertRule rule, Map<Stat, BigDecimal> values) {
         List<Condition> conditions = rule.getConditions();
         if (CollectionUtils.isEmpty(conditions)) {
             return false;
@@ -215,4 +222,3 @@ public class AlertEngine {
 
     }
 }
-

@@ -13,11 +13,9 @@ import com.neocat.analysis.domain.analyzer.ProblemAnalyzer;
 import com.neocat.analysis.domain.analyzer.RealtimeConsumer;
 import com.neocat.analysis.domain.analyzer.SlowThresholdProvider;
 import com.neocat.analysis.domain.analyzer.TransactionAnalyzer;
-import com.neocat.common.config.IngestConfig;
 import com.neocat.common.queue.BoundedDropQueue;
 import com.neocat.common.queue.QueueFactory;
 import com.neocat.common.queue.impl.BoundedDropQueueFactory;
-import com.neocat.common.time.clock.ClockProvider;
 import com.neocat.ingest.infra.InMemoryIdempotencyStore;
 import com.neocat.ingest.domain.receive.CatalogGateway;
 import com.neocat.ingest.domain.validation.FingerprintCalculator;
@@ -33,13 +31,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.Clock;
-import java.time.Duration;
 import java.time.ZoneId;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
+import com.neocat.analysis.domain.bucket.AggregatedRow;
+import com.neocat.analysis.domain.bucket.AggregationLevel;
+import com.neocat.analysis.domain.bucket.ReportBucketSinkPort;
+import com.neocat.analysis.domain.schedule.ReportScheduler;
+import com.neocat.analysis.infra.store.MinuteBucketReader;
+import com.neocat.ingest.infra.IngestDropQueue;
+import java.util.Map;
+import org.springframework.context.annotation.DependsOn;
 
 /**
  * 测试装配：只装配**不依赖任何外部中间件**的领域链路。
@@ -63,16 +68,11 @@ public class CoreWiringConfiguration {
             @Value("${neocat.ingest.idempotency-window-minutes:120}") String idempotencyWindow,
             @Value("${neocat.ingest.accept-late-hours:2}") String acceptLateHours) {
         StaticConfigFixture.defaults();
-        StaticConfigFixture.overrides(java.util.Map.of(
+        StaticConfigFixture.overrides(Map.of(
                 "neocat.ingest.queue.capacity", queueCapacity,
                 "neocat.ingest.idempotency-window-minutes", idempotencyWindow,
                 "neocat.ingest.accept-late-hours", acceptLateHours));
         return new Object();
-    }
-
-    @Bean
-    public Clock clock() {
-        return Clock.systemUTC();
     }
 
     @Bean
@@ -81,14 +81,9 @@ public class CoreWiringConfiguration {
     }
 
     @Bean
-    @org.springframework.context.annotation.DependsOn("testConfigReady")
+    @DependsOn("testConfigReady")
     public BoundedDropQueue<MessageTree> ingestQueue(QueueFactory factory) {
-        return new com.neocat.ingest.infra.IngestDropQueue<>();
-    }
-
-    @Bean
-    public ClockProvider clockProvider(Clock clock) {
-        return clock::instant;
+        return new IngestDropQueue<>();
     }
 
     @Bean
@@ -138,10 +133,10 @@ public class CoreWiringConfiguration {
                                        IdempotencyService idempotency, FingerprintCalculator fingerprints,
                                        CatalogGateway catalogGateway,
                                        BoundedDropQueue<MessageTree> ingestQueue,
-                                       QualityEventSink qualityEventSink, ClockProvider clockProvider,
+                                       QualityEventSink qualityEventSink,
                                        Supplier<ZoneId> platformZone) {
         return new IngestService(validator, lateness, idempotency, fingerprints,
-                catalogGateway, ingestQueue, qualityEventSink, clockProvider, platformZone);
+                catalogGateway, ingestQueue, qualityEventSink, platformZone);
     }
 
     // ── 分析链路 ─────────────────────────────────────────────
@@ -204,47 +199,47 @@ public class CoreWiringConfiguration {
     // ── 报表滚动链路（不依赖外部中间件）──────────────────────
 
     @Bean
-    public com.neocat.analysis.infra.store.MinuteBucketReader minuteBucketReader(
+    public MinuteBucketReader minuteBucketReader(
             HourlyReportStore store, Supplier<ZoneId> platformZone) {
-        return new com.neocat.analysis.infra.store.MinuteBucketReader(store, platformZone);
+        return new MinuteBucketReader(store, platformZone);
     }
 
     @Bean
-    public com.neocat.analysis.domain.bucket.ReportBucketSinkPort reportBucketSinkPort() {
+    public ReportBucketSinkPort reportBucketSinkPort() {
         // 内存替身：验证装配关系，不落 ClickHouse
-        return new com.neocat.analysis.domain.bucket.ReportBucketSinkPort() {
-            private final java.util.List<com.neocat.analysis.domain.bucket.AggregatedRow> written = new ArrayList<>();
+        return new ReportBucketSinkPort() {
+            private final List<AggregatedRow> written = new ArrayList<>();
 
             @Override
-            public void writeMinuteBuckets(List<com.neocat.analysis.domain.bucket.AggregatedRow> rows) {
+            public void writeMinuteBuckets(List<AggregatedRow> rows) {
                 written.addAll(rows);
             }
 
             @Override
-            public void writeHourBuckets(List<com.neocat.analysis.domain.bucket.AggregatedRow> rows) {
+            public void writeHourBuckets(List<AggregatedRow> rows) {
                 written.addAll(rows);
             }
 
             @Override
-            public void writeDayBuckets(List<com.neocat.analysis.domain.bucket.AggregatedRow> rows) {
+            public void writeDayBuckets(List<AggregatedRow> rows) {
                 written.addAll(rows);
             }
 
             @Override
-            public void writeWeekBuckets(List<com.neocat.analysis.domain.bucket.AggregatedRow> rows) {
+            public void writeWeekBuckets(List<AggregatedRow> rows) {
                 written.addAll(rows);
             }
 
             @Override
-            public void writeMonthBuckets(List<com.neocat.analysis.domain.bucket.AggregatedRow> rows) {
+            public void writeMonthBuckets(List<AggregatedRow> rows) {
                 written.addAll(rows);
             }
 
             @Override
-            public List<com.neocat.analysis.domain.bucket.AggregatedRow> readBuckets(
-                    com.neocat.analysis.domain.bucket.AggregationLevel level, Instant from, Instant to) {
+            public List<AggregatedRow> readBuckets(
+                    AggregationLevel level, Instant from, Instant to) {
                 return written.stream()
-                        .filter(row -> row.level() == level)
+                        .filter(row -> Objects.equals(row.level(), level))
                         .filter(row -> !row.bucketStart().isBefore(from) && row.bucketStart().isBefore(to))
                         .toList();
             }
@@ -267,10 +262,10 @@ public class CoreWiringConfiguration {
     }
 
     @Bean
-    public com.neocat.analysis.domain.schedule.ReportScheduler reportScheduler(
-            com.neocat.analysis.infra.store.MinuteBucketReader reader,
-            com.neocat.analysis.domain.bucket.ReportBucketSinkPort sink,
+    public ReportScheduler reportScheduler(
+            MinuteBucketReader reader,
+            ReportBucketSinkPort sink,
             Supplier<ZoneId> platformZone) {
-        return new com.neocat.analysis.domain.schedule.ReportScheduler(reader, sink, platformZone);
+        return new ReportScheduler(reader, sink, platformZone);
     }
 }

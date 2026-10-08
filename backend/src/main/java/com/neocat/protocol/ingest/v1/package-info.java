@@ -24,8 +24,11 @@
  * 本包不进入 SDK 工件，因此 {@code client-java} 的依赖树中
  * 不会出现任何 {@code org.springframework.modulith} 构件。
  */
-@org.springframework.modulith.ApplicationModule(
+@ApplicationModule(
         displayName = "Protocol",
         allowedDependencies = {})
-@org.springframework.modulith.NamedInterface("v1")
+@NamedInterface("v1")
 package com.neocat.protocol.ingest.v1;
+
+import org.springframework.modulith.ApplicationModule;
+import org.springframework.modulith.NamedInterface;

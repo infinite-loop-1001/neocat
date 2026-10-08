@@ -1,5 +1,7 @@
 package com.neocat.alert.domain.engine;
 
+import java.math.BigDecimal;
+
 import com.neocat.alert.domain.rule.AlertTarget;
 import com.neocat.query.domain.stat.Stat;
 import org.springframework.modulith.NamedInterface;
@@ -25,5 +27,5 @@ public interface MinutePointSource {
      * @param stats  需要的统计项
      * @return 各统计项的值；缺数项为 null 或不在映射中
      */
-    Map<Stat, Double> values(AlertTarget target, long minute, List<Stat> stats);
+    Map<Stat, BigDecimal> values(AlertTarget target, long minute, List<Stat> stats);
 }

@@ -9,6 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * Trace 组装（PRD 02 §10、技术方案 02 §7）。
@@ -26,8 +31,8 @@ import java.util.Objects;
  * <p>关键设计：缺失节点来源是**调用方的 RemoteCall 节点**，而不是关系索引。
  * 关系索引只用来区分「曾收到但过期」与「从未收到」这两种不可用状态。
  */
-@org.springframework.modulith.NamedInterface("trace")
-@org.springframework.stereotype.Service
+@NamedInterface("trace")
+@Service
 public class TraceAssembler {
 
     private final RawTreeStore store;
@@ -42,10 +47,10 @@ public class TraceAssembler {
      * @param expired 种子树已过期（曾收到但超期）
      * @param missing 种子树从未收到
      */
-    @org.springframework.modulith.NamedInterface("trace")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("trace")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class AssemblyResult {
         private final TraceTreeNode root;
 
@@ -66,7 +71,7 @@ public class TraceAssembler {
     }
     public AssemblyResult assemble(String messageId, Instant now, Duration retention) {
         TraceTree seedTree = store.findByMessageId(messageId);
-        if (java.util.Objects.isNull(seedTree)) {
+        if (Objects.isNull(seedTree)) {
             return store.everExisted(messageId)
                     ? new AssemblyResult(null, true, false)
                     : new AssemblyResult(null, false, true);

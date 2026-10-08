@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Objects;
 import org.apache.commons.collections4.ListUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 大盘与卡片的 MyBatis 适配器（表 {@code nc_dashboard} / {@code nc_card} / {@code nc_card_threshold_line}）。
@@ -34,7 +36,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
     public DashboardRepositoryAdapter(DashboardMapper mapper) {
         this(mapper, null);
     }
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public DashboardRepositoryAdapter(DashboardMapper mapper, OrgResourceIndex resources) {
         this.mapper = mapper;
         this.resources = resources;
@@ -43,7 +45,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
     // ── 大盘 ─────────────────────────────────────────────────
 
     @Override
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public Dashboard save(Dashboard dashboard) {
         DashboardRow row = new DashboardRow();
         row.setId(dashboard.getId() == 0 ? null : dashboard.getId());
@@ -73,7 +75,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
                 .toList();
     }
     @Override
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public void delete(long dashboardId) {
         Dashboard existing = Optional.ofNullable(findById(dashboardId)).orElseThrow();
         // 表定义无外键，级联必须在同一事务内按依赖顺序显式删除：
@@ -91,7 +93,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
     // ── 卡片 ─────────────────────────────────────────────────
 
     @Override
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public Card saveCard(Card card) {
         CardRow row = new CardRow();
         row.setId(card.getId() == 0 ? null : card.getId());
@@ -140,7 +142,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
                 .toList();
     }
     @Override
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public void deleteCard(long cardId) {
         Card existing = Optional.ofNullable(findCard(cardId)).orElseThrow();
         // 无外键级联：先删阈值线，避免留下悬挂行
@@ -352,7 +354,3 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         }
     }
 }
-
-
-
-

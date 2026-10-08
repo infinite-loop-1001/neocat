@@ -8,9 +8,11 @@ import com.neocat.identity.domain.session.SessionRepository;
 import com.neocat.common.error.exception.AuthenticationException;
 
 import java.time.Instant;
-import java.util.Optional;
 
 import static com.neocat.common.error.ErrorCode.BAD_CREDENTIALS;
+import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 登录用例（PRD 01 §4.1）。
@@ -18,8 +20,8 @@ import static com.neocat.common.error.ErrorCode.BAD_CREDENTIALS;
  * <p>失败一律返回 {@link com.neocat.common.error.ErrorCode#BAD_CREDENTIALS}：
  * 不区分「账号不存在」「密码错误」「账号被禁用」，避免暴露账号是否存在。
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("identity")
+@Service
+@NamedInterface("identity")
 public class AuthenticationService {
 
     private final AccountRepository accounts;
@@ -35,7 +37,7 @@ public class AuthenticationService {
     }
     public LoginResult login(String username, String rawPassword, Instant at) {
         Account account = accounts.findByUsername(username);
-        if (java.util.Objects.isNull(account)) {
+        if (Objects.isNull(account)) {
             throw new AuthenticationException(BAD_CREDENTIALS);
         }
         if (!account.enabled()) {

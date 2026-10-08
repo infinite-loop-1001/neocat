@@ -8,6 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.test.context.ContextConfiguration
 import spock.lang.Specification
+import com.neocat.analysis.domain.bucket.ReportBucketSinkPort
+import com.neocat.analysis.domain.schedule.ReportScheduler
+import com.neocat.analysis.infra.store.MinuteBucketReader
+import com.neocat.ingest.domain.receive.IngestBatch
+import com.neocat.ingest.domain.tree.MessageTree
+import com.neocat.ingest.domain.tree.NodeKind
+import com.neocat.ingest.domain.tree.RawNode
+import java.time.Instant
 
 /**
  * 阶段 3 收尾（红）：核心运行时装配自检。
@@ -73,7 +81,7 @@ class CoreWiringSpec extends Specification {
 
     def "扇出对无节点树不报错（单域异常被隔离）"() {
         given:
-        def tree = new com.neocat.ingest.domain.tree.MessageTree(
+        def tree = new MessageTree(
                 "order", "10.0.0.8", "m-1", "m-1", null, 1_790_000_000_000L, List.of())
 
         when:
@@ -86,10 +94,10 @@ class CoreWiringSpec extends Specification {
 
     def "装配后一次真实扇出：全部分析域成功处理"() {
         given:
-        def node = new com.neocat.ingest.domain.tree.RawNode("n-1",
-                com.neocat.ingest.domain.tree.NodeKind.TRANSACTION, "URL", "POST /orders", "0",
+        def node = new RawNode("n-1",
+                NodeKind.TRANSACTION, "URL", "POST /orders", "0",
                 1_790_000_000_000L, 12L, null, null, null, null, null, Map.of())
-        def tree = new com.neocat.ingest.domain.tree.MessageTree(
+        def tree = new MessageTree(
                 "order", "10.0.0.8", "m-1", "m-1", null, 1_790_000_000_000L, List.of(node))
 
         when:
@@ -102,15 +110,15 @@ class CoreWiringSpec extends Specification {
 
     def "报表滚动链路已装配：读取器与调度器就位"() {
         expect:
-        context.getBean(com.neocat.analysis.infra.store.MinuteBucketReader) != null
-        context.getBean(com.neocat.analysis.domain.schedule.ReportScheduler) != null
-        context.getBean(com.neocat.analysis.domain.bucket.ReportBucketSinkPort) != null
+        context.getBean(MinuteBucketReader) != null
+        context.getBean(ReportScheduler) != null
+        context.getBean(ReportBucketSinkPort) != null
     }
 
     def "调度器可对空报表执行一次完整滚动且不报错"() {
         given:
-        def scheduler = context.getBean(com.neocat.analysis.domain.schedule.ReportScheduler)
-        def now = java.time.Instant.now()
+        def scheduler = context.getBean(ReportScheduler)
+        def now = Instant.now()
 
         expect: "无数据时各层级都返回 0，且不抛异常"
         scheduler.flushCompletedMinute(now) == 0
@@ -122,12 +130,12 @@ class CoreWiringSpec extends Specification {
 
     def "装配后的接收链路可用：合法批次被接受并入队"() {
         given:
-        def node = new com.neocat.ingest.domain.tree.RawNode("n-1",
-                com.neocat.ingest.domain.tree.NodeKind.TRANSACTION, "URL", "/a", "0",
+        def node = new RawNode("n-1",
+                NodeKind.TRANSACTION, "URL", "/a", "0",
                 1_790_000_000_000L, 1L, null, null, null, null, null, Map.of())
-        def tree = new com.neocat.ingest.domain.tree.MessageTree(
+        def tree = new MessageTree(
                 "order", "10.0.0.8", "m-wiring", "m-wiring", null, 1_790_000_000_000L, List.of(node))
-        def batch = new com.neocat.ingest.domain.receive.IngestBatch("1.0", List.of(tree))
+        def batch = new IngestBatch("1.0", List.of(tree))
 
         when:
         def result = ingestService.accept(batch, 100)

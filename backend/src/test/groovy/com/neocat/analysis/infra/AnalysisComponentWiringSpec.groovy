@@ -1,16 +1,24 @@
 package com.neocat.analysis.infra
 
+import com.neocat.analysis.config.MetricConfig
+import com.neocat.analysis.config.ReportConfig
 import com.neocat.analysis.domain.analyzer.*
-import com.neocat.analysis.domain.bucket.*
+import com.neocat.analysis.domain.bucket.HourlyReportStore
+import com.neocat.analysis.domain.bucket.MinuteBucketSource
+import com.neocat.analysis.domain.bucket.ReportBucketSinkPort
 import com.neocat.analysis.domain.dependency.DependencyAnalyzer
-import com.neocat.analysis.domain.metric.*
+import com.neocat.analysis.domain.metric.MetricHourRank
 import com.neocat.analysis.domain.schedule.ReportScheduler
-import com.neocat.analysis.infra.store.*
 import com.neocat.analysis.infra.job.RealtimeConsumerLoop
-import com.neocat.common.config.*
+import com.neocat.analysis.infra.store.InMemoryHourlyReportStore
+import com.neocat.analysis.infra.store.InMemoryMetricHourRank
+import com.neocat.analysis.infra.store.InMemoryMetricLabelMetadata
+import com.neocat.analysis.infra.store.MinuteBucketReader
 import com.neocat.common.queue.BoundedDropQueue
+import com.neocat.ingest.config.IngestConfig
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import spock.lang.Specification
+
 import java.time.ZoneOffset
 import java.util.function.Supplier
 

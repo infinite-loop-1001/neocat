@@ -1,16 +1,21 @@
 package com.neocat.analysis.infra.store;
 
+import java.math.BigDecimal;
+
 import com.neocat.analysis.domain.bucket.HourlyReportStore;
 import com.neocat.analysis.domain.bucket.MinuteBucket;
 import com.neocat.analysis.domain.bucket.SeriesKey;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Objects;
+
 import org.apache.commons.collections4.MapUtils;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.stereotype.Component;
 
 /**
  * 进程内当前小时报表（技术方案 01-architecture.md §6.5）。
@@ -23,8 +28,8 @@ import org.apache.commons.collections4.MapUtils;
  *       （PRD 02 §5「无数据不展示」）。</li>
  * </ul>
  */
-@org.springframework.stereotype.Component
-@org.springframework.context.annotation.DependsOn("reportConfig")
+@Component
+@DependsOn("reportConfig")
 public class InMemoryHourlyReportStore implements HourlyReportStore {
 
     private final Map<SeriesKey, Map<Instant, MinuteBucket>> buckets;
@@ -42,29 +47,35 @@ public class InMemoryHourlyReportStore implements HourlyReportStore {
             bucket.addSuccess(durationMs);
         }
     }
+
     @Override
     public void addCountOnly(SeriesKey key, Instant eventTime, boolean failure) {
         bucketFor(key, eventTime).addCountOnly(failure);
     }
+
     @Override
-    public void addValue(SeriesKey key, Instant eventTime, double value) {
+    public void addValue(SeriesKey key, Instant eventTime, BigDecimal value) {
         bucketFor(key, eventTime).addValue(value, eventTime);
     }
+
     @Override
     public MinuteBucket bucket(SeriesKey key, Instant minuteStart) {
         Map<Instant, MinuteBucket> byMinute = buckets.get(key);
         return MapUtils.isEmpty(byMinute) ? null : byMinute.get(minuteStart.truncatedTo(ChronoUnit.MINUTES));
     }
+
     @Override
     public Set<SeriesKey> seriesKeys() {
         return Set.copyOf(buckets.keySet());
     }
+
     @Override
     public Map<String, Long> seriesCountByService() {
         Map<String, Long> counts = new HashMap<>();
         buckets.keySet().forEach(key -> counts.merge(key.getService(), 1L, Long::sum));
         return counts;
     }
+
     @Override
     public void clearHour(Instant hourStart) {
         Instant from = hourStart.truncatedTo(ChronoUnit.HOURS);
@@ -72,6 +83,7 @@ public class InMemoryHourlyReportStore implements HourlyReportStore {
         buckets.values().forEach(byMinute ->
                 byMinute.keySet().removeIf(minute -> !minute.isBefore(from) && minute.isBefore(to)));
     }
+
     private MinuteBucket bucketFor(SeriesKey key, Instant eventTime) {
         Instant minute = eventTime.truncatedTo(ChronoUnit.MINUTES);
         return buckets

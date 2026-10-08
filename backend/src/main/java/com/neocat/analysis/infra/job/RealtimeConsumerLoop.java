@@ -1,7 +1,7 @@
 package com.neocat.analysis.infra.job;
 
 import com.neocat.analysis.domain.analyzer.RealtimeConsumer;
-import com.neocat.common.config.IngestConfig;
+import com.neocat.ingest.config.IngestConfig;
 import com.neocat.common.queue.BoundedDropQueue;
 import com.neocat.ingest.domain.tree.MessageTree;
 import org.slf4j.Logger;
@@ -14,6 +14,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 
 /**
  * 有界队列的消费循环（技术方案 01-architecture.md §5.1、§6）。
@@ -30,7 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * </ul>
  */
 @Component
-@org.springframework.context.annotation.DependsOn("ingestConfig")
+@DependsOn("ingestConfig")
 public class RealtimeConsumerLoop implements SmartLifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(RealtimeConsumerLoop.class);
@@ -40,7 +46,7 @@ public class RealtimeConsumerLoop implements SmartLifecycle {
     private final RealtimeConsumer consumer;
 
     // 实际运行中的 worker 身份，不保存 consumerThreads 的配置副本。
-    private final java.util.Set<Integer> activeWorkers;
+    private final Set<Integer> activeWorkers;
 
     private final ExecutorService workers;
 
@@ -53,7 +59,7 @@ public class RealtimeConsumerLoop implements SmartLifecycle {
     public RealtimeConsumerLoop(BoundedDropQueue<MessageTree> queue, RealtimeConsumer consumer) {
         this.queue = queue;
         this.consumer = consumer;
-        this.activeWorkers = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        this.activeWorkers = ConcurrentHashMap.newKeySet();
         this.workers = Executors.newCachedThreadPool(runnable -> {
             Thread thread = new Thread(runnable, "neocat-consumer");
             thread.setDaemon(true);
@@ -63,7 +69,7 @@ public class RealtimeConsumerLoop implements SmartLifecycle {
         this.failed = new AtomicLong();
     }
 
-    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         start();
     }
@@ -82,7 +88,7 @@ public class RealtimeConsumerLoop implements SmartLifecycle {
         log.info("RealtimeConsumer 已启动，消费线程数：{}，队列容量：{}", IngestConfig.CONSUMER_THREADS, queue.capacity());
     }
     /** 增加 worker 即启动；减少 worker 在当前批完成后自然退出，不中断在途树。 */
-    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 1000)
+    @Scheduled(fixedDelay = 1000)
     public synchronized void maintainConsumers() {
         if (!running) return;
         for (int id = 0; id < Math.max(1, IngestConfig.CONSUMER_THREADS); id++) {

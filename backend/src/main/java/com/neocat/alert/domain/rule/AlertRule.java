@@ -104,7 +104,7 @@ public class AlertRule {
                 false, false, null);
     }
     public boolean isOrganization() {
-        return scope == AlertScope.ORGANIZATION;
+        return Objects.equals(scope, AlertScope.ORGANIZATION);
     }
     /** 规则引用的统计项（用于判断目标是否仍被卡片引用）。 */
     public List<Stat> referencedStats() {

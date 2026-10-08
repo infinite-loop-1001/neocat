@@ -1,11 +1,12 @@
 package com.neocat.organization.domain.membership;
 
 import java.util.Set;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 成员关系仓库（直接成员）。
  */
-@org.springframework.modulith.NamedInterface("isOrganization")
+@NamedInterface("isOrganization")
 public interface MembershipRepository {
 
     void add(long orgId, long accountId);

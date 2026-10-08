@@ -1,20 +1,22 @@
 package com.neocat.alert.infra.job;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.alert.domain.engine.AlertEngine;
 import com.neocat.alert.domain.rule.AlertRule;
 import com.neocat.alert.domain.rule.AlertRuleRepository;
 import com.neocat.alert.domain.engine.AlertWindowState;
-import com.neocat.common.config.AlertConfig;
+import com.neocat.alert.config.AlertConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Clock;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 
 /**
  * 告警分钟判定调度（PRD 06 §5、§11，链路 30）。
@@ -32,7 +34,7 @@ import java.util.Objects;
  * </ul>
  */
 @Component
-@org.springframework.context.annotation.DependsOn("alertConfig")
+@DependsOn("alertConfig")
 public class AlertEvaluationJob {
 
     private static final Logger log = LoggerFactory.getLogger(AlertEvaluationJob.class);
@@ -41,21 +43,15 @@ public class AlertEvaluationJob {
 
     private final AlertEngine engine;
 
-    private final Clock clock;
-
     private volatile long lastScheduledMinute;
 
     /** 规则 ID → 窗口状态。一期不落库，进程重启后窗口从零重建（与「启用后重建」语义一致）。 */
     private final Map<Long, AlertWindowState> windowStates;
 
+    @Autowired
     public AlertEvaluationJob(AlertRuleRepository repository, AlertEngine engine) {
-        this(repository, engine, Clock.systemUTC());
-    }
-    @org.springframework.beans.factory.annotation.Autowired
-    public AlertEvaluationJob(AlertRuleRepository repository, AlertEngine engine, Clock clock) {
         this.repository = repository;
         this.engine = engine;
-        this.clock = clock;
         this.lastScheduledMinute = Long.MIN_VALUE;
         this.windowStates = new ConcurrentHashMap<>();
     }
@@ -68,8 +64,7 @@ public class AlertEvaluationJob {
     @Scheduled(fixedDelay = 1000)
     public synchronized void evaluate() {
         if (AlertConfig.EVALUATE_DELAY_SECONDS < 0) throw new IllegalStateException("Alert evaluation delay must not be negative");
-        long minute = clock.instant().minusSeconds(AlertConfig.EVALUATE_DELAY_SECONDS)
-                .truncatedTo(ChronoUnit.MINUTES).minusSeconds(60).toEpochMilli();
+        long minute = TimeProvider.delayedMinuteStart(AlertConfig.EVALUATE_DELAY_SECONDS).minusSeconds(60).toEpochMilli();
         // 延迟加大不能回头重判旧分钟，否则会重发并打乱滑动窗口。
         if (minute > lastScheduledMinute) {
             lastScheduledMinute = minute;

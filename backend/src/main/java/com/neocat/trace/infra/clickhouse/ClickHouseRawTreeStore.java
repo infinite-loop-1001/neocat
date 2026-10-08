@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.stereotype.Repository;
 
 /**
  * 基于 ClickHouse 的原始树存储（技术方案 06 §5–6、02 §7）。
@@ -21,7 +22,7 @@ import java.util.Objects;
  *   <li>{@link #fingerprintOf} 供 ingest 的幂等兜底查询使用（7 天内精确）。</li>
  * </ul>
  */
-@org.springframework.stereotype.Repository
+@Repository
 public class ClickHouseRawTreeStore implements RawTreeStore {
 
     private final RawTreeQuery query;

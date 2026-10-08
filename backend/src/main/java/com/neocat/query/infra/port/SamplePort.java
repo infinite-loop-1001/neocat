@@ -1,12 +1,15 @@
 package com.neocat.query.infra.port;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.trace.domain.sample.Sample;
 import com.neocat.trace.domain.sample.SampleService;
-import com.neocat.common.config.TraceConfig;
+import com.neocat.trace.config.TraceConfig;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import com.neocat.trace.domain.sample.SampleQuery;
 
 /**
  * 取样读取口（PRD 03 §11）。
@@ -35,15 +38,11 @@ public interface SamplePort {
      * {@code traceAvailable}（超过留存期的条目仍返回，但不可下钻）。
      */
     static SamplePort of(SampleService sampleService) {
-        return of(sampleService, java.time.Clock.systemUTC());
-    }
-
-    static SamplePort of(SampleService sampleService, java.time.Clock clock) {
         return (service, type, name, from, to, limit) ->
                 sampleService.samples(
-                        new com.neocat.trace.domain.sample.SampleQuery(service, type, name, null,
+                        new SampleQuery(service, type, name, null,
                                 from.toEpochMilli(), to.toEpochMilli(), null, limit),
-                        clock.instant(),
+                        TimeProvider.now(),
                          Duration.ofDays(TraceConfig.RETENTION_DAYS));
     }
 }

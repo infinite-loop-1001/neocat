@@ -2,7 +2,7 @@
 
 > 适用：中间件服务器 Linux + Docker，应用服务器运行 Spring Boot/Vite。优先复用**已有 MySQL 与 Apollo**，只新建 ClickHouse；后文提供新环境逐个 `docker run` 部署 MySQL/Apollo 的可选路径。**不运行 docker compose**。本文是操作说明，尚无真实服务器执行记录。
 >
-> 来源：`backend/src/main/java/com/neocat/common/config/impl/ApolloConfigGuard.java`、`backend/src/main/java/com/neocat/trace/infra/clickhouse/ClickHouseConnection.java`、`docs/neocat-technical-design/{05-mysql-schema.sql,06-clickhouse-schema.sql}`；Apollo 独立容器用法见[官方部署指南](https://github.com/apolloconfig/apollo/blob/master/docs/en/deployment/distributed-deployment-guide.md)及[2.4.0 发布说明](https://github.com/apolloconfig/apollo/releases/tag/v2.4.0)。
+> 来源：`backend/src/main/java/com/neocat/ApolloConfigGuard.java`、`backend/src/main/java/com/neocat/trace/infra/clickhouse/ClickHouseConnection.java`、`docs/neocat-technical-design/{05-mysql-schema.sql,06-clickhouse-schema.sql}`；Apollo 独立容器用法见[官方部署指南](https://github.com/apolloconfig/apollo/blob/master/docs/en/deployment/distributed-deployment-guide.md)及[2.4.0 发布说明](https://github.com/apolloconfig/apollo/releases/tag/v2.4.0)。
 
 ## 0. 环境变量与安全边界
 
@@ -201,7 +201,7 @@ neocat.query.max-instances-topn=20
 neocat.heartbeat.topn=10
 ```
 
-请以 `backend/src/main/java/com/neocat/common/config/impl/ApolloConfigGuard.java` 的 `FRAMEWORK_KEYS` 与动态配置类上的 `@ApolloStaticValue` 注解为最终验收键集；配置其他属性不取代这些项。`neocat.ingest.auth-token` 仍要求非空，但 `SessionWebConfiguration` 对 `/api/v1/ingest` 使用登录 Cookie 拦截，`IngestController` 未校验令牌，填令牌并不等于 SDK 认证可用。见联调手册 T11–T12，必须修复并复测才能开放给 SDK。`server.port=8080` 是**应用机**端口，与中间件机 Apollo Config 的 8080 不冲突。校验发现 URL 和配置（**会返回敏感配置，勿把原始响应贴进日志或工单**）：使用受限终端读取，检查 `configurations` 键及必需键是否齐全，禁止公开输出密码。后端 `NeoCatApplication.main` 由 Apollo 客户端加载配置，启动后由 `ApolloConfigGuard` 校验必需键，缺失或非法即拒绝启动。
+请以 `backend/src/main/java/com/neocat/ApolloConfigGuard.java` 的 `FRAMEWORK_KEYS` 与动态配置类上的 `@ApolloStaticValue` 注解为最终验收键集；配置其他属性不取代这些项。`neocat.ingest.auth-token` 仍要求非空，但 `SessionWebConfiguration` 对 `/api/v1/ingest` 使用登录 Cookie 拦截，`IngestController` 未校验令牌，填令牌并不等于 SDK 认证可用。见联调手册 T11–T12，必须修复并复测才能开放给 SDK。`server.port=8080` 是**应用机**端口，与中间件机 Apollo Config 的 8080 不冲突。校验发现 URL 和配置（**会返回敏感配置，勿把原始响应贴进日志或工单**）：使用受限终端读取，检查 `configurations` 键及必需键是否齐全，禁止公开输出密码。后端 `NeoCatApplication.main` 由 Apollo 客户端加载配置，启动后由 `ApolloConfigGuard` 校验必需键，缺失或非法即拒绝启动。
 
 ## 6. 应用构建、启动与前端同源部署
 

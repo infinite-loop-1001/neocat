@@ -2,7 +2,7 @@ package com.neocat.ingest.domain.validation
 
 import spock.lang.Specification
 import spock.lang.Unroll
-import com.neocat.common.config.IngestConfig
+import com.neocat.ingest.config.IngestConfig
 
 import java.time.Instant
 import java.time.ZoneId

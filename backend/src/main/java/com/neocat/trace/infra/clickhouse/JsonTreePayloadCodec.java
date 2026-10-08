@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.LinkedHashMap;
+import org.springframework.stereotype.Component;
 
 /**
  * 树内容的 JSON 编解码（技术方案 06 §5：{@code payload} 列）。
@@ -20,7 +22,7 @@ import java.util.Objects;
  * <p>解码失败返回空节点列表而非抛异常：单棵树的内容损坏
  * 不应让整个 Trace 组装失败（PRD 02 §10）。
  */
-@org.springframework.stereotype.Component
+@Component
 public class JsonTreePayloadCodec implements RawTreeQuery.TreePayloadCodec {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -57,7 +59,7 @@ public class JsonTreePayloadCodec implements RawTreeQuery.TreePayloadCodec {
     // ── 转换 ─────────────────────────────────────────────────
 
     private static Map<String, Object> toMap(TraceNode node) {
-        Map<String, Object> map = new java.util.LinkedHashMap<>();
+        Map<String, Object> map = new LinkedHashMap<>();
         map.put("nodeId", node.getNodeId());
         map.put("kind", node.getKind());
         map.put("category", node.getCategory());

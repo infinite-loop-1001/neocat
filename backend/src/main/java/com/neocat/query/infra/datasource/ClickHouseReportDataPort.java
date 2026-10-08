@@ -1,5 +1,7 @@
 package com.neocat.query.infra.datasource;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.query.infra.port.ReportDataPort;
 
 import com.neocat.analysis.domain.bucket.AggregatedRow;
@@ -19,6 +21,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
+import com.neocat.common.time.bucket.DefaultTimeBucketResolver;
+import java.util.Locale;
+import java.util.function.Supplier;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 /**
  * 基于 ClickHouse 的报表读取实现（技术方案 06 §10）。
@@ -46,23 +54,16 @@ public class ClickHouseReportDataPort implements ReportDataPort {
 
     private final TimeBucketResolver buckets;
 
-    private final java.util.function.Supplier<ZoneId> zone;
-
-    private final java.time.Clock clock;
+    private final Supplier<ZoneId> zone;
 
     public ClickHouseReportDataPort(ClickHouseReportQuery query) {
-        this(query, new com.neocat.common.time.bucket.DefaultTimeBucketResolver(), () -> ZoneId.of("UTC"));
+        this(query, new DefaultTimeBucketResolver(), () -> ZoneId.of("UTC"));
     }
     public ClickHouseReportDataPort(ClickHouseReportQuery query, TimeBucketResolver buckets,
-                                    java.util.function.Supplier<ZoneId> zone) {
-        this(query, buckets, zone, java.time.Clock.systemUTC());
-    }
-    public ClickHouseReportDataPort(ClickHouseReportQuery query, TimeBucketResolver buckets,
-                                    java.util.function.Supplier<ZoneId> zone, java.time.Clock clock) {
+                                    Supplier<ZoneId> zone) {
         this.query = query;
         this.buckets = buckets;
         this.zone = zone;
-        this.clock = clock;
     }
     @Override
     public List<AggregatedRow> metricSourceRows(String service, String metric, Instant from, Instant to,
@@ -105,7 +106,7 @@ public class ClickHouseReportDataPort implements ReportDataPort {
         if (seconds >= Granularity.DAY_1.seconds()) {
             // Today's completed hours are not in the day table yet. Do not leave today blank
             // when a month window crosses the current-hour boundary.
-            Instant today = clock.instant().atZone(zone.get()).toLocalDate().atStartOfDay(zone.get()).toInstant();
+            Instant today = TimeProvider.now().atZone(zone.get()).toLocalDate().atStartOfDay(zone.get()).toInstant();
             if (from.isBefore(today) && to.isAfter(today)) {
                 var result = new ArrayList<>(query.dayRows(service, kind, type, name, instance, from, today));
                 result.addAll(query.hourRows(service, kind, type, name, instance, today, to));
@@ -128,9 +129,9 @@ public class ClickHouseReportDataPort implements ReportDataPort {
     private List<AggregatedRow> foldToTarget(List<AggregatedRow> rows, Instant from, Instant to,
                                              Granularity granularity) {
         List<Bucket> targetBuckets = buckets.resolve(new RangeSpec.Explicit(from, to, granularity), zone.get());
-        @lombok.Getter
-        @lombok.EqualsAndHashCode
-        @lombok.ToString
+        @Getter
+        @EqualsAndHashCode
+        @ToString
         class FoldKey {
             private final SeriesKey series;
 
@@ -233,7 +234,6 @@ public class ClickHouseReportDataPort implements ReportDataPort {
         return row;
     }
     private static SeriesKind parseKind(String kind) {
-        return SeriesKind.valueOf(kind.toUpperCase(java.util.Locale.ROOT));
+        return SeriesKind.valueOf(kind.toUpperCase(Locale.ROOT));
     }
 }
-

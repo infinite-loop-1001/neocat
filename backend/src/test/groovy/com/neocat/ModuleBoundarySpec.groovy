@@ -41,7 +41,7 @@ class ModuleBoundarySpec extends Specification {
         then:
         actual.keySet() == baseline.stringPropertyNames()
         baseline.each { key, value ->
-            assert actual[key] == (value.split(',') as Set): "$key 导出类型发生漂移"
+            assert actual[key] == (value.isEmpty() ? [] as Set : value.split(',') as Set): "$key 导出类型发生漂移"
         }
     }
 

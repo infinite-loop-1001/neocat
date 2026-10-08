@@ -8,11 +8,10 @@ import com.neocat.platform.domain.profile.PlatformProfileRepository;
 import com.neocat.platform.domain.profile.SlowThresholds;
 import org.springframework.stereotype.Repository;
 
-import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
 import java.util.Objects;
+import java.sql.Timestamp;
 
 /**
  * 平台档案与通道配置的 MyBatis 适配器
@@ -57,7 +56,7 @@ public class PlatformRepositoryAdapter implements PlatformProfileRepository, Cha
         row.setSlowCacheMs(profile.getSlowThresholds().getCacheMs());
         row.setInitializedAt(Objects.isNull(profile.getInitializedAt())
                 ? null
-                : java.sql.Timestamp.from(profile.getInitializedAt()));
+                : Timestamp.from(profile.getInitializedAt()));
         mapper.updateProfile(row);
     }
 
@@ -93,7 +92,7 @@ public class PlatformRepositoryAdapter implements PlatformProfileRepository, Cha
 
         private int slowCacheMs;
 
-        private java.sql.Timestamp initializedAt;
+        private Timestamp initializedAt;
 
         public boolean isInitialized() {
             return initialized;
@@ -143,11 +142,11 @@ public class PlatformRepositoryAdapter implements PlatformProfileRepository, Cha
             this.slowCacheMs = slowCacheMs;
         }
 
-        public java.sql.Timestamp getInitializedAt() {
+        public Timestamp getInitializedAt() {
             return initializedAt;
         }
 
-        public void setInitializedAt(java.sql.Timestamp initializedAt) {
+        public void setInitializedAt(Timestamp initializedAt) {
             this.initializedAt = initializedAt;
         }
     }
@@ -184,8 +183,3 @@ public class PlatformRepositoryAdapter implements PlatformProfileRepository, Cha
         }
     }
 }
-
-
-
-
-

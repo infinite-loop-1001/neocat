@@ -2,6 +2,7 @@ package com.neocat.identity.infra.jdbc;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import java.util.List;
 
 /**
  * 账号表 Mapper（技术方案 05-mysql-schema.sql 的表 {@code nc_account}）。
@@ -16,7 +17,7 @@ public interface AccountMapper {
 
     AccountRepositoryAdapter.AccountRow selectByUsername(@Param("username") String username);
 
-    java.util.List<AccountRepositoryAdapter.AccountRow> selectAll();
+    List<AccountRepositoryAdapter.AccountRow> selectAll();
 
     /** 插入并回填自增主键。 */
     int insert(AccountRepositoryAdapter.AccountRow row);

@@ -64,7 +64,7 @@ class ReportTableSpec extends Specification {
         url.getTp99() != null
         url.getTp999() != null
         url.getTp9999() != null
-        url.getQps() == 150.0d / 3600
+        url.getQps() == 0.041667
     }
 
     def "Type 层的 QPS 使用 CAT 口径分母"() {
@@ -72,7 +72,7 @@ class ReportTableSpec extends Specification {
         def sql = service.typeTable("TRANSACTION", urlRows(), 3600).find { it.getType() == "SQL" }
 
         then:
-        sql.getQps() == 200.0d / 3600
+        sql.getQps() == 0.055556
     }
 
     def "Type 层不产生 Name 维度的展开：每行只对应一个 Type"() {
@@ -120,7 +120,7 @@ class ReportTableSpec extends Specification {
         a.getFailures() == 5
         a.getAvgDuration() == 50.0d
         a.getTp99() != null
-        a.getQps() == 100.0d / 3600
+        a.getQps() == 0.027778
     }
 
     def "Name 层没有该 Type 时返回空列表"() {
@@ -144,7 +144,7 @@ class ReportTableSpec extends Specification {
         def business = table.find { it.getType() == "business" }
         business.getTotal() == 150
         business.getFailures() == 2
-        business.getQps() == 150.0d / 3600
+        business.getQps() == 0.041667
 
         and: "耗时与分位全部为空"
         business.getAvgDuration() == null

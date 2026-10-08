@@ -16,6 +16,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import static com.neocat.common.error.ErrorCode.*
+import com.neocat.common.error.exception.IngestException
 
 /**
  * G12 任务89（红）：上报协议适配。
@@ -422,11 +423,11 @@ class IngestAdapterSpec extends Specification {
     def "异常到响应的映射保留错误码"() {
         when:
         def response = IngestResponseMapper.fromError(
-                 new com.neocat.common.error.exception.IngestException(BATCH_TOO_LARGE), 300)
+                 new IngestException(BATCH_TOO_LARGE), 300)
 
         then:
         response.code == Integer.toString(BATCH_TOO_LARGE.code())
         response.rejectedTrees == 300
-        IngestResponseMapper.httpStatusOf(new com.neocat.common.error.exception.IngestException(BATCH_TOO_LARGE)) == 400
+        IngestResponseMapper.httpStatusOf(new IngestException(BATCH_TOO_LARGE)) == 400
     }
 }

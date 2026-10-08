@@ -1,5 +1,7 @@
 package com.neocat.ingest.infra;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.ingest.domain.idempotency.IdempotencyStore;
 
 import java.time.Duration;
@@ -7,6 +9,10 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.stereotype.Component;
 
 /**
  * 进程内幂等窗口实现（技术方案 01-architecture.md §6、07 §1.2）。
@@ -18,12 +24,12 @@ import java.util.Objects;
  * <p>窗口外的重复 ID 由 {@code HistoricalFingerprintLookup} 兜底（ClickHouse 精确查询）。
  * 因此在窗口内不需要保存完整历史，内存占用可预测。
  */
-@org.springframework.stereotype.Component
+@Component
 public class InMemoryIdempotencyStore implements IdempotencyStore {
 
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     private static class Entry {
         private final String fingerprint;
 
@@ -37,15 +43,7 @@ public class InMemoryIdempotencyStore implements IdempotencyStore {
     }
     private final Map<String, Entry> entries;
 
-    private final java.time.Clock clock;
-
     public InMemoryIdempotencyStore() {
-        this(java.time.Clock.systemUTC());
-    }
-
-    @org.springframework.beans.factory.annotation.Autowired
-    public InMemoryIdempotencyStore(java.time.Clock clock) {
-        this.clock = clock;
         this.entries = new ConcurrentHashMap<>();
     }
 
@@ -55,7 +53,7 @@ public class InMemoryIdempotencyStore implements IdempotencyStore {
         if (Objects.isNull(entry)) {
             return null;
         }
-        if (!entry.getExpiresAt().isAfter(clock.instant())) {
+        if (!entry.getExpiresAt().isAfter(TimeProvider.now())) {
             // 惰性清理：读取时发现过期即移除，避免后台清理线程
             entries.remove(messageId, entry);
             return null;
@@ -64,7 +62,7 @@ public class InMemoryIdempotencyStore implements IdempotencyStore {
     }
     @Override
     public void remember(String messageId, String fingerprint, Duration ttl) {
-        entries.put(messageId, new Entry(fingerprint, clock.instant().plus(ttl)));
+        entries.put(messageId, new Entry(fingerprint, TimeProvider.now().plus(ttl)));
     }
     /** 当前窗口内的条目数（用于观测与测试）。 */
     public int size() {

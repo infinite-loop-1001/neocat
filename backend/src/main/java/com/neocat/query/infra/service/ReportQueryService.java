@@ -1,5 +1,10 @@
 package com.neocat.query.infra.service;
 
+import java.math.BigDecimal;
+
+import com.neocat.common.time.clock.TimeProvider;
+import com.neocat.common.DecimalMath;
+
 import com.google.common.collect.Lists;
 import com.neocat.analysis.domain.analyzer.JvmMetric;
 import com.neocat.analysis.domain.bucket.AggregatedRow;
@@ -13,7 +18,6 @@ import com.neocat.query.infra.port.ReportDataPort;
 import com.neocat.query.infra.port.SamplePort;
 import com.neocat.query.domain.series.MomAligner;
 import com.neocat.query.domain.series.MomKind;
-import com.neocat.query.domain.series.Point;
 import com.neocat.query.domain.series.Quality;
 import com.neocat.query.domain.series.QualityInput;
 import com.neocat.query.domain.series.QualityResolver;
@@ -22,6 +26,7 @@ import com.neocat.query.domain.report.ReportRow;
 import com.neocat.query.domain.report.ReportTableService;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.query.domain.stat.StatCalculator;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -30,7 +35,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
+import com.neocat.analysis.domain.bucket.SeriesKind;
+import com.neocat.common.error.ErrorCode;
+import com.neocat.common.error.exception.ValidationException;
+import com.neocat.common.time.range.RangeParams;
+import com.neocat.trace.config.TraceConfig;
+import com.neocat.trace.domain.sample.Sample;
+
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Locale;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.stereotype.Service;
 
 /**
  * 报表查询应用服务（技术方案 03-api-contract.md §4）。
@@ -46,8 +67,8 @@ import org.apache.commons.collections4.CollectionUtils;
  * <p>关键约定：**缺口点位的 {@code value} 为 {@code null}**，绝不写 0；
  * 确认无调用时次数类为 0、耗时与比例类为 {@code null}。
  */
-@org.springframework.stereotype.Service
-@org.springframework.context.annotation.DependsOn("traceConfig")
+@Service
+@DependsOn("traceConfig")
 public class ReportQueryService {
 
     private final ReportDataPort data;
@@ -68,17 +89,10 @@ public class ReportQueryService {
 
     private final Supplier<ZoneId> zone;
 
-    private final java.time.Clock clock;
-
+    @Autowired
     public ReportQueryService(ReportDataPort data, TimeBucketResolver buckets, ReportTableService tables,
-                            StatCalculator calculator, QualityResolver quality, MomAligner momAligner,
-                            SamplePort samplePort, Supplier<ZoneId> zone) {
-        this(data, buckets, tables, calculator, quality, momAligner, samplePort, zone, java.time.Clock.systemUTC());
-    }
-    @org.springframework.beans.factory.annotation.Autowired
-    public ReportQueryService(ReportDataPort data, TimeBucketResolver buckets, ReportTableService tables,
-                            StatCalculator calculator, QualityResolver quality, MomAligner momAligner,
-                            SamplePort samplePort, Supplier<ZoneId> zone, java.time.Clock clock) {
+                              StatCalculator calculator, QualityResolver quality, MomAligner momAligner,
+                              SamplePort samplePort, Supplier<ZoneId> zone) {
         this.data = data;
         this.buckets = buckets;
         this.ranges = new RangeResolver(buckets);
@@ -88,7 +102,6 @@ public class ReportQueryService {
         this.momAligner = momAligner;
         this.samplePort = samplePort;
         this.zone = zone;
-        this.clock = clock;
     }
 
     // ── Transaction / Event：Type 与 Name 层 ─────────────────
@@ -96,12 +109,15 @@ public class ReportQueryService {
     public List<Map<String, Object>> transactionTypes(String service, String range) {
         return typeTable("TRANSACTION", service, range);
     }
+
     public List<Map<String, Object>> transactionNames(String service, String type, String range) {
         return nameTable("TRANSACTION", service, type, range);
     }
+
     public List<Map<String, Object>> eventTypes(String service, String range) {
         return typeTable("EVENT", service, range);
     }
+
     public List<Map<String, Object>> eventNames(String service, String type, String range) {
         return nameTable("EVENT", service, type, range);
     }
@@ -127,6 +143,7 @@ public class ReportQueryService {
         }
         return result;
     }
+
     public List<Map<String, Object>> problemNames(String service, String category, String range) {
         var resolved = ranges.resolve(parseRange(range), zone.get());
         boolean percentileVisible = !"EXCEPTION".equalsIgnoreCase(category);
@@ -152,7 +169,7 @@ public class ReportQueryService {
      * <p>默认统计项为 Hits（桶内总次数），不是 count/min 也不是 QPS。
      */
     public Map<String, Object> series(String service, String kind, String type, String name,
-                                     String stat, String range, Integer bucket, String mom, String instances) {
+                                      String stat, String range, Integer bucket, String mom, String instances) {
         Stat target = Stat.parse(stat);
         // range 决定窗口，bucket 只覆盖粒度（技术方案 03 §4.2：bucket 可省略，省略时按 range 的默认粒度）。
         var base = ranges.resolve(parseRange(range), zone.get());
@@ -176,16 +193,17 @@ public class ReportQueryService {
         List<AggregatedRow> rows = data.rows(kind, service, type, name,
                 resolved.getFrom(), resolved.getTo(), granularity, instanceList);
 
-        Map<Long, Double> byBucket = new LinkedHashMap<>();
+        Map<Long, List<AggregatedRow>> byBucket = new LinkedHashMap<>();
         for (AggregatedRow row : rows) {
             long start = row.bucketStart().toEpochMilli();
-            byBucket.merge(start, safeValue(row, target), Double::sum);
+            byBucket.computeIfAbsent(start, ignored -> new ArrayList<>()).add(row);
         }
 
         List<Map<String, Object>> points = new ArrayList<>();
         for (Bucket b : resolved.getBuckets()) {
             long start = b.getStart().toEpochMilli();
-            Double value = byBucket.get(start);
+            List<AggregatedRow> bucketRows = byBucket.get(start);
+            BigDecimal value = bucketValue(bucketRows, target);
             Quality q = quality.resolve(new QualityInput(
                     Objects.nonNull(value), Objects.isNull(value) ? 0 : 1,
                     data.droppedAt(kind, service, type, name, b.getStart()),
@@ -193,8 +211,8 @@ public class ReportQueryService {
                             && data.mergedIntoOther(service, type, name, b.getStart()),
                     b.isPartial(), isCurrentBucket(b), b.getCoveredSeconds()));
             // 缺口：value 为 null；ZERO 时按统计项决定是否呈现 0
-            Double rendered = Objects.isNull(value) ? null : value;
-            if (q == Quality.ZERO && !quality.hasValue(q, target)) {
+            BigDecimal rendered = Objects.isNull(value) ? null : value;
+            if (Objects.equals(q, Quality.ZERO) && !quality.hasValue(q, target)) {
                 rendered = null;
             }
             Map<String, Object> point = new LinkedHashMap<>();
@@ -225,11 +243,14 @@ public class ReportQueryService {
 
     // ── Heartbeat ────────────────────────────────────────────
 
-    /** Heartbeat 指标固定五个 JVM 项，且一期不做环比（PRD 03 §10）。 */
+    /**
+     * Heartbeat 指标固定五个 JVM 项，且一期不做环比（PRD 03 §10）。
+     */
     public List<String> heartbeatMetrics() {
-        return java.util.Arrays.stream(JvmMetric.values())
+        return Arrays.stream(JvmMetric.values())
                 .map(JvmMetric::seriesName).toList();
     }
+
     public List<Map<String, Object>> heartbeatInstances(String service, String metric, String range) {
         requireHeartbeatMetric(metric);
         var resolved = ranges.resolve(parseRange(range), zone.get());
@@ -237,14 +258,17 @@ public class ReportQueryService {
         for (String instance : data.instancesWithData("HEARTBEAT", service, resolved.getFrom(), resolved.getTo())) {
             var rows = data.rows("HEARTBEAT", service, "jvm", metric, resolved.getFrom(), resolved.getTo(),
                     Granularity.fromSeconds(resolved.bucketSeconds()), List.of(instance));
-            AggregatedRow last = new AggregatedRow(SeriesKey.of(service, com.neocat.analysis.domain.bucket.SeriesKind.HEARTBEAT,
+            AggregatedRow last = new AggregatedRow(SeriesKey.of(service, SeriesKind.HEARTBEAT,
                     "jvm", metric, instance), resolved.getFrom(), AggregationLevel.MINUTE, 0);
             rows.forEach(row -> last.mergeLastValue(row.valueLast(), row.valueLastTime()));
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("instance", instance); item.put("value", last.valueLast()); result.add(item);
+            item.put("instance", instance);
+            item.put("value", DecimalMath.result(last.valueLast()));
+            result.add(item);
         }
         return result;
     }
+
     /**
      * Heartbeat 趋势（PRD 03 §10）。
      *
@@ -259,7 +283,7 @@ public class ReportQueryService {
                 : List.of(instances.split(","));
 
         List<Map<String, Object>> seriesList = new ArrayList<>();
-        Instant heartbeatNow = clock.instant();
+        Instant heartbeatNow = TimeProvider.now();
         Map<Instant, Boolean> droppedBuckets = new LinkedHashMap<>();
         for (Bucket bucket : resolved.getBuckets()) {
             droppedBuckets.put(bucket.getStart(), bucket.getStart().isBefore(heartbeatNow)
@@ -280,7 +304,7 @@ public class ReportQueryService {
             List<Map<String, Object>> points = new ArrayList<>();
             for (Bucket b : resolved.getBuckets()) {
                 AggregatedRow row = byBucket.get(b.getStart().toEpochMilli());
-                Double value = Objects.isNull(row) ? null : row.valueLast();
+                BigDecimal value = Objects.isNull(row) ? null : row.valueLast();
                 Instant now = heartbeatNow;
                 boolean future = !b.getStart().isBefore(now);
                 boolean dropped = droppedBuckets.get(b.getStart());
@@ -289,10 +313,10 @@ public class ReportQueryService {
                 point.put("bucketStart", b.getStart().toEpochMilli());
                 point.put("bucketEnd", b.getEnd().toEpochMilli());
                 // 缺口保持 null：不把无数据当作 0
-                point.put("value", value);
+                point.put("value", DecimalMath.result(value));
                 point.put("quality", dropped && !future ? Quality.DROPPED.name() : Objects.isNull(value) ? Quality.NO_DATA.name()
                         : isCurrentBucket(b) ? Quality.REALTIME.name() : b.isPartial() ? Quality.PARTIAL.name() : Quality.OK.name());
-                point.put("coveredSeconds", Math.max(0, Math.min(b.getCoveredSeconds(), java.time.Duration.between(b.getStart(), now).getSeconds())));
+                point.put("coveredSeconds", Math.max(0, Math.min(b.getCoveredSeconds(), Duration.between(b.getStart(), now).getSeconds())));
                 points.add(point);
             }
             seriesList.add(Map.of("instance", instance, "points", points));
@@ -307,9 +331,10 @@ public class ReportQueryService {
         result.put("mom", null);
         return result;
     }
+
     private void requireHeartbeatMetric(String metric) {
-        if (!heartbeatMetrics().contains(metric)) throw new com.neocat.common.error.exception.ValidationException(
-                com.neocat.common.error.ErrorCode.INVALID_PARAM, "未知 Heartbeat 指标 " + metric);
+        if (!heartbeatMetrics().contains(metric)) throw new ValidationException(
+                ErrorCode.INVALID_PARAM, "未知 Heartbeat 指标 " + metric);
     }
 
     // ── Metric ───────────────────────────────────────────────
@@ -329,7 +354,7 @@ public class ReportQueryService {
             item.put("reportCount", reportCount);
             result.add(item);
         }
-        result.sort(java.util.Comparator.<Map<String, Object>>comparingLong(item -> (Long) item.get("reportCount"))
+        result.sort(Comparator.<Map<String, Object>>comparingLong(item -> (Long) item.get("reportCount"))
                 .reversed().thenComparing(item -> (String) item.get("labels")));
         for (int i = 0; i < result.size(); i++) result.get(i).put("rank", i + 1);
         return result;
@@ -340,6 +365,7 @@ public class ReportQueryService {
     public List<Map<String, Object>> downstream(String service, String range) {
         return dependencyList(service, "DOWNSTREAM", range);
     }
+
     public List<Map<String, Object>> upstream(String service, String range) {
         return dependencyList(service, "UPSTREAM", range);
     }
@@ -352,14 +378,15 @@ public class ReportQueryService {
      * <p>该端点依赖原始树存储；无原始树时返回空列表（汇总仍可查，只有下钻不可用）。
      */
     public List<Map<String, Object>> samples(String service, String kind, String type, String name,
-                                            String range, Integer limit) {
+                                             String range, Integer limit) {
         var resolved = ranges.resolve(parseRange(range), zone.get());
         return samplePort.samples(service, type, name, resolved.getFrom(), resolved.getTo(),
-                        Objects.isNull(limit) ? com.neocat.common.config.TraceConfig.SAMPLE_ROWS : limit).stream()
-                 .map(ReportQueryService::sampleToMap)
+                        Objects.isNull(limit) ? TraceConfig.SAMPLE_ROWS : limit).stream()
+                .map(ReportQueryService::sampleToMap)
                 .toList();
     }
-    private static Map<String, Object> sampleToMap(com.neocat.trace.domain.sample.Sample sample) {
+
+    private static Map<String, Object> sampleToMap(Sample sample) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("messageId", sample.getMessageId());
         map.put("timestamp", sample.getTimestamp());
@@ -403,6 +430,7 @@ public class ReportQueryService {
         }
         return rows.stream().map(row -> reportRowToMap(row, kind)).toList();
     }
+
     private List<Map<String, Object>> nameTable(String kind, String service, String type, String range) {
         var resolved = ranges.resolve(parseRange(range), zone.get());
         var aggregated = fetchRows(kind, service, type, null, resolved);
@@ -410,11 +438,13 @@ public class ReportQueryService {
                 .map(row -> reportRowToMap(row, kind))
                 .toList();
     }
+
     private List<AggregatedRow> fetchRows(String kind, String service, String type, String name,
-                                         RangeResolver.ResolvedRange resolved) {
+                                          RangeResolver.ResolvedRange resolved) {
         return data.rows(kind, service, type, name, resolved.getFrom(), resolved.getTo(),
                 Granularity.fromSeconds(resolved.bucketSeconds()), Lists.newArrayList());
     }
+
     private List<Map<String, Object>> dependencyList(String service, String direction, String range) {
         var resolved = ranges.resolve(parseRange(range), zone.get());
         List<Map<String, Object>> result = new ArrayList<>();
@@ -425,7 +455,7 @@ public class ReportQueryService {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("peer", peer);
             item.put("calls", calls);
-            item.put("failureRate", calls == 0 ? null : (double) failures / calls);
+            item.put("failureRate", calls == 0 ? null : DecimalMath.result(DecimalMath.divide(failures, calls)));
             item.put("avg", calculator.compute(rows, Stat.AVG, resolved.bucketSeconds()));
             item.put("tp99", calculator.compute(rows, Stat.TP99, resolved.bucketSeconds()));
             result.add(item);
@@ -433,6 +463,7 @@ public class ReportQueryService {
         result.sort((a, b) -> Long.compare((Long) b.get("calls"), (Long) a.get("calls")));
         return result;
     }
+
     private Map<String, Object> reportRowToMap(ReportRow row, String kind) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("type", row.getType());
@@ -453,28 +484,31 @@ public class ReportQueryService {
         map.put("tp9999", row.getTp9999());
         return map;
     }
-    /** 环比：按整日偏移、桶序号对齐（PRD 03 §6）；不支持的类型返回 null。 */
+
+    /**
+     * 环比：按整日偏移、桶序号对齐（PRD 03 §6）；不支持的类型返回 null。
+     */
     private Map<String, Object> momInfo(String mom, String service, String kind, String type, String name,
                                         Stat stat, RangeResolver.ResolvedRange resolved,
                                         List<String> instances) {
         if (Objects.isNull(mom) || mom.isBlank() || !momAligner.supported(kind)) {
             return null;
         }
-        MomKind momKind = MomKind.valueOf(mom.toUpperCase(java.util.Locale.ROOT));
+        MomKind momKind = MomKind.valueOf(mom.toUpperCase(Locale.ROOT));
         List<Bucket> shifted = momAligner.shift(resolved.getBuckets(), momKind, zone.get());
 
-        Map<Long, Double> byShiftedBucket = new LinkedHashMap<>();
+        Map<Long, List<AggregatedRow>> byShiftedBucket = new LinkedHashMap<>();
         // 对比窗口的桶长必须与当前窗口一致，否则平移后的桶起点对不上
         List<AggregatedRow> rows = data.rows(kind, service, type, name,
                 shifted.get(0).getStart(), shifted.get(shifted.size() - 1).getEnd(),
                 Granularity.fromSeconds(resolved.bucketSeconds()), instances);
         for (AggregatedRow row : rows) {
-            byShiftedBucket.merge(row.bucketStart().toEpochMilli(), safeValue(row, stat), Double::sum);
+            byShiftedBucket.computeIfAbsent(row.bucketStart().toEpochMilli(), ignored -> new ArrayList<>()).add(row);
         }
 
         List<Map<String, Object>> points = new ArrayList<>();
         for (Bucket b : shifted) {
-            Double value = byShiftedBucket.get(b.getStart().toEpochMilli());
+            BigDecimal value = bucketValue(byShiftedBucket.get(b.getStart().toEpochMilli()), stat);
             Map<String, Object> point = new LinkedHashMap<>();
             point.put("bucketStart", b.getStart().toEpochMilli());
             point.put("value", value);
@@ -482,28 +516,25 @@ public class ReportQueryService {
         }
         return Map.of("kind", momKind.name(), "points", points);
     }
-    /** 取行的统计值；null 表示缺数，不参与相加时按「无值」处理。 */
-    private Double safeValue(AggregatedRow row, Stat stat) {
-        Double value = calculator.compute(List.of(row), stat, row.coveredSeconds());
-        return Objects.isNull(value) ? null : value;
-    }
+
     private boolean isCurrentBucket(Bucket bucket) {
-        Instant now = clock.instant();
+        Instant now = TimeProvider.now();
         return !now.isBefore(bucket.getStart()) && now.isBefore(bucket.getEnd());
     }
+
+    /** 同桶多机器先合并分子；公共 QPS 分母保留来源行的实际覆盖秒数。 */
+    private BigDecimal bucketValue(List<AggregatedRow> rows, Stat stat) {
+        long coveredSeconds = CollectionUtils.isEmpty(rows) ? 0
+                : rows.stream().mapToLong(AggregatedRow::coveredSeconds).max().orElse(0);
+        return calculator.compute(rows, stat, coveredSeconds);
+    }
+
     /**
      * 解析 `range` 查询参数（技术方案 03 §4.1）。
      *
      * <p>解析规则集中在 {@link com.neocat.common.time.range.RangeParams}，本方法只提供当前时钟。
      */
     private RangeSpec parseRange(String range) {
-        return com.neocat.common.time.range.RangeParams.parse(range, clock.instant());
+        return RangeParams.parse(range, TimeProvider.now());
     }
-
-
-
 }
-
-
-
-

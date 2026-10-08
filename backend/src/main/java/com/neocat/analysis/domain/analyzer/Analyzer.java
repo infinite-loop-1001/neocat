@@ -1,6 +1,7 @@
 package com.neocat.analysis.domain.analyzer;
 
 import com.neocat.ingest.domain.tree.MessageTree;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 单个分析域（PRD 02 §9）。
@@ -12,7 +13,7 @@ import com.neocat.ingest.domain.tree.MessageTree;
  *   <li>异常自限：抛出异常由 {@link RealtimeConsumer} 捕获，只影响本域。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public interface Analyzer {
 
     /** 分析域名称，用于失败记录与观测。 */

@@ -1,13 +1,14 @@
 package com.neocat.common.time.range;
 
 import com.neocat.common.time.bucket.Granularity;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 快捷范围（技术方案 03-api-contract.md §4.1）。
  *
  * <p>每个快捷范围携带默认粒度，避免「最近 24 小时按分钟出桶」这类退化。
  */
-@org.springframework.modulith.NamedInterface("time")
+@NamedInterface("time")
 public enum RangeQuick {
     RECENT_1H(Granularity.MINUTE_1),
     RECENT_3H(Granularity.MINUTE_5),

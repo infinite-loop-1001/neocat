@@ -1,5 +1,7 @@
 /**
- * 运行参数与队列等基础配置（跨模块共享契约）。
+ * 公共连接配置；领域动态参数位于各自业务模块，不在本包持有。
  */
-@org.springframework.modulith.NamedInterface("config")
+@NamedInterface("config")
 package com.neocat.common.config;
+
+import org.springframework.modulith.NamedInterface;

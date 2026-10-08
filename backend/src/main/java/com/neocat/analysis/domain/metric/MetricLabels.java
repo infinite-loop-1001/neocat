@@ -6,6 +6,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.Objects;
 import org.apache.commons.collections4.MapUtils;
+import java.nio.charset.StandardCharsets;
+import java.time.temporal.ChronoUnit;
+import java.util.Base64;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * Metric 标签规范化（PRD 04 §2）。
@@ -13,7 +17,7 @@ import org.apache.commons.collections4.MapUtils;
  * <p>规则：将标签键按稳定顺序（字典序）规范化；相同键值组合视为同一序列。
  * 规范化后的字符串是序列身份的一部分，不能在卡片保存后静默改变。
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public class MetricLabels {
 
     private MetricLabels() {
@@ -39,11 +43,11 @@ public class MetricLabels {
         return value.contains("%") || value.contains("=") || value.contains(";");
     }
     private static String encode(String value) {
-        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
     /** 从节点事件时间取得其所在分钟起点（UTC 对齐，时区转换由查询层负责）。 */
     public static Instant minuteStart(long eventTimestamp) {
-        return Instant.ofEpochMilli(eventTimestamp).truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
+        return Instant.ofEpochMilli(eventTimestamp).truncatedTo(ChronoUnit.MINUTES);
     }
     /**
      * 节点所属的报表分类名。

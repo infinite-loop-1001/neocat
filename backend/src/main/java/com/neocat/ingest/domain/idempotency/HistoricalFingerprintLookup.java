@@ -1,6 +1,7 @@
 package com.neocat.ingest.domain.idempotency;
 
-import java.util.Optional;
+import org.springframework.lang.Nullable;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 窗口外的历史指纹兜底查询（PRD 02 §6.1）。
@@ -9,10 +10,10 @@ import java.util.Optional;
  * ingest 只依赖该抽象，不直接访问原始树存储。
  */
 @FunctionalInterface
-@org.springframework.modulith.NamedInterface("tree")
+@NamedInterface("tree")
 public interface HistoricalFingerprintLookup {
 
-    @org.springframework.lang.Nullable
+    @Nullable
     String fingerprintOf(String messageId);
 
     static HistoricalFingerprintLookup empty() {

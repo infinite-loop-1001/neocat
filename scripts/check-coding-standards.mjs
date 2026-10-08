@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { analyzeImports, packageTypes, sourceFiles } from './type-imports.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const errors = [];
@@ -25,6 +26,15 @@ const javaFiles = [
   ...['backend', 'client-java'].flatMap(module => files(path.join(root, module, 'src'), '.java')),
   ...files(path.join(root, 'scripts'), '.java'),
 ];
+const typeFiles = sourceFiles(root);
+const typeSources = typeFiles.map(file => fs.readFileSync(file, 'utf8'));
+const typeIndex = packageTypes(typeSources);
+for (let i = 0; i < typeFiles.length; i++) {
+  for (const reference of analyzeImports(typeSources[i], typeIndex).edits) {
+    report(typeFiles[i], typeSources[i], reference.index,
+      `类型引用使用 import + 简单类名，禁止无冲突的全限定名：${reference.qualified}`);
+  }
+}
 for (const file of javaFiles) {
   const text = fs.readFileSync(file, 'utf8');
   const code = codeOnly(text);

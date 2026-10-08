@@ -1,5 +1,7 @@
 package com.neocat.identity.api.http.auth;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.error.exception.AuthenticationException;
 import com.neocat.common.error.exception.AuthorizationException;
@@ -11,9 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
-import java.time.Clock;
 import java.util.Arrays;
 import java.util.Objects;
+import org.springframework.lang.Nullable;
 
 /**
  * 会话拦截器（技术方案 03-api-contract.md §1.2、§2）。
@@ -37,11 +39,9 @@ public class SessionInterceptor implements HandlerInterceptor {
 
     private final SessionGuard guard;
 
-    private final Clock clock;
 
-    public SessionInterceptor(SessionGuard guard, Clock clock) {
+    public SessionInterceptor(SessionGuard guard) {
         this.guard = guard;
-        this.clock = clock;
     }
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -55,7 +55,7 @@ public class SessionInterceptor implements HandlerInterceptor {
             throw new AuthenticationException(ErrorCode.UNAUTHENTICATED);
         }
 
-        Account account = guard.requireSession(sessionId, clock.instant());
+        Account account = guard.requireSession(sessionId, TimeProvider.now());
         if (account.isMustChangePassword() && !AuthWhitelist.allowedDuringPasswordChange(endpoint)) {
             throw new AuthorizationException(ErrorCode.PASSWORD_CHANGE_REQUIRED);
         }
@@ -76,7 +76,7 @@ public class SessionInterceptor implements HandlerInterceptor {
     public static String endpointOf(HttpServletRequest request) {
         return request.getMethod() + " " + normalize(request.getRequestURI());
     }
-    @org.springframework.lang.Nullable
+    @Nullable
     private String sessionIdOf(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
         if (Objects.isNull(cookies)) {

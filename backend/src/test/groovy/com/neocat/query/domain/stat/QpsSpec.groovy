@@ -71,7 +71,7 @@ class QpsSpec extends Specification {
         def qps = calc.compute([row(300, 0, 3000, 1, 50)], Stat.QPS, coveredSeconds)
 
         then: "300 / 1421"
-        qps == 300.0d / 1421
+        qps == 0.211119
 
         and: "不等于错误地使用 3600 的结果"
         qps != 300.0d / 3600

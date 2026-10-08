@@ -1,9 +1,10 @@
 package com.neocat.analysis.domain.schedule;
 
 import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
 
 /** Read upgraded snapshot writes once per writer/key/bucket; legacy append rows remain additive. */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public class ReportSnapshotSql {
     private ReportSnapshotSql() { }
     public static String source(String table, String bucket) {

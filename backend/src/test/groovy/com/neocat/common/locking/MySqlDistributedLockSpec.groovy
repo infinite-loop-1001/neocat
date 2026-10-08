@@ -10,6 +10,17 @@ import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import spock.lang.Specification
+import com.neocat.common.config.impl.MySqlConnection
+import java.sql.Connection
+import java.sql.PreparedStatement
+import java.sql.ResultSet
+import java.sql.ResultSetMetaData
+import java.util.function.Supplier
+import javax.sql.DataSource
+import org.springframework.aop.support.AopUtils
+import org.springframework.dao.CannotAcquireLockException
+import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.transaction.annotation.Transactional
 
 /** 所有数据库边界仅 Mock；不代表真实双连接互斥已经验证。 */
 class MySqlDistributedLockSpec extends Specification {
@@ -23,7 +34,7 @@ class MySqlDistributedLockSpec extends Specification {
 
     def "事务开启、建立主键行、FOR UPDATE、临界区、提交依次执行"() {
         given:
-        def operation = Mock(java.util.function.Supplier)
+        def operation = Mock(Supplier)
 
         when:
         def result = locks.execute('metadata', operation)
@@ -47,15 +58,15 @@ class MySqlDistributedLockSpec extends Specification {
 
     def "锁等待失败必须回滚且不运行临界区"() {
         given:
-        def operation = Mock(java.util.function.Supplier)
+        def operation = Mock(Supplier)
         manager.getTransaction(_) >> status
-        jdbc.queryForObject(_, String, 'metadata') >> { throw new org.springframework.dao.CannotAcquireLockException('timeout') }
+        jdbc.queryForObject(_, String, 'metadata') >> { throw new CannotAcquireLockException('timeout') }
 
         when:
         locks.execute('metadata', operation)
 
         then:
-        thrown(org.springframework.dao.CannotAcquireLockException)
+        thrown(CannotAcquireLockException)
         1 * manager.rollback(status)
         0 * manager.commit(_)
         0 * operation.get()
@@ -92,9 +103,9 @@ class MySqlDistributedLockSpec extends Specification {
     def "锁行建立失败或 SELECT 未命中时不能运行临界区"() {
         given:
         manager.getTransaction(_) >> status
-        def operation = Mock(java.util.function.Supplier)
+        def operation = Mock(Supplier)
         jdbc.update(_, 'metadata') >> {
-            if (insertFails) throw new org.springframework.dao.DataIntegrityViolationException('insert failed')
+            if (insertFails) throw new DataIntegrityViolationException('insert failed')
             1
         }
         jdbc.queryForObject(_, String, 'metadata') >> null
@@ -114,28 +125,28 @@ class MySqlDistributedLockSpec extends Specification {
 
     def "真实 Spring 事务代理与嵌套锁复用同一 Mock JDBC 连接，只在最外层释放"() {
         given:
-        def source = Mock(javax.sql.DataSource)
-        def connection = Mock(java.sql.Connection)
+        def source = Mock(DataSource)
+        def connection = Mock(Connection)
         connection.autoCommit >> true
         def sqlCalls = []
         connection.prepareStatement(_) >> { String sql ->
             sqlCalls.add(sql)
-            def rows = Stub(java.sql.ResultSet) {
+            def rows = Stub(ResultSet) {
                 next() >>> [true, false]
                 getString(1) >> 'metadata'
-                getMetaData() >> Stub(java.sql.ResultSetMetaData) {
+                getMetaData() >> Stub(ResultSetMetaData) {
                     getColumnCount() >> 1
                 }
             }
-            Stub(java.sql.PreparedStatement) {
+            Stub(PreparedStatement) {
                 executeUpdate() >> 1
                 executeQuery() >> rows
             }
         }
-        def actualManager = new com.neocat.common.config.impl.MySqlConnection().mysqlTransactionManager(source)
+        def actualManager = new MySqlConnection().mysqlTransactionManager(source)
         def context = new AnnotationConfigApplicationContext()
-        context.registerBean('dataSource', javax.sql.DataSource, { source } as java.util.function.Supplier)
-        context.registerBean('mysqlTransactionManager', PlatformTransactionManager, { actualManager } as java.util.function.Supplier)
+        context.registerBean('dataSource', DataSource, { source } as Supplier)
+        context.registerBean('mysqlTransactionManager', PlatformTransactionManager, { actualManager } as Supplier)
         context.register(MySqlLockConfiguration, MySqlLockAspect, MySqlDistributedLock, NestedService, OuterService)
         context.refresh()
 
@@ -170,7 +181,7 @@ class MySqlDistributedLockSpec extends Specification {
         manager.getTransaction(_) >> status
         jdbc.queryForObject(_, String, 'metadata') >> 'metadata'
         def context = new AnnotationConfigApplicationContext()
-        context.registerBean(MySqlDistributedLock, { locks } as java.util.function.Supplier)
+        context.registerBean(MySqlDistributedLock, { locks } as Supplier)
         context.register(MySqlLockConfiguration, MySqlLockAspect, CriticalService)
         context.refresh()
 
@@ -180,7 +191,7 @@ class MySqlDistributedLockSpec extends Specification {
         then:
         result == 'locked'
         1 * manager.commit(status)
-        org.springframework.aop.support.AopUtils.isAopProxy(context.getBean(CriticalService))
+        AopUtils.isAopProxy(context.getBean(CriticalService))
 
         cleanup:
         context.close()
@@ -197,17 +208,17 @@ class MySqlDistributedLockSpec extends Specification {
         OuterService(NestedService nested) { this.nested = nested }
 
         @MySqlLocked('metadata')
-        @org.springframework.transaction.annotation.Transactional
+        @Transactional
         void run(boolean fail) { nested.run(fail) }
     }
 
     static class NestedService {
         final JdbcTemplate jdbc
 
-        NestedService(javax.sql.DataSource source) { this.jdbc = new JdbcTemplate(source) }
+        NestedService(DataSource source) { this.jdbc = new JdbcTemplate(source) }
 
         @MySqlLocked('metadata')
-        @org.springframework.transaction.annotation.Transactional
+        @Transactional
         void run(boolean fail) {
             jdbc.update('UPDATE nc_test_boundary SET value = ? WHERE id = ?', 'test', 1)
             if (fail) throw new IllegalStateException('business failed')

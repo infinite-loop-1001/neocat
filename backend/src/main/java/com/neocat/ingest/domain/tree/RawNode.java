@@ -2,6 +2,10 @@ package com.neocat.ingest.domain.tree;
 
 import java.util.Map;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * MessageTree 内的一个节点（PRD 02 §3、技术方案 04 §2）。
@@ -15,10 +19,10 @@ import java.util.Objects;
  * @param durationMs 耗时；仅 Transaction 与 RemoteCall 有意义
  * @param parentNodeId 树内父节点，可空
  */
-@org.springframework.modulith.NamedInterface("tree")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("tree")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class RawNode {
     private final String nodeId;
 
@@ -68,13 +72,3 @@ public class RawNode {
         return Objects.equals(STATUS_SUCCESS, status);
     }
 }
-
-
-
-
-
-
-
-
-
-

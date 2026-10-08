@@ -1,2 +1,4 @@
-@org.springframework.modulith.NamedInterface("locking")
+@NamedInterface("locking")
 package com.neocat.common.locking;
+
+import org.springframework.modulith.NamedInterface;

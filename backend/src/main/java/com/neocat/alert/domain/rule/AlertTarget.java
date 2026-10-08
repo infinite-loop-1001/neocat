@@ -72,7 +72,7 @@ public class AlertTarget {
                 List.copyOf(formulaStats));
     }
     public boolean isCardResult() {
-        return kind == AlertTargetKind.CARD_RESULT;
+        return Objects.equals(kind, AlertTargetKind.CARD_RESULT);
     }
     /** 目标身份：同服务同指标对象视为同一目标。 */
     public String identity() {

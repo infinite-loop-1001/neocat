@@ -1,4 +1,8 @@
 package com.neocat.analysis.domain.bucket;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 序列身份（技术方案 01 §3「目标序列」）。
@@ -13,10 +17,10 @@ package com.neocat.analysis.domain.bucket;
  * @param problemCategory Problem 分类（EXCEPTION / SLOW_URL / …），非 Problem 为空串
  * @param metricLabels    Metric 规范化标签串；被并入 other 时为 {@link #OTHER_LABELS}
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("analysis")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class SeriesKey {
     private final String service;
 
@@ -42,29 +46,33 @@ public class SeriesKey {
         this.metricLabels = metricLabels;
     }
 
-    /** 全机器聚合行的实例标识。 */
+    /**
+     * 全机器聚合行的实例标识。
+     */
     public static final String ALL = "all";
 
-    /** Metric 中被并入 other 的序列标签标识。 */
+    /**
+     * Metric 中被并入 other 的序列标签标识。
+     */
     public static final String OTHER_LABELS = "__OTHER__";
 
     public static SeriesKey of(String service, SeriesKind kind, String type, String name) {
         return new SeriesKey(service, kind, type, name, ALL, "", "");
     }
+
     public static SeriesKey of(String service, SeriesKind kind, String type, String name, String instance) {
         return new SeriesKey(service, kind, type, name, instance, "", "");
     }
+
     public static SeriesKey problem(String service, String category, String name) {
         return new SeriesKey(service, SeriesKind.PROBLEM, category, name, ALL, category, "");
     }
+
     public static SeriesKey metric(String service, String metricName, String labels) {
         return new SeriesKey(service, SeriesKind.METRIC, metricName, "", ALL, "", labels);
     }
+
     public static SeriesKey dependency(String service, String peerService) {
         return new SeriesKey(service, SeriesKind.DEPENDENCY, peerService, "", ALL, "", "");
     }
 }
-
-
-
-

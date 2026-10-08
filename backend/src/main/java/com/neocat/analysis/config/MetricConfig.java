@@ -1,10 +1,10 @@
-package com.neocat.common.config;
+package com.neocat.analysis.config;
 
 import link.cu1universe.dev.apollo.annotation.ApolloStaticValue;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
-public class HeartbeatConfig {
-    @ApolloStaticValue("${neocat.heartbeat.topn}")
+public class MetricConfig {
+    @ApolloStaticValue("${neocat.metric.top-n}")
     public static volatile int TOP_N;
 }

@@ -1,9 +1,9 @@
 package com.neocat.trace.api.internal;
 
-import java.util.Optional;
+import org.springframework.lang.Nullable;
 
 /** Read-only historical fingerprint lookup for ingestion deduplication. */
 public interface StoredFingerprint {
-    @org.springframework.lang.Nullable
+    @Nullable
     String fingerprintOf(String messageId);
 }

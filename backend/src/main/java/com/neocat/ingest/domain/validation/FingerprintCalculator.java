@@ -13,6 +13,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 import org.apache.commons.collections4.MapUtils;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * 树内容指纹计算（PRD 02 §6.1）。
@@ -26,8 +30,8 @@ import org.apache.commons.collections4.MapUtils;
  *   <li>浮点值用 {@link Double#toString} 的规范形式，避免精度噪声。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("tree")
-@org.springframework.stereotype.Component
+@NamedInterface("tree")
+@Component
 public class FingerprintCalculator {
 
     private static final char FIELD_SEP = '\u001F';
@@ -79,8 +83,8 @@ public class FingerprintCalculator {
         if (Objects.equals(hb.getValues().keySet(), Set.of("heap-used", "heap-max", "gc-count", "gc-time", "threads"))) {
             return hb.heapUsedBytes() + "," + hb.heapMaxBytes() + "," + hb.gcCount() + "," + hb.gcTimeMs() + "," + hb.threadCount();
         }
-        return canonicalMap(hb.getValues().entrySet().stream().collect(java.util.stream.Collectors.toMap(
-                java.util.Map.Entry::getKey, e -> Long.toString(e.getValue()), (left, right) -> {
+        return canonicalMap(hb.getValues().entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getKey, e -> Long.toString(e.getValue()), (left, right) -> {
                     throw new IllegalStateException("重复 Heartbeat 指标键");
                 })));
     }

@@ -1,6 +1,14 @@
 package com.neocat.analysis.domain.bucket;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+import com.neocat.common.DecimalMath;
+
 import java.util.Objects;
+import java.time.Instant;
+
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 内存分钟桶（技术方案 01 §6.5）。
@@ -14,7 +22,7 @@ import java.util.Objects;
  *   <li>耗时类与比例类（Avg / FailureRate / 分位）显示**无值**，即返回 {@code null}。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public class MinuteBucket {
 
     private long count;
@@ -27,17 +35,17 @@ public class MinuteBucket {
 
     private long durationMax;
 
-    private double valueSum;
+    private BigDecimal valueSum;
 
-    private double valueMin;
+    private BigDecimal valueMin;
 
-    private double valueMax;
+    private BigDecimal valueMax;
 
     private long valueCount;
 
-    private Double valueLast;
+    private BigDecimal valueLast;
 
-    private java.time.Instant valueLastTime;
+    private Instant valueLastTime;
 
     private final DurationDistribution distribution;
 
@@ -46,8 +54,7 @@ public class MinuteBucket {
     public MinuteBucket() {
         this.durationMin = Long.MAX_VALUE;
         this.durationMax = Long.MIN_VALUE;
-        this.valueMin = Double.POSITIVE_INFINITY;
-        this.valueMax = Double.NEGATIVE_INFINITY;
+        this.valueSum = BigDecimal.ZERO;
         this.distribution = new DurationDistribution();
         this.valueDistribution = new DurationDistribution();
     }
@@ -55,9 +62,11 @@ public class MinuteBucket {
     public void addSuccess(long durationMs) {
         add(durationMs, false);
     }
+
     public void addFailure(long durationMs) {
         add(durationMs, true);
     }
+
     /**
      * 只计数、不记耗时（Event 专用）。
      * 保持分布为空，使查询期对 Event 请求分位时得到无值而非伪精确值。
@@ -68,6 +77,7 @@ public class MinuteBucket {
             failCount++;
         }
     }
+
     private void add(long durationMs, boolean failure) {
         count++;
         if (failure) {
@@ -81,40 +91,59 @@ public class MinuteBucket {
             distribution.record(durationMs);
         }
     }
+
     public long count() {
         return count;
     }
+
     public long failCount() {
         return failCount;
     }
+
     public long durationSum() {
         return durationSum;
     }
-    /** 真实最小耗时；无调用时返回 0。 */
+
+    /**
+     * 真实最小耗时；无调用时返回 0。
+     */
     public long durationMin() {
         return count == 0 ? 0L : (durationMin == Long.MAX_VALUE ? 0L : durationMin);
     }
-    /** 真实最大耗时；无调用时返回 0。 */
+
+    /**
+     * 真实最大耗时；无调用时返回 0。
+     */
     public long durationMax() {
         return count == 0 ? 0L : (durationMax == Long.MIN_VALUE ? 0L : durationMax);
     }
+
     public DurationDistribution distribution() {
         return distribution;
     }
-    /** 平均耗时；无调用时返回 null（PRD 03 §5：无调用时 Avg 显示无值）。 */
-    public Double averageDuration() {
-        return count == 0 ? null : (double) durationSum / count;
+
+    /**
+     * 平均耗时；无调用时返回 null（PRD 03 §5：无调用时 Avg 显示无值）。
+     */
+    public BigDecimal averageDuration() {
+        return count == 0 ? null : DecimalMath.result(DecimalMath.divide(durationSum, count));
     }
-    /** 失败率；无调用时返回 null。 */
-    public Double failureRate() {
-        return count == 0 ? null : (double) failCount / count;
+
+    /**
+     * 失败率；无调用时返回 null。
+     */
+    public BigDecimal failureRate() {
+        return count == 0 ? null : DecimalMath.result(DecimalMath.divide(failCount, count));
     }
-    /** QPS：桶内总次数 ÷ 桶实际覆盖秒数（PRD 03 §3、§4）。 */
-    public Double qps(long coveredSeconds) {
+
+    /**
+     * QPS：桶内总次数 ÷ 桶实际覆盖秒数（PRD 03 §3、§4）。
+     */
+    public BigDecimal qps(long coveredSeconds) {
         if (coveredSeconds <= 0) {
             return null;
         }
-        return (double) count / coveredSeconds;
+        return DecimalMath.result(DecimalMath.divide(count, coveredSeconds));
     }
 
     // ── 数值型指标（Metric / Heartbeat 使用） ─────────────────
@@ -125,25 +154,35 @@ public class MinuteBucket {
      * <p>与耗时不同：数值型指标需要 sum / min / max / avg，且分位基于**原始数值分布**。
      * 这里同时累加数值统计与分布（分位基于桶内原始数值分布，不平均子桶分位 —— PRD 04 §9）。
      */
-    public synchronized void addValue(double value) {
-        valueSum += value;
-        valueMin = Math.min(valueMin, value);
-        valueMax = Math.max(valueMax, value);
+    public synchronized void addValue(BigDecimal value) {
+        Objects.requireNonNull(value, "value");
+        valueSum = valueSum.add(value);
+        valueMin = Objects.isNull(valueMin) ? value : valueMin.min(value);
+        valueMax = Objects.isNull(valueMax) ? value : valueMax.max(value);
         valueCount++;
         // 数值分位基于桶内原始数值分布（PRD 04 §9），与耗时分位严格分开：
         // 复用同一分布会把耗时样本混进数值分位，反之亦然。
-        valueDistribution.record(Math.round(value));
+        // 原分布为整数直方图，保持原先 floor(value + 0.5) 的样本量化口径。
+        valueDistribution.record(value.add(new BigDecimal("0.5")).setScale(0, RoundingMode.FLOOR)
+                .max(BigDecimal.valueOf(Long.MIN_VALUE)).min(BigDecimal.valueOf(Long.MAX_VALUE)).longValueExact());
     }
-    public synchronized void addValue(double value, java.time.Instant eventTime) {
+
+    public synchronized void addValue(BigDecimal value, Instant eventTime) {
         addValue(value);
         if (Objects.isNull(valueLastTime) || eventTime.isAfter(valueLastTime)
-                || (Objects.equals(eventTime, valueLastTime) && value > valueLast)) {
+                || (Objects.equals(eventTime, valueLastTime) && value.compareTo(valueLast) > 0)) {
             valueLast = value;
             valueLastTime = eventTime;
         }
     }
-    public synchronized Double valueLast() { return valueLast; }
-    public synchronized java.time.Instant valueLastTime() { return valueLastTime; }
+
+    public synchronized BigDecimal valueLast() {
+        return valueLast;
+    }
+
+    public synchronized Instant valueLastTime() {
+        return valueLastTime;
+    }
 
     /**
      * 数值分布（Metric / Heartbeat 的数值分位来源）。
@@ -153,30 +192,33 @@ public class MinuteBucket {
     public DurationDistribution valueDistribution() {
         return valueDistribution;
     }
+
     public synchronized long valueCount() {
         return valueCount;
     }
-    public synchronized double valueSum() {
+
+    public synchronized BigDecimal valueSum() {
         return valueSum;
     }
-    /** 数值最小值；无观测时返回 0。 */
-    public double valueMin() {
-        return valueCount == 0 ? 0.0d : valueMin;
+
+    /**
+     * 数值最小值；无观测时返回 0。
+     */
+    public BigDecimal valueMin() {
+        return valueCount == 0 ? BigDecimal.ZERO : valueMin;
     }
-    /** 数值最大值；无观测时返回 0。 */
-    public double valueMax() {
-        return valueCount == 0 ? 0.0d : valueMax;
+
+    /**
+     * 数值最大值；无观测时返回 0。
+     */
+    public BigDecimal valueMax() {
+        return valueCount == 0 ? BigDecimal.ZERO : valueMax;
     }
-    /** 数值平均；无观测时返回 null（无值语义）。 */
-    public Double valueAverage() {
-        return valueCount == 0 ? null : valueSum / valueCount;
+
+    /**
+     * 数值平均；无观测时返回 null（无值语义）。
+     */
+    public BigDecimal valueAverage() {
+        return valueCount == 0 ? null : DecimalMath.result(DecimalMath.divide(valueSum, BigDecimal.valueOf(valueCount)));
     }
 }
-
-
-
-
-
-
-
-

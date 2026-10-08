@@ -9,6 +9,9 @@ import com.neocat.catalog.domain.report.TimeRange;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 服务与实例自动发现（PRD 02 §5）。
@@ -20,8 +23,8 @@ import java.util.Objects;
  * <p>目录本身不做「永久空壳展示」：是否展示由
  * {@link #servicesWithData(ReportKind, TimeRange)} 按当前报表类型与时间范围动态过滤。
  */
-@org.springframework.modulith.NamedInterface("catalog")
-@org.springframework.stereotype.Service
+@NamedInterface("catalog")
+@Service
 public class CatalogService {
 
     private final CatalogRepository repository;
@@ -31,7 +34,7 @@ public class CatalogService {
     public CatalogService(CatalogRepository repository) {
         this(repository, SeriesPresence.denyAll());
     }
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public CatalogService(CatalogRepository repository, SeriesPresence seriesPresence) {
         this.repository = repository;
         this.seriesPresence = seriesPresence;

@@ -1,6 +1,7 @@
 package com.neocat.ingest.domain.receive;
 
 import java.time.Instant;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 上报路径上的身份发现网关。
@@ -10,7 +11,7 @@ import java.time.Instant;
  * （PRD 02 §5）。具体实现必须同步完成发现，不得异步化，否则队列满时无法发现。
  */
 @FunctionalInterface
-@org.springframework.modulith.NamedInterface("tree")
+@NamedInterface("tree")
 public interface CatalogGateway {
 
     void discover(String serviceName, String instanceId, Instant at);

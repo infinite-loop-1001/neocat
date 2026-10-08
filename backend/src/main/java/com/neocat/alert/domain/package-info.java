@@ -7,5 +7,7 @@
  * <p>关键语义在本包内实现且不可绕过：保存后恒为关闭、
  * 预览只试算不留痕、缺数打断窗口、不存在告警历史。
  */
-@org.springframework.modulith.NamedInterface("alert")
+@NamedInterface("alert")
 package com.neocat.alert.domain;
+
+import org.springframework.modulith.NamedInterface;

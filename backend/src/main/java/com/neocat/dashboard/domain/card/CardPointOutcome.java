@@ -1,4 +1,5 @@
 package com.neocat.dashboard.domain.card;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 卡片单桶求值结果（PRD 05 §5、技术方案 02 §9.2）。
@@ -9,7 +10,7 @@ package com.neocat.dashboard.domain.card;
  *   <li>{@link #DIVIDE_BY_ZERO} 分母为 0，显示「不可计算」。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("dashboard")
+@NamedInterface("dashboard")
 public enum CardPointOutcome {
     OK,
     GAP,

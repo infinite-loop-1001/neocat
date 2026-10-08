@@ -1,6 +1,12 @@
 package com.neocat.trace.domain.sample;
 
 import java.util.Objects;
+import com.neocat.trace.domain.tree.TraceNode;
+import com.neocat.trace.domain.tree.TraceTree;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 取样查询条件（PRD 03 §11）。
@@ -16,10 +22,10 @@ import java.util.Objects;
  * @param problemCategory Problem 分类；非 Problem 查询为 null
  * @param limit        返回条数上限；默认 30
  */
-@org.springframework.modulith.NamedInterface("trace")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("trace")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class SampleQuery {
     private final String service;
 
@@ -54,7 +60,7 @@ public class SampleQuery {
     public static SampleQuery of(String service, String category, String name, long from, long to) {
         return new SampleQuery(service, category, name, null, from, to, null, DEFAULT_LIMIT);
     }
-    public boolean matches(com.neocat.trace.domain.tree.TraceTree tree, com.neocat.trace.domain.tree.TraceNode node) {
+    public boolean matches(TraceTree tree, TraceNode node) {
         if (Objects.nonNull(service) && !Objects.equals(service, tree.getServiceName())) {
             return false;
         }
@@ -74,7 +80,3 @@ public class SampleQuery {
         return Objects.isNull(name) || Objects.equals(name, node.getName());
     }
 }
-
-
-
-

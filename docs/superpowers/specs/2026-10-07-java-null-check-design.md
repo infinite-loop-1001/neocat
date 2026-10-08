@@ -127,3 +127,42 @@ Spring Boot 3.3.13 BOM 不管理该构件，因此显式声明版本。`client-j
   HTTP 契约对齐与 `git diff --check` 通过。
 - 已知局限：容器判空检查只识别语法上可确定的形态；单独出现的 `list.isEmpty()`
   在没有 classpath 的语法树检查中无法与 `String.isEmpty()` 区分，未纳入自动检查。
+
+## 第四轮：枚举相等比较补漏（2026-10-08）
+
+### 范围与边界
+
+- 根据 `JdbcReportBucketSink` 评审，取消第二轮的枚举豁免：Java 枚举相等统一使用
+  `Objects.equals(left, right)`，不等使用 `!Objects.equals(left, right)`。
+- 共修改 103 个比较表达式／39 个 Java 文件：backend 96 处／38 文件（含一个手写 Java
+  测试装配文件），scripts 检查器 7 处／1 文件。截图所在文件修改 14 处。
+  输入清单中的 38 文件不是实际首轮修改数：其中 3 个只有原始类型比较，未作修改。
+- 覆盖常量侧、枚举内部 `this` 比较，以及复核发现的 4 处枚举变量比较
+  （PlatformReadService、PlatformService、PlatformConvert、CoreWiringConfiguration）。
+- 保留原始类型和拆箱后的数值比较：如 `Long.MAX_VALUE`、`Long id != long accountId`、
+  `Condition` 的 Double/double EQ/NEQ；避免改变 null 拆箱异常、NaN 和正负零的语义。
+- 不修改 Groovy、前端、生成代码、API／Protobuf 契约；不扩展为无关重构。
+
+### 检查器与证据边界
+
+- 无 classpath 的 JDK AST 检查先收集真实枚举声明，结合 import、显式声明的变量类型
+  识别比较；支持嵌套类型、反向比较与括号，不根据 `Owner.ALL_CAPS` 命名猜测类型。
+- 检查器回归覆盖跨文件声明、普通数值常量、注释／SQL 字符串隔离；语义回归覆盖
+  null、相等／不等、短路、三元分支、左右求值顺序及表达式单次求值。
+- 该检查器不是完整类型解析：变量遮蔽、静态导入、推断类型和仅有方法返回值的比较
+  仍需编译与人工审查。扫描通过不能证明所有对象比较零遗漏。
+- 初期 IDE MCP 连接关闭，文件复核与全量剩余比较审查来自本地文本／AST；连接恢复后，
+  补漏的 4 个 Java 文件经 IDEA `build_project` 编译成功、无问题。
+  `lint_files` 返回空结果，未将其计为逐文件静态分析通过的证据；scripts 不在 IDE 内容根内。
+
+### 验证
+
+- `node --test scripts/check-coding-standards.test.mjs scripts/type-imports.test.mjs`：18/18 通过。
+- `node scripts/check-coding-standards.mjs`：448 个手写 Java 文件、两个 POM 通过。
+- 补漏后 `mvn -o -f backend/pom.xml test`：1338 项、10 failures、0 errors；逐项比较
+  Surefire XML，失败身份与既有基线完全一致（ModuleBoundarySpec 6、PrdAcceptanceTraceabilitySpec 4）。
+- SDK 离线测试 30/30 通过；HTTP 端点、错误码契约检查与 `git diff --check` 通过。
+- 暂存区二进制 diff 的 SHA-256 保持
+  `bc1ed19a2f18b97e63cf92bcf602de79201cf9511801a8e0bd7a45ab93619ce7`，未暂存、提交或推送。
+
+以上是离线证据，不代表真实中间件、现场 Spring 启动或外部通知已验收。

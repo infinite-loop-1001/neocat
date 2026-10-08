@@ -7,6 +7,7 @@ import com.neocat.ingest.domain.tree.MessageTree;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * Metric 小时内排名表（PRD 04 §2–3）。
@@ -20,7 +21,7 @@ import java.util.Set;
  *   <li>11:00 重新从空排名开始，同一组合可能从独立序列变成 other，或反向变化。</li>
  * </ol>
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public interface MetricHourRank {
 
     /**

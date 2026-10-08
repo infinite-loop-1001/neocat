@@ -12,6 +12,8 @@ import com.neocat.ingest.domain.tree.RemoteCallValue;
 
 import java.time.Instant;
 import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * 依赖分析器（PRD 02 §9、PRD 04 §6–7，链路 22）。
@@ -30,8 +32,8 @@ import java.util.Objects;
  *   <li>下游侧：{@code (downstream, DEPENDENCY, UPSTREAM, upstream)}</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@org.springframework.stereotype.Component
+@NamedInterface("analysis")
+@Component
 public class DependencyAnalyzer implements Analyzer {
 
     static final String DOWNSTREAM_DIRECTION = "DOWNSTREAM";
@@ -50,7 +52,7 @@ public class DependencyAnalyzer implements Analyzer {
     @Override
     public void analyze(MessageTree tree) {
         for (RawNode node : tree.getNodes()) {
-            if (node.getKind() != NodeKind.REMOTE_CALL) {
+            if (!Objects.equals(node.getKind(), NodeKind.REMOTE_CALL)) {
                 continue;
             }
             RemoteCallValue call = node.getRemoteCall();

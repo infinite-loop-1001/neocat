@@ -1,5 +1,7 @@
 package com.neocat.alert.domain.rule
 
+import java.math.BigDecimal
+
 import com.neocat.alert.domain.engine.Notifier
 
 import com.neocat.query.domain.stat.Stat
@@ -21,7 +23,7 @@ class AlertRuleSpec extends Specification {
         return AlertTarget.rawMetric("order", "TRANSACTION", "URL", "POST /orders")
     }
 
-    def condition(Stat stat, Comparator comparator, double threshold) {
+    def condition(Stat stat, Comparator comparator, BigDecimal threshold) {
         return new Condition(stat, comparator, threshold)
     }
 
@@ -31,7 +33,7 @@ class AlertRuleSpec extends Specification {
         when:
         def rule = service.save(AlertRule.draft(AlertScope.SERVICE, null, "订单失败率",
                 "", target(), Combinator.AND, 3,
-                [condition(Stat.FAILURE_RATE, Comparator.GT, 0.05d)],
+                [condition(Stat.FAILURE_RATE, Comparator.GT, 0.05)],
                 [1L, 2L], [EMAIL]))
 
         then:
@@ -47,7 +49,7 @@ class AlertRuleSpec extends Specification {
 
         when:
         s.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(), Combinator.AND, 1,
-                [condition(Stat.HITS, Comparator.GT, 10d)], [1L], [EMAIL]))
+                [condition(Stat.HITS, Comparator.GT, 10.0)], [1L], [EMAIL]))
 
         then:
         0 * notifier._
@@ -59,8 +61,8 @@ class AlertRuleSpec extends Specification {
         when:
         def rule = service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
                 Combinator.AND, 2,
-                [condition(Stat.HITS, Comparator.GT, 10d),
-                 condition(Stat.FAILURE_RATE, Comparator.GT, 0.1d)],
+                [condition(Stat.HITS, Comparator.GT, 10.0),
+                 condition(Stat.FAILURE_RATE, Comparator.GT, 0.1)],
                 [1L], [EMAIL]))
 
         then: "两个条件作用于同一目标"
@@ -80,7 +82,7 @@ class AlertRuleSpec extends Specification {
         when:
         def rule = service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
                 combinator, 1,
-                [condition(Stat.HITS, Comparator.GT, 1d), condition(Stat.FAILURES, Comparator.GT, 0d)],
+                [condition(Stat.HITS, Comparator.GT, 1.0), condition(Stat.FAILURES, Comparator.GT, 0.0)],
                 [1L], [EMAIL]))
 
         then:
@@ -110,7 +112,7 @@ class AlertRuleSpec extends Specification {
     def "窗口长度至少为 1"() {
         when:
         service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
-                Combinator.AND, 0, [condition(Stat.HITS, Comparator.GT, 1d)], [1L], [EMAIL]))
+                Combinator.AND, 0, [condition(Stat.HITS, Comparator.GT, 1.0)], [1L], [EMAIL]))
 
         then:
         thrown(IllegalArgumentException)
@@ -119,7 +121,7 @@ class AlertRuleSpec extends Specification {
     def "窗口长度上限校验（避免长时间窗口导致无意义等待）"() {
         when:
         service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
-                Combinator.AND, 1441, [condition(Stat.HITS, Comparator.GT, 1d)], [1L], [EMAIL]))
+                Combinator.AND, 1441, [condition(Stat.HITS, Comparator.GT, 1.0)], [1L], [EMAIL]))
 
         then:
         thrown(IllegalArgumentException)
@@ -139,7 +141,7 @@ class AlertRuleSpec extends Specification {
     def "组织告警必须指定叶子组织"() {
         when:
         service.save(AlertRule.draft(AlertScope.ORGANIZATION, null, "r", "", target(),
-                Combinator.AND, 1, [condition(Stat.HITS, Comparator.GT, 1d)], [], [EMAIL]))
+                Combinator.AND, 1, [condition(Stat.HITS, Comparator.GT, 1.0)], [], [EMAIL]))
 
         then:
         thrown(IllegalArgumentException)
@@ -148,7 +150,7 @@ class AlertRuleSpec extends Specification {
     def "服务告警不绑定组织"() {
         when:
         def rule = service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
-                Combinator.AND, 1, [condition(Stat.HITS, Comparator.GT, 1d)], [1L], [EMAIL]))
+                Combinator.AND, 1, [condition(Stat.HITS, Comparator.GT, 1.0)], [1L], [EMAIL]))
 
         then:
         rule.getOrgId() == null
@@ -190,31 +192,31 @@ class AlertRuleSpec extends Specification {
 
         where:
         comparator         | threshold | value | expected
-        Comparator.GT      | 10d       | 11d   | true
-        Comparator.GT      | 10d       | 10d   | false
-        Comparator.GTE     | 10d       | 10d   | true
-        Comparator.LT      | 10d       | 9d    | true
-        Comparator.LT      | 10d       | 10d   | false
-        Comparator.LTE     | 10d       | 10d   | true
-        Comparator.EQ      | 10d       | 10d   | true
-        Comparator.NEQ     | 10d       | 9d    | true
+        Comparator.GT      | 10.0       | 11.0   | true
+        Comparator.GT      | 10.0       | 10.0   | false
+        Comparator.GTE     | 10.0       | 10.0   | true
+        Comparator.LT      | 10.0       | 9.0    | true
+        Comparator.LT      | 10.0       | 10.0   | false
+        Comparator.LTE     | 10.0       | 10.0   | true
+        Comparator.EQ      | 10.0       | 10.0   | true
+        Comparator.NEQ     | 10.0       | 9.0    | true
     }
 
     def "缺数不满足任何条件（未知点既不高于也不低于）"() {
         expect: "PRD 06 §6：未知点不满足『高于』或『低于』任何条件"
-        !condition(Stat.HITS, Comparator.GT, 0d).matches(null)
-        !condition(Stat.HITS, Comparator.LT, 100d).matches(null)
-        !condition(Stat.HITS, Comparator.GTE, 0d).matches(null)
-        !condition(Stat.HITS, Comparator.LTE, 100d).matches(null)
-        !condition(Stat.HITS, Comparator.EQ, 0d).matches(null)
-        !condition(Stat.HITS, Comparator.NEQ, 0d).matches(null)
+        !condition(Stat.HITS, Comparator.GT, 0.0).matches(null)
+        !condition(Stat.HITS, Comparator.LT, 100.0).matches(null)
+        !condition(Stat.HITS, Comparator.GTE, 0.0).matches(null)
+        !condition(Stat.HITS, Comparator.LTE, 100.0).matches(null)
+        !condition(Stat.HITS, Comparator.EQ, 0.0).matches(null)
+        !condition(Stat.HITS, Comparator.NEQ, 0.0).matches(null)
     }
 
     def "零值可以满足条件（完整且确认无调用时次数类为 0）"() {
         expect: "PRD 06 §6：完整且确认无调用的次数类点可以是 0"
-        condition(Stat.HITS, Comparator.LTE, 0d).matches(0.0d)
-        condition(Stat.HITS, Comparator.EQ, 0d).matches(0.0d)
-        !condition(Stat.HITS, Comparator.GT, 0d).matches(0.0d)
+        condition(Stat.HITS, Comparator.LTE, 0.0).matches(0.0)
+        condition(Stat.HITS, Comparator.EQ, 0.0).matches(0.0)
+        !condition(Stat.HITS, Comparator.GT, 0.0).matches(0.0)
     }
 
     // ── 通道 ─────────────────────────────────────────────────
@@ -234,7 +236,7 @@ class AlertRuleSpec extends Specification {
     def "原始指标规则引用条件中的统计项"() {
         when:
         def rule = AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(), Combinator.AND, 1,
-                [condition(Stat.FAILURE_RATE, Comparator.GT, 0.1d), condition(Stat.HITS, Comparator.GT, 10d)],
+                [condition(Stat.FAILURE_RATE, Comparator.GT, 0.1), condition(Stat.HITS, Comparator.GT, 10.0)],
                 [1L], [EMAIL])
 
         then:
@@ -246,7 +248,7 @@ class AlertRuleSpec extends Specification {
         def cardTarget = AlertTarget.cardResult(12L, "order", "TRANSACTION", "URL", "/a",
                 [Stat.FAILURES, Stat.HITS])
         def rule = AlertRule.draft(AlertScope.ORGANIZATION, 7L, "r", "", cardTarget, Combinator.AND, 1,
-                [condition(Stat.FAILURE_RATE, Comparator.GT, 0.1d)], [1L], [EMAIL])
+                [condition(Stat.FAILURE_RATE, Comparator.GT, 0.1)], [1L], [EMAIL])
 
         then:
         rule.referencedStats() as Set == [Stat.FAILURES, Stat.HITS] as Set

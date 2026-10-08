@@ -2,7 +2,7 @@ package com.neocat.analysis.infra.job
 
 import com.neocat.analysis.domain.analyzer.Analyzer
 import com.neocat.analysis.domain.analyzer.RealtimeConsumer
-import com.neocat.common.config.IngestConfig
+import com.neocat.ingest.config.IngestConfig
 import com.neocat.common.queue.impl.BoundedDropQueueFactory
 import com.neocat.ingest.domain.tree.MessageTree
 import spock.lang.Specification
@@ -11,6 +11,10 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import com.neocat.common.queue.BoundedDropQueue
+import com.neocat.ingest.domain.tree.NodeKind
+import com.neocat.ingest.domain.tree.RawNode
+import spock.util.concurrent.PollingConditions
 
 /**
  * 有界队列消费循环的规格（PRD 02 §8、§9）。
@@ -39,8 +43,8 @@ class RealtimeConsumerLoopSpec extends Specification {
     }
 
     static MessageTree tree(String messageId) {
-        def node = new com.neocat.ingest.domain.tree.RawNode("n-1",
-                com.neocat.ingest.domain.tree.NodeKind.TRANSACTION, "URL", "/a", "0", T, 1L,
+        def node = new RawNode("n-1",
+                NodeKind.TRANSACTION, "URL", "/a", "0", T, 1L,
                 null, null, null, null, null, Map.of())
         return new MessageTree("order", "10.0.0.8", messageId, messageId, null, T, [node])
     }
@@ -85,7 +89,7 @@ class RealtimeConsumerLoopSpec extends Specification {
     def "同一消费循环在更新后使用新批大小与超时，而非循环外快照"() {
         given:
         def calls = new CopyOnWriteArrayList<List>()
-        def dynamicQueue = new com.neocat.common.queue.BoundedDropQueue<MessageTree>() {
+        def dynamicQueue = new BoundedDropQueue<MessageTree>() {
             boolean offer(MessageTree item) { true }
             List<MessageTree> pollBatch(int maxItems, long timeoutMillis) {
                 calls.add([maxItems, timeoutMillis])
@@ -101,12 +105,12 @@ class RealtimeConsumerLoopSpec extends Specification {
         loop.start()
 
         when:
-        new spock.util.concurrent.PollingConditions(timeout: 3).eventually { assert calls.contains([10, 20L]) }
+        new PollingConditions(timeout: 3).eventually { assert calls.contains([10, 20L]) }
         IngestConfig.BATCH_SIZE = 3
         IngestConfig.BATCH_TIMEOUT_MS = 7
 
         then:
-        new spock.util.concurrent.PollingConditions(timeout: 3).eventually { assert calls.contains([3, 7L]) }
+        new PollingConditions(timeout: 3).eventually { assert calls.contains([3, 7L]) }
     }
 
     def "线程数更新后扩容和缩容，维护已启动 worker 而非配置副本"() {
@@ -119,13 +123,13 @@ class RealtimeConsumerLoopSpec extends Specification {
         loop.maintainConsumers()
 
         then:
-        new spock.util.concurrent.PollingConditions(timeout: 3).eventually { assert loop.activeWorkerCount() == 3 }
+        new PollingConditions(timeout: 3).eventually { assert loop.activeWorkerCount() == 3 }
 
         when:
         IngestConfig.CONSUMER_THREADS = 1
 
         then:
-        new spock.util.concurrent.PollingConditions(timeout: 3).eventually { assert loop.activeWorkerCount() == 1 }
+        new PollingConditions(timeout: 3).eventually { assert loop.activeWorkerCount() == 1 }
     }
 
     // ── 正常消费 ─────────────────────────────────────────────

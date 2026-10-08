@@ -20,6 +20,10 @@ import static com.neocat.common.error.ErrorCode.ORG_NOT_FOUND;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+import com.neocat.common.locking.MySqlLocked;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 组织生命周期用例（PRD 01 §5.2 / §5.3）。
@@ -42,7 +46,7 @@ public class OrgLifecycleService {
                                 MembershipRepository memberships, EffectiveLeafRepository effectiveLeaves) {
         this(nodes, resources, memberships, effectiveLeaves, null);
     }
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public OrgLifecycleService(OrgNodeRepository nodes, OrgResourceGateway resources,
                                MembershipRepository memberships, EffectiveLeafRepository effectiveLeaves,
                                OrgMembershipService membershipService) {
@@ -58,8 +62,8 @@ public class OrgLifecycleService {
      * <p>只有当父节点当前是叶子、且已拥有大盘或组织告警时才阻止；
      * 非叶子新增子节点不受该约束。
      */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public OrgNode addChildNode(long parentId, String name) {
         requireNode(parentId);
         if (isLeaf(parentId) && (resources.hasDashboards(parentId) || resources.hasAlertRules(parentId))) {
@@ -83,8 +87,8 @@ public class OrgLifecycleService {
      * <p>顺序：校验存在 → 校验无子节点 → 校验确认名称 → 级联删除资源 →
      * 删除成员关系与有效叶子快照 → 删除节点本身。
      */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public void deleteNode(long orgId, String confirmName) {
         OrgNode node = requireNode(orgId);
         if (!isLeaf(orgId)) {
@@ -121,7 +125,7 @@ public class OrgLifecycleService {
     // ── 内部 ─────────────────────────────────────────────────
 
     private OrgNode requireNode(long orgId) {
-        return java.util.Optional.ofNullable(nodes.findById(orgId))
+        return Optional.ofNullable(nodes.findById(orgId))
                 .orElseThrow(() -> new ResourceNotFoundException(ORG_NOT_FOUND, orgId));
     }
     private Set<Long> leavesOf(long orgId) {
@@ -129,7 +133,7 @@ public class OrgLifecycleService {
         List<OrgNode> all = nodes.findAll();
         if (all.stream().noneMatch(n -> Objects.nonNull(n.getParentId()) && n.getParentId() == orgId)) {
             // 自身已是叶子
-            if (java.util.Objects.nonNull(nodes.findById(orgId))) {
+            if (Objects.nonNull(nodes.findById(orgId))) {
                 leaves.add(orgId);
             }
             return leaves;
@@ -142,4 +146,3 @@ public class OrgLifecycleService {
         return leaves;
     }
 }
-

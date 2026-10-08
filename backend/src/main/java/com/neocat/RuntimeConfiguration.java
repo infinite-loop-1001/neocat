@@ -1,4 +1,4 @@
-package com.neocat.common.config.impl;
+package com.neocat;
 
 import com.neocat.common.queue.QueueFactory;
 import com.neocat.common.queue.impl.BoundedDropQueueFactory;
@@ -7,16 +7,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
 
-import java.time.Clock;
-
 /**
- * 公共时钟、队列工厂与启动配置校验装配。
+ * 队列工厂与启动配置校验装配；时间能力由公共静态入口提供。
  *
  * <p>动态参数由按用途拆分的配置类持有，本类不复制动态参数。
  */
 @Configuration
 public class RuntimeConfiguration {
-
 
     /**
      * 启动配置校验：Apollo 的属性源由原生处理器在刷新期安装，本处理器是普通
@@ -27,14 +24,8 @@ public class RuntimeConfiguration {
         return beanFactory -> ApolloConfigGuard.validate(environment);
     }
 
-    // rules: 这类时钟问题抽出一个公共静态方法提供能力, 而不是通过 Spring Bean 注入
-    @Bean
-    public Clock clock() {
-        return Clock.systemUTC();
-    }
     @Bean
     public QueueFactory queueFactory() {
         return new BoundedDropQueueFactory();
     }
-
 }

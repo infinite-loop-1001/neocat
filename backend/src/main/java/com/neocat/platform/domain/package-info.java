@@ -5,5 +5,7 @@
  * 其中 {@code PlatformService} 是唯一写入口，保证
  * 「时区初始化后只读」这类不变式不被绕过。
  */
-@org.springframework.modulith.NamedInterface("platform")
+@NamedInterface("platform")
 package com.neocat.platform.domain;
+
+import org.springframework.modulith.NamedInterface;

@@ -4,6 +4,9 @@ import com.neocat.common.time.range.RangeQuick;
 import com.neocat.common.time.range.RangeSpec;
 
 import java.util.List;
+import java.time.Instant;
+import java.time.ZoneId;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 把 {@link RangeSpec} 解析为按平台时区对齐的时间桶序列。
@@ -16,7 +19,7 @@ import java.util.List;
  *   <li>桶边界与平台时区的固定边界对齐。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("time")
+@NamedInterface("time")
 public interface TimeBucketResolver {
 
     /**
@@ -24,8 +27,8 @@ public interface TimeBucketResolver {
      * @param zone 平台时区
      * @return 左闭右开的桶序列，按时间升序
      */
-    List<Bucket> resolve(RangeSpec spec, java.time.ZoneId zone);
+    List<Bucket> resolve(RangeSpec spec, ZoneId zone);
 
     /** 把某一时刻按其粒度对齐到桶起点。 */
-    java.time.Instant alignStart(java.time.Instant instant, Granularity granularity, java.time.ZoneId zone);
+    Instant alignStart(Instant instant, Granularity granularity, ZoneId zone);
 }

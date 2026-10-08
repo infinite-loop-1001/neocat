@@ -10,6 +10,9 @@ import com.neocat.ingest.domain.tree.NodeKind;
 import com.neocat.ingest.domain.tree.RawNode;
 
 import java.time.Instant;
+import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * Transaction 分析器（PRD 02 §9、PRD 03 §7）。
@@ -23,8 +26,8 @@ import java.time.Instant;
  *   <li>非成功状态计入 failCount，但耗时照常进入耗时统计。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@org.springframework.stereotype.Component
+@NamedInterface("analysis")
+@Component
 public class TransactionAnalyzer implements Analyzer {
 
     private final HourlyReportStore store;
@@ -39,7 +42,7 @@ public class TransactionAnalyzer implements Analyzer {
     @Override
     public void analyze(MessageTree tree) {
         for (RawNode node : tree.getNodes()) {
-            if (node.getKind() != NodeKind.TRANSACTION) {
+            if (!Objects.equals(node.getKind(), NodeKind.TRANSACTION)) {
                 continue;
             }
             Instant eventTime = Instant.ofEpochMilli(node.getTimestamp());

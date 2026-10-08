@@ -4,7 +4,9 @@
  * <p>只依赖 {@code core}。固定时区、慢阈值、通知通道由本模块持有，
  * 其他模块通过公开接口读取，不直接访问其存储。
  */
-@org.springframework.modulith.ApplicationModule(
+@ApplicationModule(
         displayName = "Platform",
         allowedDependencies = {"common", "common :: locking", "common :: error", "common :: config", "common :: time", "common :: queue"})
 package com.neocat.platform;
+
+import org.springframework.modulith.ApplicationModule;

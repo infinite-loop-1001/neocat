@@ -3,6 +3,7 @@ package com.neocat.organization.domain.lifecycle;
 import com.neocat.organization.domain.tree.DeletionPreview;
 
 import java.util.List;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 组织资源归属查询（大盘、组织告警）。
@@ -16,7 +17,7 @@ import java.util.List;
  *   <li>删除叶子前的影响预览与原子级联删除（PRD 01 §5.3）。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("isOrganization")
+@NamedInterface("isOrganization")
 public interface OrgResourceGateway {
 
     /** 该叶子是否已有大盘。 */

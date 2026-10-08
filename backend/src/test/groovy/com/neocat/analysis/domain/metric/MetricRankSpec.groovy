@@ -3,11 +3,14 @@ package com.neocat.analysis.domain.metric
 import com.neocat.analysis.domain.analyzer.AnalysisFixtures
 import com.neocat.analysis.domain.analyzer.MetricAnalyzer
 import com.neocat.analysis.domain.bucket.SeriesKey
-import com.neocat.common.config.MetricConfig
+import com.neocat.analysis.config.MetricConfig
 
 import spock.lang.Specification
 
 import java.time.Instant
+import com.neocat.analysis.infra.store.InMemoryHourlyReportStore
+import com.neocat.analysis.infra.store.InMemoryMetricHourRank
+import java.time.temporal.ChronoUnit
 
 /**
  * G6 任务37（红）：Metric 标签规范化与 Top1000 + other。
@@ -18,13 +21,13 @@ class MetricRankSpec extends Specification {
     static final Instant H10 = Instant.parse("2026-09-24T02:00:00Z")   // 平台时区 10:00
     static final Instant H11 = Instant.parse("2026-09-24T03:00:00Z")   // 平台时区 11:00
 
-    com.neocat.analysis.infra.store.InMemoryMetricHourRank rank
-    com.neocat.analysis.infra.store.InMemoryHourlyReportStore store
+    InMemoryMetricHourRank rank
+    InMemoryHourlyReportStore store
     MetricAnalyzer analyzer
 
     def setup() {
-        rank = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
-        store = new com.neocat.analysis.infra.store.InMemoryHourlyReportStore()
+        rank = new InMemoryMetricHourRank()
+        store = new InMemoryHourlyReportStore()
         analyzer = new MetricAnalyzer(store, rank)
     }
 
@@ -52,7 +55,7 @@ class MetricRankSpec extends Specification {
     def "上报次数在前 1000 的标签组合被保留为独立序列"() {
         given:
         MetricConfig.TOP_N = 3
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
 
         expect:
         small.record("order", "m", "a=1;", H10) == "a=1;"
@@ -63,7 +66,7 @@ class MetricRankSpec extends Specification {
     def "第 1001 个及之后的组合并入 other"() {
         given:
         MetricConfig.TOP_N = 2
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
 
         expect:
         small.record("order", "m", "a=1;", H10) == "a=1;"
@@ -76,7 +79,7 @@ class MetricRankSpec extends Specification {
     def "Top1000 限制不拒绝上报：超出后仍返回归属序列而非抛异常"() {
         given: "先占满名额"
         MetricConfig.TOP_N = 1
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
         small.record("order", "m", "a=1;", H10)
 
         when: "超出的组合并入 other"
@@ -90,7 +93,7 @@ class MetricRankSpec extends Specification {
     def "已被保留的序列继续上报仍归入自己，不会因后续序列出现而漂移"() {
         given:
         MetricConfig.TOP_N = 2
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
         small.record("order", "m", "a=1;", H10)
         small.record("order", "m", "b=1;", H10)
         small.record("order", "m", "c=1;", H10)         // 进 other
@@ -104,7 +107,7 @@ class MetricRankSpec extends Specification {
     def "每个自然小时独立排名：新小时从空排名开始"() {
         given:
         MetricConfig.TOP_N = 1
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
         small.record("order", "m", "a=1;", H10)
 
         expect: "10 点 a 已占用唯一名额"
@@ -117,7 +120,7 @@ class MetricRankSpec extends Specification {
     def "同一组合可以从独立序列变成 other，也可以反向变化"() {
         given:
         MetricConfig.TOP_N = 1
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
 
         expect: "10 点 a 独立、b 进 other"
         small.record("order", "m", "a=1;", H10) == "a=1;"
@@ -131,7 +134,7 @@ class MetricRankSpec extends Specification {
     def "不同服务与不同指标名各自独立排名"() {
         given:
         MetricConfig.TOP_N = 1
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
 
         expect:
         small.record("order", "m1", "a=1;", H10) == "a=1;"
@@ -146,7 +149,7 @@ class MetricRankSpec extends Specification {
     def "固化后新增的标签组合按固化结果归属：未上前 1000 的进 other"() {
         given:
         MetricConfig.TOP_N = 1
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
         small.record("order", "m", "a=1;", H10)
         small.finalizeHour(H10)
 
@@ -160,7 +163,7 @@ class MetricRankSpec extends Specification {
     def "mergedIntoOther 用于表达跨小时缺口：该小时被并入 other 的组合为 true"() {
         given:
         MetricConfig.TOP_N = 1
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
         small.record("order", "m", "a=1;", H10)
         small.record("order", "m", "b=1;", H10)
         small.finalizeHour(H10)
@@ -173,7 +176,7 @@ class MetricRankSpec extends Specification {
     def "promotedLabels 返回该小时保留的独立序列集合"() {
         given:
         MetricConfig.TOP_N = 2
-        def small = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
+        def small = new InMemoryMetricHourRank()
         small.record("order", "m", "a=1;", H10)
         small.record("order", "m", "b=1;", H10)
         small.record("order", "m", "c=1;", H10)
@@ -199,8 +202,8 @@ class MetricRankSpec extends Specification {
     def "超出 Top1000 的标签组合写入 other 序列"() {
         given:
         MetricConfig.TOP_N = 1
-        def tinyRank = new com.neocat.analysis.infra.store.InMemoryMetricHourRank()
-        def tinyStore = new com.neocat.analysis.infra.store.InMemoryHourlyReportStore()
+        def tinyRank = new InMemoryMetricHourRank()
+        def tinyStore = new InMemoryHourlyReportStore()
         def tiny = new MetricAnalyzer(tinyStore, tinyRank)
         def t = H10.plusSeconds(60).toEpochMilli()
 
@@ -210,9 +213,9 @@ class MetricRankSpec extends Specification {
 
         then: "第一个独立、第二个进 other"
         tinyStore.bucket(SeriesKey.metric("order", "m", "a=1;"),
-                Instant.ofEpochMilli(t).truncatedTo(java.time.temporal.ChronoUnit.MINUTES)).valueSum() == 1.0d
+                Instant.ofEpochMilli(t).truncatedTo(ChronoUnit.MINUTES)).valueSum() == 1.0d
         tinyStore.bucket(SeriesKey.metric("order", "m", SeriesKey.OTHER_LABELS),
-                Instant.ofEpochMilli(t).truncatedTo(java.time.temporal.ChronoUnit.MINUTES)).valueSum() == 2.0d
+                Instant.ofEpochMilli(t).truncatedTo(ChronoUnit.MINUTES)).valueSum() == 2.0d
     }
 
     def "同一时间桶只有一个值时各分位与该值相同"() {

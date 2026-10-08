@@ -5,6 +5,8 @@ import com.neocat.ingest.domain.tree.MessageTree;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * 分析扇出调度（PRD 02 §9）。
@@ -17,8 +19,8 @@ import java.util.Objects;
  *   <li>不做重放：丢弃即丢弃，避免放大故障（PRD 02 §8「丢弃数据不补算」）。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@org.springframework.stereotype.Component
+@NamedInterface("analysis")
+@Component
 public class RealtimeConsumer {
 
     private final List<Analyzer> analyzers;

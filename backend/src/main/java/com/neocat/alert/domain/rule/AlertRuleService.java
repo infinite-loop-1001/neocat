@@ -81,7 +81,7 @@ public class AlertRuleService {
         if (Objects.isNull(draft.getTarget())) {
             throw new IllegalArgumentException("必须指定告警目标");
         }
-        if (draft.getScope() == AlertScope.ORGANIZATION && Objects.isNull(draft.getOrgId())) {
+        if (Objects.equals(draft.getScope(), AlertScope.ORGANIZATION) && Objects.isNull(draft.getOrgId())) {
             throw new IllegalArgumentException("组织告警必须指定所属叶子组织");
         }
     }

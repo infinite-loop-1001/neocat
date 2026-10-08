@@ -1,14 +1,18 @@
 package com.neocat.catalog.domain.entry;
 
 import java.time.Instant;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 实例目录项：服务下以上报的 instanceId 唯一，通常为 IP。
  */
-@org.springframework.modulith.NamedInterface("catalog")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("catalog")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class InstanceEntry {
     private final String serviceName;
 
@@ -26,4 +30,3 @@ public class InstanceEntry {
     }
 
 }
-

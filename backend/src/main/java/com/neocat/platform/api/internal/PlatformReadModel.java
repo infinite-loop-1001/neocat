@@ -1,11 +1,14 @@
 package com.neocat.platform.api.internal;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 public interface PlatformReadModel {
 
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-     static class Thresholds {
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    class Thresholds {
         private final int urlMs;
 
         private final int sqlMs;
@@ -25,4 +28,3 @@ public interface PlatformReadModel {
     Thresholds slowThresholds();
     boolean channelEnabled(String channel);
 }
-

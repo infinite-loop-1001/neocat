@@ -1,5 +1,7 @@
 package com.neocat.alert.domain.engine
 
+import java.math.BigDecimal
+
 import com.neocat.alert.domain.rule.AlertChannel
 import com.neocat.alert.domain.rule.AlertRule
 import com.neocat.alert.domain.rule.AlertTarget
@@ -24,7 +26,7 @@ class WindowSpec extends Specification {
     static final long MINUTE = 60_000L
 
     MinutePointSource source
-    Map<Long, Map<Stat, Double>> pointValues
+    Map<Long, Map<Stat, BigDecimal>> pointValues
     Notifier notifier
     List<AlertNotification> sent
     AlertEngine engine
@@ -48,7 +50,7 @@ class WindowSpec extends Specification {
         return new AlertRule(1L, SERVICE, null, "订单失败率", "",
                 AlertTarget.rawMetric("order", "TRANSACTION", "URL", "/a"),
                 combinator, window,
-                conditions == null ? [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05d)] : conditions,
+                conditions == null ? [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05)] : conditions,
                 recipients, [AlertChannel.EMAIL], true, false, T)
     }
 
@@ -57,11 +59,11 @@ class WindowSpec extends Specification {
     }
 
     def putSatisfied(long minute) {
-        pointValues[minute] = [(Stat.FAILURE_RATE): 0.10d]
+        pointValues[minute] = [(Stat.FAILURE_RATE): 0.10]
     }
 
     def putUnsatisfied(long minute) {
-        pointValues[minute] = [(Stat.FAILURE_RATE): 0.01d]
+        pointValues[minute] = [(Stat.FAILURE_RATE): 0.01]
     }
 
     // ── X=3 的触发点 ─────────────────────────────────────────
@@ -249,7 +251,7 @@ class WindowSpec extends Specification {
 
     def "缺数不当作 0：不会因为缺数而满足「小于阈值」"() {
         given:
-        def r = rule(1, Combinator.AND, [new Condition(Stat.FAILURE_RATE, Comparator.LT, 0.05d)])
+        def r = rule(1, Combinator.AND, [new Condition(Stat.FAILURE_RATE, Comparator.LT, 0.05)])
         // T 未提供 -> 缺数
 
         when:
@@ -261,8 +263,8 @@ class WindowSpec extends Specification {
 
     def "确认无调用的 0 是已知值，可以满足条件"() {
         given:
-        def r = rule(1, Combinator.AND, [new Condition(Stat.HITS, Comparator.LTE, 0d)])
-        pointValues[T] = [(Stat.HITS): 0.0d]
+        def r = rule(1, Combinator.AND, [new Condition(Stat.HITS, Comparator.LTE, 0.0)])
+        pointValues[T] = [(Stat.HITS): 0.0]
 
         when:
         def res = engine.onMinute(r, state(), T)
@@ -294,10 +296,10 @@ class WindowSpec extends Specification {
     def "AND：窗口内每点都需全部条件满足"() {
         given:
         def r = rule(2, Combinator.AND,
-                [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05d),
-                 new Condition(Stat.HITS, Comparator.GT, 10d)])
-        pointValues[T] = [(Stat.FAILURE_RATE): 0.10d, (Stat.HITS): 100d]
-        pointValues[T + MINUTE] = [(Stat.FAILURE_RATE): 0.10d, (Stat.HITS): 5d]   // hits 不满足
+                [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05),
+                 new Condition(Stat.HITS, Comparator.GT, 10.0)])
+        pointValues[T] = [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 100.0]
+        pointValues[T + MINUTE] = [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 5.0]   // hits 不满足
 
         when:
         def r1 = engine.onMinute(r, state(), T)
@@ -310,10 +312,10 @@ class WindowSpec extends Specification {
     def "OR：窗口内每点至少一个条件满足即可"() {
         given:
         def r = rule(2, Combinator.OR,
-                [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05d),
-                 new Condition(Stat.HITS, Comparator.GT, 1000d)])
-        pointValues[T] = [(Stat.FAILURE_RATE): 0.10d, (Stat.HITS): 5d]
-        pointValues[T + MINUTE] = [(Stat.FAILURE_RATE): 0.01d, (Stat.HITS): 5000d]
+                [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05),
+                 new Condition(Stat.HITS, Comparator.GT, 1000.0)])
+        pointValues[T] = [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 5.0]
+        pointValues[T + MINUTE] = [(Stat.FAILURE_RATE): 0.01, (Stat.HITS): 5000.0]
 
         when:
         def r1 = engine.onMinute(r, state(), T)
@@ -327,10 +329,10 @@ class WindowSpec extends Specification {
     def "X 属于整条规则：多条件共用同一窗口"() {
         given:
         def r = rule(3, Combinator.AND,
-                [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05d),
-                 new Condition(Stat.HITS, Comparator.GT, 10d)])
+                [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05),
+                 new Condition(Stat.HITS, Comparator.GT, 10.0)])
         (0..2).each { i ->
-            pointValues[T + i * MINUTE] = [(Stat.FAILURE_RATE): 0.10d, (Stat.HITS): 100d]
+            pointValues[T + i * MINUTE] = [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 100.0]
         }
 
         when:
@@ -412,7 +414,7 @@ class WindowSpec extends Specification {
         given:
         def r = new AlertRule(1L, SERVICE, null, "r", "",
                 AlertTarget.rawMetric("order", "TRANSACTION", "URL", "/a"),
-                Combinator.AND, 1, [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05d)],
+                Combinator.AND, 1, [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05)],
                 [1L], [AlertChannel.EMAIL, AlertChannel.DINGTALK, AlertChannel.FEISHU], true, false, T)
         putSatisfied(T)
 

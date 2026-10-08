@@ -3,6 +3,7 @@ package com.neocat.organization.api.http.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 public final class OrgDtos {
     private OrgDtos() {
@@ -17,7 +18,7 @@ public final class OrgDtos {
     }
 
     @Getter
-    @AllArgsConstructor(onConstructor_ = @com.fasterxml.jackson.annotation.JsonCreator(mode = com.fasterxml.jackson.annotation.JsonCreator.Mode.PROPERTIES))
+    @AllArgsConstructor(onConstructor_ = @JsonCreator(mode = JsonCreator.Mode.PROPERTIES))
     public static class MemberDraft {
         private final long userId;
     }

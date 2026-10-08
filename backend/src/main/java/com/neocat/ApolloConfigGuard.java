@@ -1,13 +1,13 @@
-package com.neocat.common.config.impl;
+package com.neocat;
 
-import com.neocat.common.config.AlertConfig;
-import com.neocat.common.config.AnalysisConfig;
-import com.neocat.common.config.HeartbeatConfig;
-import com.neocat.common.config.IngestConfig;
-import com.neocat.common.config.MetricConfig;
-import com.neocat.common.config.QueryConfig;
-import com.neocat.common.config.ReportConfig;
-import com.neocat.common.config.TraceConfig;
+import com.neocat.alert.config.AlertConfig;
+import com.neocat.analysis.config.AnalysisConfig;
+import com.neocat.query.config.HeartbeatConfig;
+import com.neocat.ingest.config.IngestConfig;
+import com.neocat.analysis.config.MetricConfig;
+import com.neocat.query.config.QueryConfig;
+import com.neocat.analysis.config.ReportConfig;
+import com.neocat.trace.config.TraceConfig;
 import link.cu1universe.dev.apollo.annotation.ApolloStaticValue;
 import org.springframework.core.env.Environment;
 import java.lang.reflect.Field;
@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
+import java.time.ZoneId;
 
 /**
  * 启动期必需配置校验。
@@ -115,7 +116,7 @@ public final class ApolloConfigGuard {
             return;
         }
         try {
-            java.time.ZoneId.of(zone);
+            ZoneId.of(zone);
         } catch (RuntimeException e) {
             problems.add("时区不合法：neocat.platform.init.timezone=" + zone);
         }

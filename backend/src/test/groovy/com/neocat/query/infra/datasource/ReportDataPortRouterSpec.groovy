@@ -8,8 +8,13 @@ import spock.lang.Specification
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import com.neocat.common.time.clock.TimeProvider
 
 class ReportDataPortRouterSpec extends Specification {
+    def cleanup() {
+        TimeProvider.clock = Clock.systemUTC()
+    }
+
     def "跨当前小时边界时分别读取历史和内存并合并目录"() {
         given:
         def history = Mock(ReportDataPort)
@@ -18,7 +23,8 @@ class ReportDataPortRouterSpec extends Specification {
         def from = Instant.parse('2026-10-01T09:30:00Z')
         def to = Instant.parse('2026-10-01T10:35:00Z')
         def boundary = Instant.parse('2026-10-01T10:00:00Z')
-        def router = new ReportDataPortRouter(history, current, Clock.fixed(now, ZoneOffset.UTC), { ZoneOffset.UTC })
+        TimeProvider.clock = Clock.fixed(now, ZoneOffset.UTC)
+        def router = new ReportDataPortRouter(history, current, { ZoneOffset.UTC })
 
         when:
         def types = router.typesOf('TRANSACTION', 'app', from, to)
@@ -34,8 +40,8 @@ class ReportDataPortRouterSpec extends Specification {
         given:
         def history = Mock(ReportDataPort)
         def current = Mock(ReportDataPort)
-        def router = new ReportDataPortRouter(history, current,
-                Clock.fixed(Instant.parse('2026-10-01T10:35:00Z'), ZoneOffset.UTC), { ZoneOffset.UTC })
+        TimeProvider.clock = Clock.fixed(Instant.parse('2026-10-01T10:35:00Z'), ZoneOffset.UTC)
+        def router = new ReportDataPortRouter(history, current, { ZoneOffset.UTC })
         def from = Instant.parse('2026-10-01T08:00:00Z')
         def to = Instant.parse('2026-10-01T09:00:00Z')
 
@@ -56,7 +62,8 @@ class ReportDataPortRouterSpec extends Specification {
         def current = Mock(ReportDataPort)
         def boundary = Instant.parse('2026-10-01T10:00:00Z')
         def now = Instant.parse('2026-10-01T10:35:00Z')
-        def router = new ReportDataPortRouter(history, current, Clock.fixed(now, ZoneOffset.UTC), { ZoneOffset.UTC })
+        TimeProvider.clock = Clock.fixed(now, ZoneOffset.UTC)
+        def router = new ReportDataPortRouter(history, current, { ZoneOffset.UTC })
 
         when:
         def live = router.typesOf('TRANSACTION', 'app', boundary, now)
@@ -77,7 +84,8 @@ class ReportDataPortRouterSpec extends Specification {
         def now = Instant.parse('2026-10-01T10:35:00Z')
         def boundary = Instant.parse('2026-10-01T10:30:00Z')
         def from = Instant.parse('2026-10-01T10:20:00Z')
-        def router = new ReportDataPortRouter(history, current, Clock.fixed(now, ZoneOffset.UTC),
+        TimeProvider.clock = Clock.fixed(now, ZoneOffset.UTC)
+        def router = new ReportDataPortRouter(history, current,
                 { ZoneOffset.ofHoursMinutes(5, 30) })
 
         when:

@@ -5,10 +5,14 @@ import com.neocat.alert.api.http.dto.AlertDtos.*;
 import com.neocat.alert.domain.rule.*;
 import com.neocat.alert.domain.engine.PreviewResult;
 import com.neocat.query.domain.stat.Stat;
+import com.neocat.common.error.ErrorCode;
+import com.neocat.common.error.exception.ValidationException;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+
 import java.util.List;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 
@@ -24,7 +28,9 @@ import org.apache.commons.collections4.ListUtils;
 @Mapper(componentModel = "spring")
 public interface AlertConvert {
 
-    /** 新建规则草稿；未给出的字段按原入口行为取默认值。 */
+    /**
+     * 新建规则草稿；未给出的字段按原入口行为取默认值。
+     */
     default AlertRule rule(AlertDraft draft, AlertScope scope) {
         return AlertRule.draft(scope, draft.getOrgId(),
                 Objects.isNull(draft.getName()) ? "未命名规则" : draft.getName(),
@@ -37,10 +43,24 @@ public interface AlertConvert {
                 CollectionUtils.isEmpty(draft.getChannels()) ? Lists.newArrayList() : channels(draft.getChannels()));
     }
 
-    /** 条件列表：统计项与比较符在边界处解析为枚举。 */
+    /**
+     * 条件列表：统计项与比较符在边界处解析为枚举。
+     */
     List<Condition> conditions(List<ConditionDraft> drafts);
 
-    /** 通道列表：字符串按枚举名解析。 */
+    /**
+     * JSON 阈值必须显式给出，不能把缺失值绑定成 primitive 的默认零。
+     */
+    default Condition condition(ConditionDraft draft) {
+        if (Objects.isNull(draft) || Objects.isNull(draft.getThreshold())) {
+            throw new ValidationException(ErrorCode.INVALID_PARAM, "threshold 不能为空");
+        }
+        return new Condition(stat(draft.getStat()), Comparator.valueOf(draft.getComparator()), draft.getThreshold());
+    }
+
+    /**
+     * 通道列表：字符串按枚举名解析。
+     */
     List<AlertChannel> channels(List<String> names);
 
     /**
@@ -50,7 +70,9 @@ public interface AlertConvert {
         return Stat.parse(raw);
     }
 
-    /** 目标：卡片结果目标携带卡片 ID 与公式统计项，其余按原始指标目标构造。 */
+    /**
+     * 目标：卡片结果目标携带卡片 ID 与公式统计项，其余按原始指标目标构造。
+     */
     // question: 为什么这里要直接引用 query.domain 模块的值对象?
     // rules: 这里用枚举 code 判断呢, 不要用常量值判断
     default AlertTarget target(TargetDraft draft) {
@@ -60,14 +82,20 @@ public interface AlertConvert {
                 : AlertTarget.rawMetric(draft.getService(), draft.getReportKind(), draft.getType(), draft.getName());
     }
 
-    /** 规则响应：领域枚举按名称出参，条件与目标递归转换为对应 DTO。 */
+    /**
+     * 规则响应：领域枚举按名称出参，条件与目标递归转换为对应 DTO。
+     */
     RuleResponse response(AlertRule rule);
 
-    /** 目标响应：缺失的分类与名称按原契约保留为空串。 */
+    /**
+     * 目标响应：缺失的分类与名称按原契约保留为空串。
+     */
     @Mapping(target = "type", source = "type", defaultValue = "")
     @Mapping(target = "name", source = "name", defaultValue = "")
     TargetResponse target(AlertTarget target);
 
-    /** 试算响应：逐点判定明细保持原结构。 */
+    /**
+     * 试算响应：逐点判定明细保持原结构。
+     */
     PreviewResponse preview(PreviewResult result);
 }

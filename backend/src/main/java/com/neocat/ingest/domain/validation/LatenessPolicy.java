@@ -1,8 +1,12 @@
 package com.neocat.ingest.domain.validation;
 
-import com.neocat.common.config.IngestConfig;
+import com.neocat.ingest.config.IngestConfig;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * 事件时间（迟到）判定（PRD 02 §7）。
@@ -17,8 +21,8 @@ import java.time.Instant;
  *
  * 可接收自然小时数在每次判定时读取动态配置。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@org.springframework.stereotype.Component
+@NamedInterface("tree")
+@Component
 public class LatenessPolicy {
 
     /** 客户端时钟偏移容差（毫秒）。 */
@@ -27,7 +31,7 @@ public class LatenessPolicy {
     /**
      * @return {@code true} 表示可接收
      */
-    public boolean acceptable(long treeTimestamp, Instant now, java.time.ZoneId zone) {
+    public boolean acceptable(long treeTimestamp, Instant now, ZoneId zone) {
         Instant at = Instant.ofEpochMilli(treeTimestamp);
         if (at.isAfter(now.plusMillis(FUTURE_TOLERANCE_MS))) {
             return false;
@@ -40,9 +44,9 @@ public class LatenessPolicy {
      * <p>窗口起点 = 当前自然小时起点 − (acceptLateHours − 1) 小时。
      * 例：acceptLateHours=2 且 now 在 12:23 时，起点为 11:00。
      */
-    public Instant windowStart(Instant now, java.time.ZoneId zone) {
+    public Instant windowStart(Instant now, ZoneId zone) {
         return now.atZone(zone)
-                .truncatedTo(java.time.temporal.ChronoUnit.HOURS)
+                .truncatedTo(ChronoUnit.HOURS)
                 .minusHours(Math.max(1, IngestConfig.ACCEPT_LATE_HOURS) - 1L)
                 .toInstant();
     }

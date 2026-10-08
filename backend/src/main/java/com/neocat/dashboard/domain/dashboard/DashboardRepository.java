@@ -3,17 +3,19 @@ package com.neocat.dashboard.domain.dashboard;
 import com.neocat.dashboard.domain.card.Card;
 
 import java.util.List;
-import java.util.Optional;
+
+import org.springframework.lang.Nullable;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 大盘与卡片仓库。
  */
-@org.springframework.modulith.NamedInterface("dashboard")
+@NamedInterface("dashboard")
 public interface DashboardRepository {
 
     Dashboard save(Dashboard dashboard);
 
-    @org.springframework.lang.Nullable
+    @Nullable
     Dashboard findById(long id);
 
     List<Dashboard> byOrg(long orgId);
@@ -22,7 +24,7 @@ public interface DashboardRepository {
 
     Card saveCard(Card card);
 
-    @org.springframework.lang.Nullable
+    @Nullable
     Card findCard(long cardId);
 
     List<Card> cardsOf(long dashboardId);

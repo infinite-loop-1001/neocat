@@ -1,20 +1,22 @@
 package com.neocat.identity.domain.account;
 
 import java.time.Instant;
-import java.util.Optional;
+import java.util.List;
+import org.springframework.lang.Nullable;
+import org.springframework.modulith.NamedInterface;
 
-@org.springframework.modulith.NamedInterface("identity")
+@NamedInterface("identity")
 
 public interface AccountRepository {
 
-    @org.springframework.lang.Nullable
+    @Nullable
     Account findById(long id);
 
-    @org.springframework.lang.Nullable
+    @Nullable
     Account findByUsername(String username);
 
     /** 全部账号（管理页列表用）。按用户名升序，保证输出稳定。 */
-    java.util.List<Account> findAll();
+    List<Account> findAll();
 
     Account save(Account account);
 

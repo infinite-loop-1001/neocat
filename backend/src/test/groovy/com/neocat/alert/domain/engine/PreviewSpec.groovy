@@ -1,5 +1,7 @@
 package com.neocat.alert.domain.engine
 
+import java.math.BigDecimal
+
 import com.neocat.alert.domain.rule.AlertChannel
 import com.neocat.alert.domain.rule.AlertRule
 import com.neocat.alert.domain.rule.AlertScope
@@ -24,7 +26,7 @@ class PreviewSpec extends Specification {
     static final long MINUTE = 60_000L
 
     MinutePointSource source
-    Map<Long, Map<Stat, Double>> pointValues
+    Map<Long, Map<Stat, BigDecimal>> pointValues
     PreviewService service
 
     def setup() {
@@ -43,11 +45,11 @@ class PreviewSpec extends Specification {
                 combinator, window, conditions, [1L], [AlertChannel.EMAIL])
     }
 
-    def failureRateAbove(double threshold) {
+    def failureRateAbove(BigDecimal threshold) {
         return new Condition(Stat.FAILURE_RATE, Comparator.GT, threshold)
     }
 
-    def hitsAbove(double threshold) {
+    def hitsAbove(BigDecimal threshold) {
         return new Condition(Stat.HITS, Comparator.GT, threshold)
     }
 
@@ -55,11 +57,11 @@ class PreviewSpec extends Specification {
 
     def "窗口内所有点满足时返回「当前会触发」"() {
         given: "X=3，最近三个点都满足"
-        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05d)])
+        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): 0.10d]
-        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.09d]
-        pointValues[t - 2 * MINUTE] = [(Stat.FAILURE_RATE): 0.08d]
+        pointValues[t] = [(Stat.FAILURE_RATE): 0.10]
+        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.09]
+        pointValues[t - 2 * MINUTE] = [(Stat.FAILURE_RATE): 0.08]
 
         when:
         def preview = service.preview(r, t)
@@ -72,11 +74,11 @@ class PreviewSpec extends Specification {
 
     def "窗口内存在不满足的点时返回「当前不会触发」"() {
         given:
-        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05d)])
+        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): 0.10d]
-        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.01d]      // 不满足
-        pointValues[t - 2 * MINUTE] = [(Stat.FAILURE_RATE): 0.08d]
+        pointValues[t] = [(Stat.FAILURE_RATE): 0.10]
+        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.01]      // 不满足
+        pointValues[t - 2 * MINUTE] = [(Stat.FAILURE_RATE): 0.08]
 
         when:
         def preview = service.preview(r, t)
@@ -87,11 +89,11 @@ class PreviewSpec extends Specification {
 
     def "窗口内存在缺数点时返回「数据不足」"() {
         given: "X=3，中间一个点缺数"
-        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05d)])
+        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): 0.10d]
+        pointValues[t] = [(Stat.FAILURE_RATE): 0.10]
         pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): null]
-        pointValues[t - 2 * MINUTE] = [(Stat.FAILURE_RATE): 0.08d]
+        pointValues[t - 2 * MINUTE] = [(Stat.FAILURE_RATE): 0.08]
 
         when:
         def preview = service.preview(r, t)
@@ -102,10 +104,10 @@ class PreviewSpec extends Specification {
 
     def "缺少任意一个点的数据都判定为数据不足"() {
         given: "X=3，但只提供了 2 个点"
-        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05d)])
+        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): 0.10d]
-        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.09d]
+        pointValues[t] = [(Stat.FAILURE_RATE): 0.10]
+        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.09]
 
         when:
         def preview = service.preview(r, t)
@@ -118,7 +120,7 @@ class PreviewSpec extends Specification {
 
     def "缺数点不当作 0：不会因为缺数而满足「大于阈值」"() {
         given:
-        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05d)])
+        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05)])
         def t = MIN_10_00
         pointValues[t] = [(Stat.FAILURE_RATE): null]
 
@@ -133,7 +135,7 @@ class PreviewSpec extends Specification {
 
     def "缺数点不会因为「低于阈值」条件而误判满足"() {
         given:
-        def r = rule(Combinator.AND, 1, [new Condition(Stat.FAILURE_RATE, Comparator.LT, 0.05d)])
+        def r = rule(Combinator.AND, 1, [new Condition(Stat.FAILURE_RATE, Comparator.LT, 0.05)])
         def t = MIN_10_00
         pointValues[t] = [(Stat.FAILURE_RATE): null]
 
@@ -146,9 +148,9 @@ class PreviewSpec extends Specification {
 
     def "确认无调用的 0 是已知值，可以满足「小于等于 0」"() {
         given:
-        def r = rule(Combinator.AND, 1, [new Condition(Stat.HITS, Comparator.LTE, 0d)])
+        def r = rule(Combinator.AND, 1, [new Condition(Stat.HITS, Comparator.LTE, 0.0)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.HITS): 0.0d]
+        pointValues[t] = [(Stat.HITS): 0.0]
 
         when:
         def preview = service.preview(r, t)
@@ -160,9 +162,9 @@ class PreviewSpec extends Specification {
 
     def "确认无调用的 0 不满足「大于 0」"() {
         given:
-        def r = rule(Combinator.AND, 1, [new Condition(Stat.HITS, Comparator.GT, 0d)])
+        def r = rule(Combinator.AND, 1, [new Condition(Stat.HITS, Comparator.GT, 0.0)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.HITS): 0.0d]
+        pointValues[t] = [(Stat.HITS): 0.0]
 
         when:
         def preview = service.preview(r, t)
@@ -175,37 +177,37 @@ class PreviewSpec extends Specification {
 
     def "AND：每点所有条件都满足该点才为 true"() {
         given:
-        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05d), hitsAbove(10d)])
+        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05), hitsAbove(10.0)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): 0.10d, (Stat.HITS): 100d]
+        pointValues[t] = [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 100.0]
 
         when:
-        def satisfied = service.combine(r, [(Stat.FAILURE_RATE): 0.10d, (Stat.HITS): 100d])
+        def satisfied = service.combine(r, [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 100.0])
 
         then:
         satisfied
 
         and: "任一条件不满足则为 false"
-        !service.combine(r, [(Stat.FAILURE_RATE): 0.10d, (Stat.HITS): 5d])
+        !service.combine(r, [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 5.0])
     }
 
     def "OR：每点至少一个条件满足该点才为 true"() {
         given:
-        def r = rule(Combinator.OR, 1, [failureRateAbove(0.05d), hitsAbove(1000d)])
+        def r = rule(Combinator.OR, 1, [failureRateAbove(0.05), hitsAbove(1000.0)])
 
         expect:
-        service.combine(r, [(Stat.FAILURE_RATE): 0.10d, (Stat.HITS): 5d])
-        service.combine(r, [(Stat.FAILURE_RATE): 0.01d, (Stat.HITS): 5000d])
+        service.combine(r, [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 5.0])
+        service.combine(r, [(Stat.FAILURE_RATE): 0.01, (Stat.HITS): 5000.0])
 
         and: "全部不满足才是 false"
-        !service.combine(r, [(Stat.FAILURE_RATE): 0.01d, (Stat.HITS): 5d])
+        !service.combine(r, [(Stat.FAILURE_RATE): 0.01, (Stat.HITS): 5.0])
     }
 
     def "OR 下存在缺数点时整窗口判定为数据不足（缺数会打断窗口）"() {
         given: "PRD 06 §6：未知点会打断滑动窗口；§4：缺数据明确显示数据不足"
-        def r = rule(Combinator.OR, 1, [failureRateAbove(0.05d), hitsAbove(1000d)])
+        def r = rule(Combinator.OR, 1, [failureRateAbove(0.05), hitsAbove(1000.0)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): null, (Stat.HITS): 5000d]
+        pointValues[t] = [(Stat.FAILURE_RATE): null, (Stat.HITS): 5000.0]
 
         when:
         def preview = service.preview(r, t)
@@ -216,9 +218,9 @@ class PreviewSpec extends Specification {
 
     def "OR 的合并语义本身仍正确：无缺数时任一满足即满足"() {
         given:
-        def r = rule(Combinator.OR, 1, [failureRateAbove(0.05d), hitsAbove(1000d)])
+        def r = rule(Combinator.OR, 1, [failureRateAbove(0.05), hitsAbove(1000.0)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): 0.01d, (Stat.HITS): 5000d]
+        pointValues[t] = [(Stat.FAILURE_RATE): 0.01, (Stat.HITS): 5000.0]
 
         when:
         def preview = service.preview(r, t)
@@ -229,10 +231,10 @@ class PreviewSpec extends Specification {
 
     def "X 属于整条规则：多条件共用同一窗口长度"() {
         given: "X=2，两个条件"
-        def r = rule(Combinator.AND, 2, [failureRateAbove(0.05d), hitsAbove(10d)])
+        def r = rule(Combinator.AND, 2, [failureRateAbove(0.05), hitsAbove(10.0)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): 0.10d, (Stat.HITS): 100d]
-        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.09d, (Stat.HITS): 90d]
+        pointValues[t] = [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 100.0]
+        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.09, (Stat.HITS): 90.0]
 
         when:
         def preview = service.preview(r, t)
@@ -246,10 +248,10 @@ class PreviewSpec extends Specification {
 
     def "回看 X 个点：X=3 只取最近三个完整分钟点"() {
         given:
-        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05d)])
+        def r = rule(Combinator.AND, 3, [failureRateAbove(0.05)])
         def t = MIN_10_00
         (0..5).each { i ->
-            pointValues[t - i * MINUTE] = [(Stat.FAILURE_RATE): 0.10d]
+            pointValues[t - i * MINUTE] = [(Stat.FAILURE_RATE): 0.10]
         }
 
         when:
@@ -262,10 +264,10 @@ class PreviewSpec extends Specification {
 
     def "回看顺序为时间倒序（最新在前）"() {
         given:
-        def r = rule(Combinator.AND, 2, [failureRateAbove(0.05d)])
+        def r = rule(Combinator.AND, 2, [failureRateAbove(0.05)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): 0.10d]
-        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.10d]
+        pointValues[t] = [(Stat.FAILURE_RATE): 0.10]
+        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.10]
 
         when:
         def preview = service.preview(r, t)
@@ -277,10 +279,10 @@ class PreviewSpec extends Specification {
 
     def "X=1 时只看最近一个点"() {
         given:
-        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05d)])
+        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05)])
         def t = MIN_10_00
-        pointValues[t] = [(Stat.FAILURE_RATE): 0.10d]
-        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.01d]
+        pointValues[t] = [(Stat.FAILURE_RATE): 0.10]
+        pointValues[t - MINUTE] = [(Stat.FAILURE_RATE): 0.01]
 
         when:
         def preview = service.preview(r, t)
@@ -295,8 +297,8 @@ class PreviewSpec extends Specification {
     def "预告警不发送任何通知"() {
         given:
         def s = new PreviewService(source)
-        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05d)])
-        pointValues[MIN_10_00] = [(Stat.FAILURE_RATE): 0.99d]
+        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05)])
+        pointValues[MIN_10_00] = [(Stat.FAILURE_RATE): 0.99]
 
         when:
         s.preview(r, MIN_10_00)
@@ -307,8 +309,8 @@ class PreviewSpec extends Specification {
 
     def "预告警不改变规则状态"() {
         given:
-        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05d)])
-        pointValues[MIN_10_00] = [(Stat.FAILURE_RATE): 0.99d]
+        def r = rule(Combinator.AND, 1, [failureRateAbove(0.05)])
+        pointValues[MIN_10_00] = [(Stat.FAILURE_RATE): 0.99]
 
         when:
         service.preview(r, MIN_10_00)
@@ -326,7 +328,7 @@ class PreviewSpec extends Specification {
 
     def "无论结果如何都不抛异常"() {
         given:
-        def r = rule(Combinator.AND, 2, [failureRateAbove(0.05d)])
+        def r = rule(Combinator.AND, 2, [failureRateAbove(0.05)])
 
         when: "完全没有数据"
         def preview = service.preview(r, MIN_10_00)

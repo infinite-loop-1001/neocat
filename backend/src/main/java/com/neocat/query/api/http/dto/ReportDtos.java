@@ -1,10 +1,15 @@
 package com.neocat.query.api.http.dto;
 
+import java.math.BigDecimal;
+
 import lombok.Getter;
 import lombok.Setter;
+
 import java.util.List;
 
-/** 固定字段读模型；保留原契约的 null 与字段存在性。 */
+/**
+ * 固定字段读模型；保留原契约的 null 与字段存在性。
+ */
 public final class ReportDtos {
     private ReportDtos() {
     }
@@ -20,27 +25,27 @@ public final class ReportDtos {
 
         private long failures;
 
-        private Double failureRate;
+        private BigDecimal failureRate;
 
-        private Double qps;
+        private BigDecimal qps;
 
         private Long min;
 
         private Long max;
 
-        private Double avg;
+        private BigDecimal avg;
 
-        private Double tp50;
+        private BigDecimal tp50;
 
-        private Double tp90;
+        private BigDecimal tp90;
 
-        private Double tp95;
+        private BigDecimal tp95;
 
-        private Double tp99;
+        private BigDecimal tp99;
 
-        private Double tp999;
+        private BigDecimal tp999;
 
-        private Double tp9999;
+        private BigDecimal tp9999;
     }
 
     @Getter
@@ -60,7 +65,7 @@ public final class ReportDtos {
 
         private long total;
 
-        private Double tp99;
+        private BigDecimal tp99;
     }
 
     @Getter
@@ -70,7 +75,7 @@ public final class ReportDtos {
 
         private long bucketEnd;
 
-        private Double value;
+        private BigDecimal value;
 
         private String quality;
 
@@ -88,7 +93,7 @@ public final class ReportDtos {
 
         private long bucketEnd;
 
-        private Double value;
+        private BigDecimal value;
 
         private String quality;
 
@@ -108,7 +113,7 @@ public final class ReportDtos {
     public static class MomPoint {
         private long bucketStart;
 
-        private Double value;
+        private BigDecimal value;
     }
 
     @Getter
@@ -148,7 +153,7 @@ public final class ReportDtos {
     public static class HeartbeatInstance {
         private String instance;
 
-        private Double value;
+        private BigDecimal value;
     }
 
     @Getter
@@ -190,11 +195,11 @@ public final class ReportDtos {
 
         private long calls;
 
-        private Double failureRate;
+        private BigDecimal failureRate;
 
-        private Double avg;
+        private BigDecimal avg;
 
-        private Double tp99;
+        private BigDecimal tp99;
     }
 
     @Getter

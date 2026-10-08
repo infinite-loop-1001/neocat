@@ -1,5 +1,7 @@
 package com.neocat.ingest.domain.receive;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.ingest.domain.idempotency.IdempotencyDecision;
 import com.neocat.ingest.domain.idempotency.IdempotencyService;
 import com.neocat.ingest.domain.tree.MessageTree;
@@ -9,12 +11,17 @@ import com.neocat.ingest.domain.validation.TreeValidator;
 import com.neocat.ingest.domain.validation.ValidationOutcome;
 import com.neocat.common.queue.BoundedDropQueue;
 import com.neocat.common.error.ErrorCode;
-import com.neocat.common.time.clock.ClockProvider;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.function.Supplier;
 import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 上报接收编排（PRD 02 §4、§5、§8；技术方案 04 §5.2）。
@@ -33,9 +40,9 @@ import org.apache.commons.collections4.CollectionUtils;
  * <p>不变量：步骤 4 必须早于步骤 6。这是 PRD 02 §5「即使之后队列已满导致整棵树丢弃，
  * 服务和实例仍然可以在目录中被发现」的唯一实现方式。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@org.springframework.stereotype.Service
-@org.springframework.context.annotation.DependsOn("ingestConfig")
+@NamedInterface("tree")
+@Service
+@DependsOn("ingestConfig")
 public class IngestService {
 
     private static final String CODE_TREE_EXPIRED = ErrorCode.TREE_EXPIRED.name();
@@ -56,7 +63,6 @@ public class IngestService {
 
     private final QualityEventSink quality;
 
-    private final ClockProvider clock;
 
     private final Supplier<ZoneId> zone;
 
@@ -67,7 +73,6 @@ public class IngestService {
                          CatalogGateway catalog,
                          BoundedDropQueue<MessageTree> queue,
                          QualityEventSink quality,
-                         ClockProvider clock,
                          Supplier<ZoneId> zone) {
         this.validator = validator;
         this.lateness = lateness;
@@ -76,7 +81,6 @@ public class IngestService {
         this.catalog = catalog;
         this.queue = queue;
         this.quality = quality;
-        this.clock = clock;
         this.zone = zone;
     }
     /**
@@ -93,7 +97,7 @@ public class IngestService {
                     ? 0 : batch.getTrees().size());
         }
 
-        Instant now = clock.now();
+        Instant now = TimeProvider.now();
         ZoneId zoneId = zone.get();
         int accepted = 0;
         int duplicate = 0;
@@ -129,11 +133,11 @@ public class IngestService {
             catalog.discover(tree.getServiceName(), tree.getInstanceId(), now);
 
             IdempotencyDecision decision = idempotency.decide(tree.getMessageId(), fingerprints.fingerprint(tree));
-            if (decision == IdempotencyDecision.DUPLICATE) {
+            if (Objects.equals(decision, IdempotencyDecision.DUPLICATE)) {
                 duplicate++;
                 continue;
             }
-            if (decision == IdempotencyDecision.CONFLICT) {
+            if (Objects.equals(decision, IdempotencyDecision.CONFLICT)) {
                 rejected++;
                 sawRejection = true;
                 rejectionCode = CODE_ID_CONFLICT;
@@ -171,10 +175,10 @@ public class IngestService {
     /**
      * 队列观测数据（技术方案 01 §6）。
      */
-    @org.springframework.modulith.NamedInterface("tree")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("tree")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class QueueStats {
         private final int size;
 
@@ -193,12 +197,3 @@ public class IngestService {
 
     }
 }
-
-
-
-
-
-
-
-
-

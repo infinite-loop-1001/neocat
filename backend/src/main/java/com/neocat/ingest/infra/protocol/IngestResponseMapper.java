@@ -7,6 +7,7 @@ import com.neocat.ingest.domain.receive.IngestStatus;
 import com.neocat.protocol.ingest.v1.IngestResponse;
 import com.neocat.protocol.ingest.v1.Status;
 import java.util.Objects;
+import org.springframework.lang.Nullable;
 
 /**
  * 接收结果 → Protobuf 响应（技术方案 04-ingest-protocol.md §5）。
@@ -35,7 +36,7 @@ public class IngestResponseMapper {
                 .build();
     }
     public static int httpStatusOf(IngestResult result) {
-        if (result.getStatus() != IngestStatus.REJECTED) {
+        if (!Objects.equals(result.getStatus(), IngestStatus.REJECTED)) {
             // ACCEPTED / DUPLICATE / DROPPED 都是「平台已受理」语义
             return 202;
         }
@@ -66,7 +67,7 @@ public class IngestResponseMapper {
             case REJECTED -> result.getCode();
         };
     }
-    @org.springframework.lang.Nullable
+    @Nullable
     private static ErrorCode parseCode(String code) {
         if (Objects.isNull(code)) return null;
         try {

@@ -19,6 +19,11 @@ import java.util.Objects;
 import static com.neocat.common.error.ErrorCode.MALFORMED_TREE;
 import static com.neocat.common.error.ErrorCode.UNSUPPORTED_VERSION;
 import org.apache.commons.collections4.MapUtils;
+import com.neocat.protocol.ingest.v1.ExceptionInfo;
+import com.neocat.protocol.ingest.v1.Heartbeat;
+import com.neocat.protocol.ingest.v1.Node;
+import com.neocat.protocol.ingest.v1.RemoteCall;
+import java.util.LinkedHashMap;
 
 /**
  * 上报协议适配器：Protobuf 批次 → 领域对象（技术方案 04-ingest-protocol.md §2–3）。
@@ -48,7 +53,7 @@ public class IngestRequestMapper {
     }
     public static MessageTree toTree(com.neocat.protocol.ingest.v1.MessageTree tree) {
         List<RawNode> nodes = new ArrayList<>(tree.getNodesCount());
-        for (com.neocat.protocol.ingest.v1.Node node : tree.getNodesList()) {
+        for (Node node : tree.getNodesList()) {
             nodes.add(toNode(node));
         }
         return new MessageTree(
@@ -60,7 +65,7 @@ public class IngestRequestMapper {
                 tree.getTreeTimestamp(),
                 nodes);
     }
-    public static RawNode toNode(com.neocat.protocol.ingest.v1.Node node) {
+    public static RawNode toNode(Node node) {
         return new RawNode(
                 blankToNull(node.getNodeId()),
                 toKind(node.getKind()),
@@ -93,8 +98,8 @@ public class IngestRequestMapper {
                 metric.getValue(),
                 MapUtils.isEmpty(metric.getLabelsMap()) ? Maps.newHashMap() : Map.copyOf(metric.getLabelsMap()));
     }
-    public static HeartbeatValue toHeartbeat(com.neocat.protocol.ingest.v1.Heartbeat hb) {
-        Map<String, Long> values = new java.util.LinkedHashMap<>();
+    public static HeartbeatValue toHeartbeat(Heartbeat hb) {
+        Map<String, Long> values = new LinkedHashMap<>();
         for (var field : hb.getDescriptorForType().getFields()) {
             if (field.getNumber() > 20) continue;
             if (!hb.hasField(field) && (field.getNumber() > 5 || hb.getPresenceAware())) continue;
@@ -107,14 +112,14 @@ public class IngestRequestMapper {
         if (Objects.equals(field, "thread_count")) return "threads";
         return field.replace("_bytes", "").replace("_ms", "").replace('_', '-');
     }
-    private static RemoteCallValue toRemoteCall(com.neocat.protocol.ingest.v1.RemoteCall call) {
+    private static RemoteCallValue toRemoteCall(RemoteCall call) {
         return new RemoteCallValue(
                 blankToNull(call.getDownstreamService()),
                 emptyToNull(call.getDownstreamAddress()),
                 emptyToNull(call.getCallType()),
                 call.getStatus());
     }
-    private static ExceptionValue toException(com.neocat.protocol.ingest.v1.ExceptionInfo ex) {
+    private static ExceptionValue toException(ExceptionInfo ex) {
         return new ExceptionValue(
                 blankToNull(ex.getExceptionName()),
                 emptyToNull(ex.getExceptionMessage()),

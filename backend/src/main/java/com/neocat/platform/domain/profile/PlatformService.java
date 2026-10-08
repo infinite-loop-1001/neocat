@@ -18,12 +18,16 @@ import java.util.Objects;
 import static com.neocat.common.error.ErrorCode.ALREADY_INITIALIZED;
 import static com.neocat.common.error.ErrorCode.PASSWORD_TOO_SHORT;
 import static com.neocat.common.error.ErrorCode.TIMEZONE_IMMUTABLE;
+import com.neocat.common.locking.MySqlLocked;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 平台初始化与配置用例（PRD 01 §2、PRD 06 §10）。
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("platform")
+@Service
+@NamedInterface("platform")
 public class PlatformService {
 
     static final int MIN_PASSWORD_LENGTH = 8;
@@ -46,8 +50,8 @@ public class PlatformService {
      * <p>一次性建立：固定时区、第一个超管、默认慢阈值（1000/100/1000/50）、
      * 空的邮件/钉钉/飞书通道。仅未初始化时可执行。
      */
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public PlatformProfile initialize(InitRequest request, Instant at) {
         if (initialized()) {
             throw new ConflictException(ALREADY_INITIALIZED);
@@ -66,7 +70,7 @@ public class PlatformService {
         return profile;
     }
     public PlatformProfile profile() {
-        return java.util.Objects.requireNonNullElseGet(profiles.load(), PlatformProfile::notInitialized);
+        return Objects.requireNonNullElseGet(profiles.load(), PlatformProfile::notInitialized);
     }
     public boolean initialized() {
         return profile().isInitialized();
@@ -78,7 +82,7 @@ public class PlatformService {
      * 时区初始化后一期不可修改（PRD 00 §12、PRD 01 §2.1）。
      * 初始化前的首次设定请走 {@link #initialize}。
      */
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @MySqlLocked("metadata")
     public void changeTimezone(ZoneId newZone) {
         if (initialized()) {
             throw new BusinessRuleException(TIMEZONE_IMMUTABLE);
@@ -86,7 +90,7 @@ public class PlatformService {
         profiles.save(profile().withSlowThresholds(profile().getSlowThresholds()));
     }
     /** 慢阈值变更：只影响后续分析，不重算历史（PRD 03 §9）。 */
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @MySqlLocked("metadata")
     public PlatformProfile updateSlowThresholds(SlowThresholds thresholds) {
         PlatformProfile updated = profile().withSlowThresholds(thresholds);
         profiles.save(updated);
@@ -96,7 +100,7 @@ public class PlatformService {
         return profile().getSlowThresholds();
     }
     /** 通道配置：未启用的通道不可在告警规则中选择。 */
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @MySqlLocked("metadata")
     public List<ChannelConfig> updateChannels(List<ChannelConfig> configs) {
         configs.forEach(channels::save);
         return channels.findAll();
@@ -106,6 +110,6 @@ public class PlatformService {
     }
     public boolean channelsAvailable(ChannelType type) {
         return channels.findAll().stream()
-                .anyMatch(c -> c.getType() == type && c.isEnabled());
+                .anyMatch(c -> Objects.equals(c.getType(), type) && c.isEnabled());
     }
 }

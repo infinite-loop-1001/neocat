@@ -7,6 +7,9 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Locale;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * 环比对齐（PRD 03 §6）。
@@ -24,8 +27,8 @@ import java.util.Objects;
  * 结果与 UTC 相同，但接口上显式携带时区，避免调用方误以为可以用本地时区），
  * 同时桶边界输出仍是同一 Instant 序列。
  */
-@org.springframework.modulith.NamedInterface("query")
-@org.springframework.stereotype.Component
+@NamedInterface("query")
+@Component
 public class MomAligner {
 
     /**
@@ -52,7 +55,7 @@ public class MomAligner {
         if (Objects.isNull(kind)) {
             return false;
         }
-        return switch (kind.toUpperCase(java.util.Locale.ROOT)) {
+        return switch (kind.toUpperCase(Locale.ROOT)) {
             case "TRANSACTION", "EVENT", "PROBLEM", "METRIC" -> true;
             default -> false;
         };

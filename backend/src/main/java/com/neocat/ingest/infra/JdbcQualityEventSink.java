@@ -10,13 +10,14 @@ import javax.sql.DataSource;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /** Writes quality events to the same ClickHouse table used by the report query. */
 @Component
 public class JdbcQualityEventSink implements QualityEventSink {
     private final JdbcTemplate jdbc;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public JdbcQualityEventSink(@Qualifier("clickHouseDataSource") DataSource dataSource) {
         this.jdbc = new JdbcTemplate(dataSource);
     }

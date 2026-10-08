@@ -1,4 +1,4 @@
-package com.neocat.common.config;
+package com.neocat.analysis.config;
 
 import link.cu1universe.dev.apollo.annotation.ApolloStaticValue;
 import org.springframework.context.annotation.Configuration;

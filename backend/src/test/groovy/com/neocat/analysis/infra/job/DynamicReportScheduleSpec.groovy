@@ -3,17 +3,24 @@ package com.neocat.analysis.infra.job
 import com.neocat.analysis.domain.schedule.ReportScheduler
 import com.neocat.analysis.domain.bucket.ReportBucketSinkPort
 import com.neocat.analysis.infra.store.MinuteBucketReader
-import com.neocat.common.config.ReportConfig
-import com.neocat.common.config.IngestConfig
+import com.neocat.analysis.config.ReportConfig
+import com.neocat.ingest.config.IngestConfig
 import spock.lang.Specification
 import java.time.*
+import com.neocat.common.time.clock.TimeProvider
 
 class DynamicReportScheduleSpec extends Specification {
+    def cleanup() {
+        TimeProvider.clock = Clock.systemUTC()
+    }
+
     def "分钟调度读取新延迟，去重已刷分钟，延迟加大不倒退"() {
         given:
         def scheduler = Mock(ReportScheduler)
         def clock = Mock(Clock)
-        def job = new ReportSchedulerJob(scheduler, Mock(ReportBucketSinkPort), Mock(MinuteBucketReader), clock)
+        clock.millis() >> { clock.instant().toEpochMilli() }
+        TimeProvider.clock = clock
+        def job = new ReportSchedulerJob(scheduler, Mock(ReportBucketSinkPort), Mock(MinuteBucketReader))
         clock.instant() >> Instant.parse('2026-10-03T12:02:30Z')
 
         when:
@@ -44,8 +51,8 @@ class DynamicReportScheduleSpec extends Specification {
     def "失败分钟允许重试，不缓存配置值"() {
         given:
         def scheduler = Mock(ReportScheduler)
-        def job = new ReportSchedulerJob(scheduler, Mock(ReportBucketSinkPort), Mock(MinuteBucketReader),
-                Clock.fixed(Instant.parse('2026-10-03T12:02:30Z'), ZoneOffset.UTC))
+        TimeProvider.clock = Clock.fixed(Instant.parse('2026-10-03T12:02:30Z'), ZoneOffset.UTC)
+        def job = new ReportSchedulerJob(scheduler, Mock(ReportBucketSinkPort), Mock(MinuteBucketReader))
 
         when:
         job.flushMinute()

@@ -5,5 +5,7 @@
  * {@code NeocatException} 是各类具体业务异常的抽象基类。
  * web 层的错误码映射与各模块的校验都依赖它们。
  */
-@org.springframework.modulith.NamedInterface("error")
+@NamedInterface("error")
 package com.neocat.common.error;
+
+import org.springframework.modulith.NamedInterface;

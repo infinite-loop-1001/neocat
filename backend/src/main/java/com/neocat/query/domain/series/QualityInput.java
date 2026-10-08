@@ -1,6 +1,9 @@
 package com.neocat.query.domain.series;
 
-import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 数据质量判定输入（PRD 00 §6、PRD 02 §7–8）。
@@ -13,10 +16,10 @@ import java.util.List;
  * @param realtime        是否为当前仍在写入的桶
  * @param coveredSeconds  桶实际覆盖秒数
  */
-@org.springframework.modulith.NamedInterface("query")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("query")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class QualityInput {
     private final boolean seriesExists;
 
@@ -49,7 +52,3 @@ public class QualityInput {
         return new QualityInput(true, count, false, false, false, false, 60);
     }
 }
-
-
-
-

@@ -3,6 +3,12 @@
 日期：2026-10-03。范围：backend、client-java 与规范/操作文档，保持当前 JSON / Protobuf 契约。
 仓库不是 Git 仓库，未提交或推送；未连接真实中间件、未执行迁移和部署。
 
+> 本文保留 2026-10-03 的历史验收记录。2026-10-08 已将后端注入式 Clock 改为公共静态
+> TimeProvider，固定时间测试直接修改其私有静态时钟字段并在结束后赋回系统 UTC 时钟，不使用隔离或恢复作用域；领域配置迁入各自模块。
+> 当前规则与验证见 `.agents/coding-standards/java.md` 和
+> `docs/superpowers/specs/2026-10-08-static-time-domain-config-design.md`，下文 Clock Bean
+> 与兼容构造器说明不再作为当前编码指导。
+
 ## 1. 落地结果
 
 - 中文编码规范位于 `.agents/coding-standards/`，根 `AGENTS.md` 必须引用。

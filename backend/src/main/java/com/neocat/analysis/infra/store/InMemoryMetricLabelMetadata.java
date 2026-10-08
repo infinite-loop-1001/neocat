@@ -13,12 +13,15 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.collections4.MapUtils;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 @Component
 public  class InMemoryMetricLabelMetadata implements MetricLabelMetadata {
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     private static class Key {
         private final String service;
 

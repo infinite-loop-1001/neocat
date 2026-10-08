@@ -2,6 +2,10 @@ package com.neocat.trace.domain.tree;
 
 import java.util.List;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 一棵本地 MessageTree（含 Trace 关系与树内节点）。
@@ -15,10 +19,10 @@ import java.util.Objects;
  * @param fingerprint      内容指纹（幂等兜底查询用）
  * @param nodes            树内节点
  */
-@org.springframework.modulith.NamedInterface("trace")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("trace")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class TraceTree {
     private final String messageId;
 
@@ -51,7 +55,3 @@ public class TraceTree {
         return Objects.nonNull(parentMessageId) && !parentMessageId.isBlank();
     }
 }
-
-
-
-

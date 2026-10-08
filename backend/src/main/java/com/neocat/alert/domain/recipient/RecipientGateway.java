@@ -1,11 +1,12 @@
 package com.neocat.alert.domain.recipient;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 账号与组织资格查询（PRD 06 §9）。
  *
  * <p>由 identity / isOrganization 模块实现；alert 只依赖该抽象。
  */
-@org.springframework.modulith.NamedInterface("alert")
+@NamedInterface("alert")
 public interface RecipientGateway {
 
     /** 账号是否启用（禁用账号不可作为收件人）。 */

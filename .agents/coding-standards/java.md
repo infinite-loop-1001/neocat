@@ -9,13 +9,21 @@ public static volatile int NOTIFY_TIMEOUT_MS;
 
 private final Map<Long, State> states;
 
-public Evaluator(Clock clock) {
-    this.clock = Objects.requireNonNull(clock);
+public Evaluator() {
     this.states = new ConcurrentHashMap<>();
 }
 ```
 
-自有 Spring 组件通过构造函数注入，不使用字段注入或 Service Locator。构造函数有重载时只标注一个实际注入构造函数。常量可以在声明处初始化。数据源、Clock、第三方构造器、具名多实例与必要工厂允许保留 `@Bean`；Apollo 初始化依赖和 ApplicationReadyEvent 启动时序不得丢失。
+自有 Spring 组件通过构造函数注入，不使用字段注入或 Service Locator。构造函数有重载时只标注一个实际注入构造函数。常量可以在声明处初始化。数据源、第三方构造器、具名多实例与必要工厂允许保留 `@Bean`；Clock 不作为 Bean 注入。Apollo 初始化依赖和 ApplicationReadyEvent 启动时序不得丢失。
+
+## 时间与配置归属
+
+- 后端当前墙上时间统一使用 `com.neocat.common.time.clock.TimeProvider.now()` / `millis()`，禁止生产组件持有或注入 Clock / ClockProvider，禁止调用方直接使用 `Instant.now()`、`System.currentTimeMillis()` 或系统 Clock 工厂取时。公共 TimeProvider 内部实现除外。
+- 「当前时刻回退延迟后所在的分钟起点」这类时间表达式属于公共时间能力，使用 `TimeProvider.delayedMinuteStart(delaySeconds)`（返回对齐到分钟边界的 `Instant`）；禁止在调用方手写 `toEpochMilli() / 60_000 * 60_000` 之类的毫秒取整。延迟值仍由调用方从领域配置读取后传入，TimeProvider 不感知业务配置，也不代替「该分钟点是否已完全落库」的判断。
+- 事件时间、显式传入的桶边界与平台业务时区保持原语义。SDK 单调计时、超时和耗时测量不改为墙上时钟。
+- 整个后端共用 TimeProvider 内一个 `private static volatile Clock` 字段，只暴露取时能力，不提供 setClock 之类的方法。Groovy 单测直接给该私有静态字段赋值：`TimeProvider.clock = Clock.fixed(...)`；测试结束在 cleanup / finally 中赋回 `Clock.systemUTC()`。不使用 ThreadLocal、Scope、嵌套恢复或线程隔离；所有线程看到同一时钟，修改该字段的测试串行运行。
+- 领域动态配置位于所属模块的 `config` 包，保留 `public static volatile`、Apollo 键和 Bean 名；禁止放到 common 或保存参数副本。
+- 跨模块配置访问通过最小必要具名接口，更新 allowedDependencies 与导出基线。应用根包负责启动装配和 Apollo 校验，校验完整注册领域配置且不引入 common 到业务模块的反向依赖。
 
 ## 重复 key
 
@@ -30,6 +38,23 @@ Collectors.toMap(Item::getId, Function.identity(), (left, right) -> {
 累加、按版本取最新等策略需有业务理由与测试。不能为了通过检查统一选择第一个值。Map.entrySet 的来源虽然唯一，也显式声明重复处理策略。
 
 ## 类型与依赖
+
+### 类型引用与 import（强制）
+
+- 手写 Java / Groovy 源码（backend、client-java、测试与 scripts）使用显式 `import` 与简单类名，不在注解、字段、参数、泛型、构造调用、class 字面量、方法引用或静态成员访问中重复书写包路径。
+- 唯一例外是同一源文件确有同名类型冲突：优先导入其中一个类型，另一类型保留必要的全限定名；不得以「避免加 import」为由制造例外。嵌套类型可以使用 `Outer.Inner`；存在嵌套类型、类型参数或局部名字遮蔽时必须保证原绑定不变。
+- `package` / `import` 声明本身不适用；反射类名、配置键、断言等字符串保持原值，注释中的定位信息不改；MapStruct / Protobuf 等生成代码不手工修改。
+- 不改变公开类型、JSON / Protobuf 契约或运行行为；缩短引用后必须编译并运行相关离线测试，不能仅用文本替换结果作为类型绑定正确的证据。
+
+```java
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
+
+@NamedInterface("tree")
+@Component
+public class LatenessPolicy {
+}
+```
 
 - 禁止声明 `record`，使用普通类和 `getX()` / `isX()`；手写行为方法不强制改名。
 - 禁止 Hutool、Fastjson、Fastjson2，包括直接和可排除的传递依赖。
@@ -86,7 +111,19 @@ Map<String, String> labels = Maps.newHashMap();
 
 该规则覆盖 backend、client-java、手写 Java 测试和 `scripts`；生成代码、Groovy 与前端不适用。源码中任何位置都禁止使用 `subList()`，因为它返回原列表的视图而非独立集合；需要截取时使用索引循环或收集到新的 `ArrayList`，保留顺序、边界和所需的可变性。
 
-判断对象相等使用 `Objects.equals(left, right)`，避免任一比较对象为 null 时抛 NPE。枚举与原始类型仍用 `==`：枚举常量引用唯一，`==` 不会 NPE 且是惯用写法。注意 `a.equals(b)` 改为 `Objects.equals(a, b)` 会把原本的 NPE 变成返回 false；接收者确定非 null 时保持原样更安全。
+判断对象相等使用 `Objects.equals(left, right)`，避免任一比较对象为 null 时抛 NPE。**枚举不例外**：`row.level() == AggregationLevel.DAY`、`scope == AlertScope.ORGANIZATION`、枚举内部的 `this == NUMBER` 一律写成 `Objects.equals(...)`。
+
+```java
+if (Objects.equals(row.level(), AggregationLevel.DAY)) {
+    return Date.valueOf(row.bucketStart().atZone(zone.get()).toLocalDate());
+}
+return !Objects.equals(status, IngestStatus.REJECTED);
+```
+
+- 只有原始类型保留 `==` / `!=`：`byte` / `short` / `int` / `long` / `float` / `double` / `char` / `boolean` 及其字面量与原始类型常量。
+- `Long.MAX_VALUE`、`Integer.MIN_VALUE` 之类包装类常量是数值比较，保留 `==`；`Long` 与 `long` 混用同样是先拆箱的数值比较，保留 `==`。
+- Groovy 的 `==` 已等价于 null-safe 的 `equals`，不适用本条（Java 专用规则，见上文判空章节的适用范围）。
+- 注意 `a.equals(b)` 改为 `Objects.equals(a, b)` 会把原本的 NPE 变成返回 false；接收者确定非 null 时保持原样更安全。
 
 容器判空工具仅 backend 声明 `commons-collections4`；Guava 在 backend 与 client-java 均显式声明，用于统一的可变空容器与独立集合创建。
 

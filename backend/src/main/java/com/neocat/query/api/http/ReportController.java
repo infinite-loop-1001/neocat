@@ -12,13 +12,15 @@ import com.neocat.query.domain.stat.StatCalculator;
 import com.neocat.common.time.bucket.TimeBucketResolver;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.time.Clock;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.function.Supplier;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 
 @RestController
-@org.springframework.context.annotation.DependsOn("traceConfig")
+@DependsOn("traceConfig")
 @RequestMapping("/api/reports")
 public class ReportController {
     private final ReportQueryService query;
@@ -29,17 +31,11 @@ public class ReportController {
     public ReportController(ReportDataPort data, TimeBucketResolver buckets, ReportTableService tables,
                             StatCalculator calculator, QualityResolver quality, MomAligner mom,
                             SamplePort samples, Supplier<ZoneId> zone) {
-        this(data, buckets, tables, calculator, quality, mom, samples, zone, Clock.systemUTC());
+        this(new ReportQueryService(data, buckets, tables, calculator, quality, mom, samples, zone),
+                new ReportConvert(new ObjectMapper()));
     }
 
-    public ReportController(ReportDataPort data, TimeBucketResolver buckets, ReportTableService tables,
-                            StatCalculator calculator, QualityResolver quality, MomAligner mom,
-                            SamplePort samples, Supplier<ZoneId> zone, Clock clock) {
-        this(new ReportQueryService(data, buckets, tables, calculator, quality, mom, samples, zone, clock),
-                new ReportConvert(new com.fasterxml.jackson.databind.ObjectMapper()));
-    }
-
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public ReportController(ReportQueryService query, ReportConvert convert) {
         this.query = query;
         this.convert = convert;

@@ -1,12 +1,16 @@
 package com.neocat.ingest.domain.receive;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 上报接收结果（技术方案 04 §5）。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("tree")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class IngestResult {
     private final IngestStatus status;
 
@@ -45,6 +49,3 @@ public class IngestResult {
         return acceptedTrees + duplicateTrees + droppedTrees + rejectedTrees;
     }
 }
-
-
-

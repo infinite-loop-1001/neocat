@@ -1,6 +1,8 @@
 package com.neocat.dashboard.domain.formula;
 
 import com.neocat.query.domain.stat.Stat;
+import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 公式单位（PRD 05 §4，技术方案 02 §9.2）。
@@ -13,7 +15,7 @@ import com.neocat.query.domain.stat.Stat;
  *   <li>不符合校验的公式不能保存。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("dashboard")
+@NamedInterface("dashboard")
 public enum Unit {
     /** 次数。 */
     COUNT("count"),
@@ -44,39 +46,39 @@ public enum Unit {
     }
     /** 加减是否兼容：同单位可加。 */
     public boolean compatibleWith(Unit other) {
-        return this == other;
+        return Objects.equals(this, other);
     }
     /** 乘法推导。 */
     public Unit multiply(Unit other) {
-        if (this == NUMBER) {
+        if (Objects.equals(this, NUMBER)) {
             return other;
         }
-        if (other == NUMBER) {
+        if (Objects.equals(other, NUMBER)) {
             return this;
         }
-        if ((this == DURATION || this == RATIO) && other == COUNT) {
+        if ((Objects.equals(this, DURATION) || Objects.equals(this, RATIO)) && Objects.equals(other, COUNT)) {
             return DURATION;         // 平均耗时 × 次数 = 耗时总和
         }
-        if (this == COUNT && (other == DURATION || other == RATIO)) {
+        if (Objects.equals(this, COUNT) && (Objects.equals(other, DURATION) || Objects.equals(other, RATIO))) {
             return DURATION;
         }
-        if (this == RATE || other == RATE) {
+        if (Objects.equals(this, RATE) || Objects.equals(other, RATE)) {
             return RATE;
         }
         return COUNT;               // 次数 × 次数
     }
     /** 除法推导。 */
     public Unit divide(Unit other) {
-        if (other == NUMBER) {
+        if (Objects.equals(other, NUMBER)) {
             return this;
         }
-        if (this == other) {
+        if (Objects.equals(this, other)) {
             return RATE;             // 同单位相除得到比例
         }
-        if ((this == DURATION || this == RATIO) && other == COUNT) {
+        if ((Objects.equals(this, DURATION) || Objects.equals(this, RATIO)) && Objects.equals(other, COUNT)) {
             return RATIO;            // 耗时总和 ÷ 次数 = 平均耗时
         }
-        if (this == COUNT && (other == DURATION || other == RATIO)) {
+        if (Objects.equals(this, COUNT) && (Objects.equals(other, DURATION) || Objects.equals(other, RATIO))) {
             return RATIO;
         }
         return RATE;

@@ -10,6 +10,9 @@ import com.neocat.ingest.domain.tree.NodeKind;
 import com.neocat.ingest.domain.tree.RawNode;
 
 import java.time.Instant;
+import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * Event 分析器（PRD 02 §9、PRD 03 §8）。
@@ -18,8 +21,8 @@ import java.time.Instant;
  * （PRD 03 §8）。因此这里传入 {@code durationMs = 0}，使分布保持为空、耗时和为 0；
  * 查询层对 Event 请求分位会返回参数错误，从两端共同保证该口径不被违反。
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@org.springframework.stereotype.Component
+@NamedInterface("analysis")
+@Component
 public class EventAnalyzer implements Analyzer {
 
     private final HourlyReportStore store;
@@ -34,7 +37,7 @@ public class EventAnalyzer implements Analyzer {
     @Override
     public void analyze(MessageTree tree) {
         for (RawNode node : tree.getNodes()) {
-            if (node.getKind() != NodeKind.EVENT) {
+            if (!Objects.equals(node.getKind(), NodeKind.EVENT)) {
                 continue;
             }
             Instant eventTime = Instant.ofEpochMilli(node.getTimestamp());

@@ -4,6 +4,7 @@ import com.neocat.identity.domain.auth.PasswordHasher;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Objects;
+import org.springframework.stereotype.Component;
 
 /**
  * BCrypt 口令哈希适配器。
@@ -11,7 +12,7 @@ import java.util.Objects;
  * <p>只使用 spring-security-crypto 的编码器，不引入 Spring Security 过滤器链——
  * 会话机制由 {@code SessionInterceptor} 自行实现（技术方案 01 §1.1 的取舍）。
  */
-@org.springframework.stereotype.Component
+@Component
 public class BCryptPasswordHasher implements PasswordHasher {
 
     private final BCryptPasswordEncoder encoder;

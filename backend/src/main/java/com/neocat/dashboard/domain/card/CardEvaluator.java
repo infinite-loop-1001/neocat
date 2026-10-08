@@ -1,18 +1,26 @@
 package com.neocat.dashboard.domain.card;
 
+import java.math.BigDecimal;
+
 import com.google.common.collect.Lists;
 import com.neocat.dashboard.domain.formula.Formula;
 import com.neocat.dashboard.domain.formula.FormulaParser;
 import com.neocat.query.domain.stat.Stat;
-import java.util.ArrayList;
+import com.neocat.common.DecimalMath;
+
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 卡片求值器（PRD 05 §4、§5，技术方案 02 §9.2）。
@@ -29,7 +37,7 @@ import org.apache.commons.collections4.MapUtils;
  * <p>求值是**逐桶独立**的：不存在「沿用上一点」的路径，
  * 因为每个桶都从头计算，没有跨桶状态。
  */
-@org.springframework.modulith.NamedInterface("dashboard")
+@NamedInterface("dashboard")
 public class CardEvaluator {
 
     public static final String INVALID_TARGET = "INVALID_TARGET";
@@ -37,14 +45,14 @@ public class CardEvaluator {
     /**
      * 对单个桶求值。
      */
-    public CardPoint evaluate(Formula formula, Map<Stat, Double> inputs, long bucketStart, long bucketEnd) {
+    public CardPoint evaluate(Formula formula, Map<Stat, BigDecimal> inputs, long bucketStart, long bucketEnd) {
         if (Objects.isNull(formula)) {
             return new CardPoint(bucketStart, bucketEnd, null, CardPointOutcome.GAP, Lists.newArrayList());
         }
 
         Set<String> missing = new LinkedHashSet<>();
         for (Stat stat : formula.referencedStats()) {
-            Double value = MapUtils.isEmpty(inputs) ? null : inputs.get(stat);
+            BigDecimal value = MapUtils.isEmpty(inputs) ? null : inputs.get(stat);
             if (Objects.isNull(value)) {
                 missing.add(displayOf(stat));
             }
@@ -59,8 +67,9 @@ public class CardEvaluator {
             return new CardPoint(bucketStart, bucketEnd, null,
                     CardPointOutcome.DIVIDE_BY_ZERO, Lists.newArrayList());
         }
-        return new CardPoint(bucketStart, bucketEnd, result.getComputed(), CardPointOutcome.OK, Lists.newArrayList());
+        return new CardPoint(bucketStart, bucketEnd, DecimalMath.result(result.getComputed()), CardPointOutcome.OK, Lists.newArrayList());
     }
+
     /**
      * 校验卡片目标与公式：一个服务 + 一个指标对象，公式单位必须兼容。
      */
@@ -89,7 +98,7 @@ public class CardEvaluator {
 
     // ── 内部求值 ─────────────────────────────────────────────
 
-    private EvalResult eval(Formula formula, Map<Stat, Double> inputs) {
+    private EvalResult eval(Formula formula, Map<Stat, BigDecimal> inputs) {
         if (formula instanceof Formula.Constant constant) {
             return EvalResult.of(constant.getValue());
         }
@@ -104,18 +113,23 @@ public class CardEvaluator {
         EvalResult left = eval(binary.getLeft(), inputs);
         EvalResult right = eval(binary.getRight(), inputs);
 
+        if (left.isDivideByZero() || right.isDivideByZero()) {
+            return EvalResult.zeroDivisor();
+        }
+
         return switch (binary.getOp()) {
-            case ADD -> EvalResult.of(left.getComputed() + right.getComputed());
-            case SUBTRACT -> EvalResult.of(left.getComputed() - right.getComputed());
-            case MULTIPLY -> EvalResult.of(left.getComputed() * right.getComputed());
+            case ADD -> EvalResult.of(left.getComputed().add(right.getComputed()));
+            case SUBTRACT -> EvalResult.of(left.getComputed().subtract(right.getComputed()));
+            case MULTIPLY -> EvalResult.of(left.getComputed().multiply(right.getComputed()));
             case DIVIDE -> {
-                if (right.getComputed() == 0.0d) {
+                if (right.getComputed().signum() == 0) {
                     yield EvalResult.zeroDivisor();
                 }
-                yield EvalResult.of(left.getComputed() / right.getComputed());
+                yield EvalResult.of(DecimalMath.divide(left.getComputed(), right.getComputed()));
             }
         };
     }
+
     private String displayOf(Stat stat) {
         String name = stat.name().toLowerCase(Locale.ROOT);
         return switch (name) {
@@ -127,23 +141,26 @@ public class CardEvaluator {
             default -> name;
         };
     }
-    /** 内部求值结果：区分「有值」与「除零」。 */
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+
+    /**
+     * 内部求值结果：区分「有值」与「除零」。
+     */
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     private static class EvalResult {
-        private final Double computed;
+        private final BigDecimal computed;
 
         private final boolean divideByZero;
 
-        public EvalResult(Double computed, boolean divideByZero) {
+        public EvalResult(BigDecimal computed, boolean divideByZero) {
             this.computed = computed;
             this.divideByZero = divideByZero;
         }
 
 
-        static EvalResult of(Double computed) {
-            return new EvalResult(Objects.isNull(computed) ? 0.0d : computed, false);
+        static EvalResult of(BigDecimal computed) {
+            return new EvalResult(Objects.requireNonNull(computed, "computed"), false);
         }
 
         static EvalResult zeroDivisor() {

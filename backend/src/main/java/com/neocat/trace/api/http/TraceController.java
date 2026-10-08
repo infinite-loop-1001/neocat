@@ -1,16 +1,15 @@
 package com.neocat.trace.api.http;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.trace.api.http.dto.TraceDtos.TraceResponse;
 import com.neocat.trace.api.http.convert.TraceConvert;
 
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.error.exception.ExpiredException;
 import com.neocat.common.error.exception.ResourceNotFoundException;
-import com.neocat.trace.domain.tree.NodeAvailability;
 import com.neocat.trace.domain.tree.TraceAssembler;
-import com.neocat.trace.domain.tree.TraceNode;
-import com.neocat.trace.domain.tree.TraceTreeNode;
-import com.neocat.common.config.TraceConfig;
+import com.neocat.trace.config.TraceConfig;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,10 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+
+import org.springframework.context.annotation.DependsOn;
 
 /**
  * Trace 接口（技术方案 03-api-contract.md §4.9、02 §7）。
@@ -34,22 +31,20 @@ import java.util.Map;
  * </ul>
  */
 @RestController
-@org.springframework.context.annotation.DependsOn("traceConfig")
+@DependsOn("traceConfig")
 @RequestMapping("/api/traces")
 public class TraceController {
 
     private final TraceAssembler assembler;
 
-    private final java.time.Clock clock;
 
-    public TraceController(TraceAssembler assembler, java.time.Clock clock) {
+    public TraceController(TraceAssembler assembler) {
         this.assembler = assembler;
-        this.clock = clock;
     }
     @GetMapping("/{messageId}")
     public ResponseEntity<TraceResponse> trace(@PathVariable String messageId) {
         TraceAssembler.AssemblyResult result = assembler.assemble(
-                messageId, clock.instant(), Duration.ofDays(TraceConfig.RETENTION_DAYS));
+                messageId, TimeProvider.now(), Duration.ofDays(TraceConfig.RETENTION_DAYS));
 
         if (result.isExpired()) {
             throw new ExpiredException(ErrorCode.TRACE_EXPIRED);

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import org.apache.commons.collections4.CollectionUtils;
 import java.util.Objects;
+import java.util.NoSuchElementException;
 
 /**
  * 收件人维护（PRD 06 §9）。
@@ -100,7 +101,7 @@ public class RecipientService {
     @MySqlLocked("metadata")
     public AlertRule updateRecipients(long ruleId, List<Long> recipients, long addedAt) {
         AlertRule rule = Optional.ofNullable(repository.findById(ruleId))
-                .orElseThrow(() -> new java.util.NoSuchElementException("规则不存在：" + ruleId));
+                .orElseThrow(() -> new NoSuchElementException("规则不存在：" + ruleId));
         // rules: stream 流操作前需要进行判空, 类似 CollectionUtils.emptyIfNull().stream....
         List<Long> sanitized = distinct(recipients);
 

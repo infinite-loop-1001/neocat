@@ -1,14 +1,20 @@
 package com.neocat.web
 
+import com.neocat.alert.domain.engine.PreviewResult
+import com.neocat.alert.domain.engine.PreviewResultType
 import com.neocat.dashboard.domain.card.Card
-import com.neocat.dashboard.domain.dashboard.DashboardService
-import com.neocat.organization.domain.tree.OrgNode
-import com.neocat.organization.domain.tree.OrgNodeRepository
+import com.neocat.dashboard.domain.formula.FormulaParser
+import com.neocat.organization.domain.lifecycle.OrgLifecycleService
 import com.neocat.organization.domain.lifecycle.OrgResourceGateway
 import com.neocat.organization.domain.membership.EffectiveLeafRepository
 import com.neocat.organization.domain.membership.MembershipRepository
 import com.neocat.organization.domain.tree.DeletionPreview
-import com.neocat.organization.domain.lifecycle.OrgLifecycleService
+import com.neocat.organization.domain.tree.OrgNode
+import com.neocat.organization.domain.tree.OrgNodeRepository
+import com.neocat.query.domain.series.Point
+import com.neocat.query.domain.series.Quality
+import com.neocat.trace.domain.sample.Sample
+import com.neocat.trace.domain.tree.NodeAvailability
 import spock.lang.Specification
 
 import java.time.Instant
@@ -17,12 +23,12 @@ import java.time.Instant
  * 字段级契约规格（成功标准 2 的支撑）。
  *
  * <p>路径级对齐（见 {@code scripts/check-contract-alignment.mjs}）不足以保证前端可用：
- * **字段不一致时界面会显示 undefined 或直接崩溃**，而这在 mock 模式下被完全掩盖。
+ * **字段不一致时界面会显示 isUndefined 或直接崩溃**，而这在 mock 模式下被完全掩盖。
  *
  * <p>本规格锁定前端实际消费的字段与后端实际产出的字段一致，
  * 覆盖两类曾真实发生的不一致：
  * <ol>
- *   <li>卡片列表缺少 {@code unit} —— 前端读取 {@code card.unit} 会显示 undefined；</li>
+ *   <li>卡片列表缺少 {@code unit} —— 前端读取 {@code card.unit} 会显示 isUndefined；</li>
  *   <li>删除预览返回扁平计数，而契约要求 {@code dashboards:[{id,name,cardCount}]} ——
  *       前端读取 {@code preview.dashboards.length} 会崩溃。</li>
  * </ol>
@@ -71,7 +77,7 @@ class FieldLevelContractSpec extends Specification {
     }
 
     private static String unitOf(String formula) {
-        def parsed = new com.neocat.dashboard.domain.formula.FormulaParser().parse(formula)
+        def parsed = new FormulaParser().parse(formula)
         return parsed.valid() ? parsed.getFormula().unit().name() : "NUMBER"
     }
 
@@ -157,15 +163,15 @@ class FieldLevelContractSpec extends Specification {
 
     def "趋势点字段支持缺口语义（value 可为 null）"() {
         given: "前端图表依赖 value=null 来断线，而不是画到 0"
-        def point = new com.neocat.query.domain.series.Point(
-                1_000L, 2_000L, null, com.neocat.query.domain.series.Quality.NO_DATA, 60L)
+        def point = new Point(
+                1_000L, 2_000L, null, Quality.NO_DATA, 60L)
 
         expect:
         point.getValue() == null
         point.getQuality().gap()
         and: "确认无调用才给 0"
-        new com.neocat.query.domain.series.Point(1_000L, 2_000L, 0.0d,
-                com.neocat.query.domain.series.Quality.ZERO, 60L).getQuality() == com.neocat.query.domain.series.Quality.ZERO
+        new Point(1_000L, 2_000L, 0.0d,
+                Quality.ZERO, 60L).getQuality() == Quality.ZERO
     }
 
     // ── 平台配置字段 ─────────────────────────────────────────
@@ -199,11 +205,11 @@ class FieldLevelContractSpec extends Specification {
 
     def "预告警返回三态结果与逐点明细"() {
         given: "前端提示「数据不足（缺数不当 0）」依赖 known=false"
-        def result = com.neocat.alert.domain.engine.PreviewResult.insufficient([
-                new com.neocat.alert.domain.engine.PreviewResult.PointEvaluation(1_000L, false, false, "hits")])
+        def result = PreviewResult.insufficient([
+                new PreviewResult.PointEvaluation(1_000L, false, false, "hits")])
 
         expect:
-        result.getResult() == com.neocat.alert.domain.engine.PreviewResultType.INSUFFICIENT_DATA
+        result.getResult() == PreviewResultType.INSUFFICIENT_DATA
         !result.getPoints()[0].isKnown()
         result.getPoints()[0].getMissingStat() == "hits"
     }
@@ -212,14 +218,14 @@ class FieldLevelContractSpec extends Specification {
 
     def "Trace 节点区分 MISSING 与 EXPIRED，前端据此显示不同标记"() {
         expect: "PRD 02 §10：二者语义不同，界面表现也不同"
-        com.neocat.trace.domain.tree.NodeAvailability.MISSING.name() == "MISSING"
-        com.neocat.trace.domain.tree.NodeAvailability.EXPIRED.name() == "EXPIRED"
-        com.neocat.trace.domain.tree.NodeAvailability.PRESENT.name() == "PRESENT"
+        NodeAvailability.MISSING.name() == "MISSING"
+        NodeAvailability.EXPIRED.name() == "EXPIRED"
+        NodeAvailability.PRESENT.name() == "PRESENT"
     }
 
     def "取样条目包含前端判断是否可下钻所需的 traceAvailable"() {
         given:
-        def sample = new com.neocat.trace.domain.sample.Sample(
+        def sample = new Sample(
                 "m-1", 1_000L, 42L, "0", "POST /orders", false)
 
         expect: "false 时前端不渲染「查看 Trace」按钮"

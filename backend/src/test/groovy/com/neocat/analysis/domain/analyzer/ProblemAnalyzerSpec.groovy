@@ -6,6 +6,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import java.time.Instant
+import com.neocat.analysis.infra.store.InMemoryHourlyReportStore
 
 /**
  * G6 任务33（红）：Problem 五类派生。
@@ -16,11 +17,11 @@ class ProblemAnalyzerSpec extends Specification {
 
     static final Instant T = Instant.parse("2026-09-24T04:23:41Z")
 
-    com.neocat.analysis.infra.store.InMemoryHourlyReportStore store
+    InMemoryHourlyReportStore store
     ProblemAnalyzer analyzer
 
     def setup() {
-        store = new com.neocat.analysis.infra.store.InMemoryHourlyReportStore()
+        store = new InMemoryHourlyReportStore()
         // 平台默认阈值：URL 1000 / SQL 100 / 调用 1000 / 缓存 50
         analyzer = new ProblemAnalyzer(store, 1000, 100, 1000, 50)
     }

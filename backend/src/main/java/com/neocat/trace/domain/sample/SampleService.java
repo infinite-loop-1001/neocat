@@ -9,6 +9,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 取样查询（PRD 03 §11、PRD 00 §12）。
@@ -22,8 +27,8 @@ import java.util.List;
  *       前端据此禁用下钻（PRD 00 §6「Trace 过期」）。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("trace")
-@org.springframework.stereotype.Service
+@NamedInterface("trace")
+@Service
 public class SampleService {
 
     private final RawTreeStore store;
@@ -58,9 +63,9 @@ public class SampleService {
                         !Instant.ofEpochMilli(c.getNode().getTimestamp()).isBefore(expiryThreshold)))
                 .toList();
     }
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     private static class Candidate {
         private final TraceTree tree;
 

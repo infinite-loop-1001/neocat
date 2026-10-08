@@ -1,4 +1,6 @@
 package com.neocat.query.domain.series;
+import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 数据质量标记（PRD 00 §6、技术方案 03 §4.2）。
@@ -14,7 +16,7 @@ package com.neocat.query.domain.series;
  *   <li>{@link #REALTIME} 当前仍在写入的桶。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("query")
+@NamedInterface("query")
 public enum Quality {
     OK,
     ZERO,
@@ -26,10 +28,10 @@ public enum Quality {
 
     /** 该质量标记是否表示"有可比较的数值"。 */
     public boolean comparable() {
-        return this == OK || this == ZERO || this == REALTIME || this == PARTIAL;
+        return Objects.equals(this, OK) || Objects.equals(this, ZERO) || Objects.equals(this, REALTIME) || Objects.equals(this, PARTIAL);
     }
     /** 该质量标记是否表示缺口（图表应断开而非画 0）。 */
     public boolean gap() {
-        return this == NO_DATA || this == DROPPED || this == MERGED_OTHER;
+        return Objects.equals(this, NO_DATA) || Objects.equals(this, DROPPED) || Objects.equals(this, MERGED_OTHER);
     }
 }

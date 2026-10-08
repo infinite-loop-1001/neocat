@@ -6,5 +6,7 @@
  *
  * <p>这也是 PRD 02 §2「MessageTree 语义」在代码层的落点。
  */
-@org.springframework.modulith.NamedInterface("tree")
+@NamedInterface("tree")
 package com.neocat.ingest.domain;
+
+import org.springframework.modulith.NamedInterface;

@@ -1,12 +1,14 @@
 package com.neocat.analysis.infra.job;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.analysis.infra.store.MinuteBucketReader;
 
 import com.neocat.analysis.domain.bucket.AggregationLevel;
 import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.schedule.ReportScheduler;
-import com.neocat.common.config.IngestConfig;
-import com.neocat.common.config.ReportConfig;
+import com.neocat.ingest.config.IngestConfig;
+import com.neocat.analysis.config.ReportConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,6 +16,10 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.List;
+import com.neocat.analysis.domain.bucket.ReportBucketSinkPort;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import org.springframework.context.annotation.DependsOn;
 
 /**
  * 报表滚动调度（PRD 00 §10、PRD 03 §2.1，链路 23）。
@@ -32,38 +38,36 @@ import java.util.List;
  * 所有任务都只处理**已结束**的时间片，因此重复触发是安全的（幂等）。
  */
 @Component
-@org.springframework.context.annotation.DependsOn({"ingestConfig", "reportConfig"})
+@DependsOn({"ingestConfig", "reportConfig"})
 public class ReportSchedulerJob {
 
     private static final Logger log = LoggerFactory.getLogger(ReportSchedulerJob.class);
 
     private final ReportScheduler scheduler;
 
-    private final com.neocat.analysis.domain.bucket.ReportBucketSinkPort sink;
+    private final ReportBucketSinkPort sink;
 
     private final MinuteBucketReader reader;
 
-    private final java.time.Clock clock;
 
     private volatile long lastFlushedMinute;
 
-    public ReportSchedulerJob(ReportScheduler scheduler, com.neocat.analysis.domain.bucket.ReportBucketSinkPort sink,
-                              MinuteBucketReader reader, java.time.Clock clock) {
+    public ReportSchedulerJob(ReportScheduler scheduler, ReportBucketSinkPort sink,
+                              MinuteBucketReader reader) {
         this.scheduler = scheduler;
         this.sink = sink;
         this.reader = reader;
-        this.clock = clock;
         this.lastFlushedMinute = Long.MIN_VALUE;
     }
     /** 每秒检查动态延迟；同一已完成分钟只刷一次，失败允许下次重试。 */
     @Scheduled(fixedDelay = 1000)
     public synchronized void flushMinute() {
-        Instant ready = clock.instant().minusSeconds(ReportConfig.MINUTE_FLUSH_DELAY_SECONDS);
-        long minute = ready.truncatedTo(java.time.temporal.ChronoUnit.MINUTES).toEpochMilli();
+        Instant ready = TimeProvider.now().minusSeconds(ReportConfig.MINUTE_FLUSH_DELAY_SECONDS);
+        long minute = ready.truncatedTo(ChronoUnit.MINUTES).toEpochMilli();
         if (minute <= lastFlushedMinute) return;
         runSafely("分钟落库", () -> {
             int written = scheduler.flushCompletedMinute(ready);
-            scheduler.refreshLateHours(clock.instant(), IngestConfig.ACCEPT_LATE_HOURS);
+            scheduler.refreshLateHours(TimeProvider.now(), IngestConfig.ACCEPT_LATE_HOURS);
             lastFlushedMinute = minute;
             if (written > 0) {
                 log.debug("已落库 {} 个分钟桶", written);
@@ -74,11 +78,11 @@ public class ReportSchedulerJob {
     @Scheduled(cron = "0 2 * * * *")
     public void rollupHour() {
         runSafely("小时聚合并释放内存", () -> {
-            int written = scheduler.rollupCompletedHour(clock.instant(), false);
-            scheduler.refreshLateHours(clock.instant(), IngestConfig.ACCEPT_LATE_HOURS);
+            int written = scheduler.rollupCompletedHour(TimeProvider.now(), false);
+            scheduler.refreshLateHours(TimeProvider.now(), IngestConfig.ACCEPT_LATE_HOURS);
             // Yesterday's final hour can still receive late observations after the initial
             // daily job. Rebuild its versioned snapshot after the late-hour refresh.
-            scheduler.rollupCompletedDay(clock.instant());
+            scheduler.rollupCompletedDay(TimeProvider.now());
             log.info("小时聚合完成，写入 {} 行", written);
         });
     }
@@ -86,19 +90,19 @@ public class ReportSchedulerJob {
     @Scheduled(cron = "0 5 0 * * *")
     public void rollupDay() {
         runSafely("日聚合", () -> log.info("日聚合完成，写入 {} 行",
-                scheduler.rollupCompletedDay(clock.instant())));
+                scheduler.rollupCompletedDay(TimeProvider.now())));
     }
     /** 周聚合：周一 00:10（平台时区周一为自然周边界）。 */
     @Scheduled(cron = "0 10 0 * * MON")
     public void rollupWeek() {
         runSafely("周聚合", () -> log.info("周聚合完成，写入 {} 行",
-                scheduler.rollupCompletedWeek(clock.instant())));
+                scheduler.rollupCompletedWeek(TimeProvider.now())));
     }
     /** 月聚合：每月 1 日 00:15。 */
     @Scheduled(cron = "0 15 0 1 * *")
     public void rollupMonth() {
         runSafely("月聚合", () -> log.info("月聚合完成，写入 {} 行",
-                scheduler.rollupCompletedMonth(clock.instant())));
+                scheduler.rollupCompletedMonth(TimeProvider.now())));
     }
     /**
      * 留存清理：每日 02:00。
@@ -109,7 +113,7 @@ public class ReportSchedulerJob {
     @Scheduled(cron = "0 0 2 * * *")
     public void evictExpired() {
         runSafely("留存清理", () -> {
-            var result = scheduler.evictExpired(clock.instant(),
+            var result = scheduler.evictExpired(TimeProvider.now(),
                     ReportConfig.MINUTE_RETENTION_DAYS,
                     ReportConfig.HOUR_RETENTION_DAYS,
                     ReportConfig.LONG_TERM_RETENTION_MONTHS);
@@ -141,8 +145,7 @@ public class ReportSchedulerJob {
         return sink.readBuckets(level, from, to);
     }
     /** 当前小时内存中的序列数（运维诊断用）。 */
-    public java.util.Map<String, Long> currentHourSeries() {
+    public Map<String, Long> currentHourSeries() {
         return reader.seriesCountByService();
     }
 }
-

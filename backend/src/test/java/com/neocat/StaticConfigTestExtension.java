@@ -1,13 +1,16 @@
 package com.neocat;
 
+import java.lang.reflect.Field;
+
 import org.spockframework.runtime.extension.IGlobalExtension;
 import org.spockframework.runtime.model.SpecInfo;
 
 import java.util.Objects;
+import java.util.Map;
 
 /** 每个测试实例初始前保存静态值，清理后恢复；不让配置变更串到下个用例。 */
 public class StaticConfigTestExtension implements IGlobalExtension {
-    private final ThreadLocal<java.util.Map<java.lang.reflect.Field, Object>> previous = new ThreadLocal<>();
+    private final ThreadLocal<Map<Field, Object>> previous = new ThreadLocal<>();
     @Override public void visitSpec(SpecInfo spec) {
         spec.addInitializerInterceptor(invocation -> {
             previous.set(StaticConfigFixture.snapshot());

@@ -1,6 +1,6 @@
 package com.neocat.ingest.infra;
 
-import com.neocat.common.config.IngestConfig;
+import com.neocat.ingest.config.IngestConfig;
 import com.neocat.common.queue.BoundedDropQueue;
 import java.util.ArrayDeque;
 import java.util.ArrayList;

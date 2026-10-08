@@ -9,6 +9,11 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
+import java.time.Duration;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 查询时间范围解析（PRD 03 §2、技术方案 03 §4.2）。
@@ -17,7 +22,7 @@ import org.apache.commons.collections4.CollectionUtils;
  * 边界解析与粒度选择全部委托给 {@link TimeBucketResolver}，本类只负责
  * 「范围描述 → RangeSpec」的适配与结果封装，避免两处实现粒度规则而产生分歧。
  */
-@org.springframework.modulith.NamedInterface("query")
+@NamedInterface("query")
 public class RangeResolver {
 
     private final TimeBucketResolver buckets;
@@ -32,10 +37,10 @@ public class RangeResolver {
      * @param to      查询终点（不含）
      * @param buckets 桶序列
      */
-    @org.springframework.modulith.NamedInterface("query")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @NamedInterface("query")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     public static class ResolvedRange {
         private final Instant from;
 
@@ -72,7 +77,7 @@ public class RangeResolver {
      *
      * <p>与技术方案 03 §4.2 的快捷范围粒度保持一致。
      */
-    public Granularity inferredGranularity(java.time.Duration length) {
+    public Granularity inferredGranularity(Duration length) {
         long seconds = length.getSeconds();
         if (seconds <= 3600) {
             return Granularity.MINUTE_1;

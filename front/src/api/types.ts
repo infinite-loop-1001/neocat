@@ -37,6 +37,12 @@ export interface Series {
   mom?: ComparisonSeries | null;
 }
 
+/** 大盘卡片图表读取字段；isUndefined 是除零点数组，不是布尔值。 */
+export interface CardSeries {
+  points: Point[];
+  isUndefined: { bucketStart: number; reason: "DIVIDE_BY_ZERO" }[];
+}
+
 export type MomKind = "DAY" | "WEEK" | "MONTH";
 
 /** 环比接口只保证时间和值，可能不包含当前序列的质量字段。 */

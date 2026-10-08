@@ -9,10 +9,10 @@ import com.neocat.query.infra.port.MetricMetadataPort;
 import com.neocat.common.time.bucket.TimeBucketResolver;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.time.Clock;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.function.Supplier;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @RestController
 @RequestMapping("/api/reports/metric")
@@ -22,11 +22,11 @@ public class MetricCountController {
     private final ReportConvert convert;
 
     public MetricCountController(ReportDataPort data, MetricMetadataPort metadata, TimeBucketResolver buckets,
-                                 Supplier<ZoneId> zone, Clock clock, ObjectMapper json) {
-        this(new MetricCountQueryService(data, metadata, buckets, zone, clock, json), new ReportConvert(json));
+                                 Supplier<ZoneId> zone, ObjectMapper json) {
+        this(new MetricCountQueryService(data, metadata, buckets, zone, json), new ReportConvert(json));
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public MetricCountController(MetricCountQueryService query, ReportConvert convert) {
         this.query = query;
         this.convert = convert;

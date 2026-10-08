@@ -5,11 +5,13 @@ import com.neocat.ingest.domain.tree.MessageTree;
 import com.neocat.ingest.domain.tree.MetricValue;
 import com.neocat.ingest.domain.tree.NodeKind;
 import com.neocat.ingest.domain.tree.RawNode;
-import com.neocat.common.config.IngestConfig;
+import com.neocat.ingest.config.IngestConfig;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * 上报校验链（技术方案 04 §4）。
@@ -20,8 +22,8 @@ import org.apache.commons.collections4.CollectionUtils;
  * <p>注意：事件时间（迟到）校验不在此处，它由接收链路在入队前单独判定，
  * 因为过期需要「写质量事件 + 整棵拒绝」两个动作（见 {@code IngestService}）。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@org.springframework.stereotype.Component
+@NamedInterface("tree")
+@Component
 public class TreeValidator {
 
     private static final int MAX_FIELD_LENGTH = 256;
@@ -104,7 +106,7 @@ public class TreeValidator {
             if (node.getDurationMs() < 0) {
                 return ValidationOutcome.reject(ValidationOutcome.MALFORMED_TREE, "durationMs 不能为负");
             }
-            if (node.getKind() == NodeKind.METRIC) {
+            if (Objects.equals(node.getKind(), NodeKind.METRIC)) {
                 ValidationOutcome metric = validateMetric(node);
                 if (!metric.isValid()) {
                     return metric;

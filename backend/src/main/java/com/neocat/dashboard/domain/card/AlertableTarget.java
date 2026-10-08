@@ -4,6 +4,10 @@ import com.neocat.query.domain.stat.Stat;
 
 import java.util.List;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 可作为组织告警目标的对象（PRD 05 §9、PRD 06 §8）。
@@ -23,10 +27,10 @@ import java.util.Objects;
  * @param metricLabels Metric 标签串
  * @param stats      涉及的统计项；卡片结果为其公式引用的统计项
  */
-@org.springframework.modulith.NamedInterface("dashboard")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("dashboard")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class AlertableTarget {
     private final AlertableTargetKind kind;
 

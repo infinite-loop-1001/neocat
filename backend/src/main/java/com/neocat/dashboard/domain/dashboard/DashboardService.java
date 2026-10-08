@@ -18,6 +18,12 @@ import java.util.Objects;
 import static com.neocat.common.error.ErrorCode.DASHBOARD_NOT_FOUND;
 import static com.neocat.common.error.ErrorCode.NOT_LEAF;
 import static com.neocat.common.error.ErrorCode.NOT_ORG_MEMBER;
+import com.neocat.common.locking.MySqlLocked;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 大盘生命周期与权限用例（PRD 05 §1、§2、§10）。
@@ -32,8 +38,8 @@ import static com.neocat.common.error.ErrorCode.NOT_ORG_MEMBER;
  * <p>权限变化即时生效：每次调用都重新查询 {@link OrgAccessGateway}，
  * 不缓存成员资格，因此成员被移除后紧接着的请求就会失败。
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("dashboard")
+@Service
+@NamedInterface("dashboard")
 public class DashboardService {
 
     private final DashboardRepository dashboards;
@@ -45,7 +51,7 @@ public class DashboardService {
     public DashboardService(DashboardRepository dashboards, OrgAccessGateway orgAccess) {
         this(dashboards, orgAccess, null);
     }
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public DashboardService(DashboardRepository dashboards, OrgAccessGateway orgAccess,
                             CardEventPublisher cardEvents) {
         this.dashboards = dashboards;
@@ -53,7 +59,7 @@ public class DashboardService {
         this.cardEvents = cardEvents;
     }
     /** 创建大盘：组织必须是叶子，且调用者必须是其有效成员。 */
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @MySqlLocked("metadata")
     public Dashboard create(long accountId, long orgId, String name) {
         if (!orgAccess.isLeaf(orgId)) {
             throw new ConflictException(NOT_LEAF);
@@ -92,18 +98,18 @@ public class DashboardService {
      * 这样既能区分「不存在」与「无权限」，又不会让非成员读到大盘内容。
      */
     public Dashboard requireAccessible(long accountId, long dashboardId) {
-        Dashboard dashboard = java.util.Optional.ofNullable(dashboards.findById(dashboardId))
+        Dashboard dashboard = Optional.ofNullable(dashboards.findById(dashboardId))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, dashboardId));
         requireMember(accountId, dashboard.getOrgId());
         return dashboard;
     }
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @MySqlLocked("metadata")
     public Dashboard rename(long accountId, long dashboardId, String newName) {
         Dashboard dashboard = requireAccessible(accountId, dashboardId);
         return dashboards.save(new Dashboard(dashboard.getId(), dashboard.getOrgId(), newName, dashboard.getOrderNo()));
     }
-    @org.springframework.transaction.annotation.Transactional
-    @com.neocat.common.locking.MySqlLocked("metadata")
+    @Transactional
+    @MySqlLocked("metadata")
     public void delete(long accountId, long dashboardId) {
         Dashboard dashboard = requireAccessible(accountId, dashboardId);
         List<Card> removed = dashboards.cardsOf(dashboard.getId());

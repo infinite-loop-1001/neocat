@@ -3,7 +3,7 @@ package com.neocat.analysis.infra.store;
 import com.google.common.collect.Sets;
 import com.neocat.analysis.domain.metric.MetricHourRank;
 import com.neocat.analysis.domain.bucket.SeriesKey;
-import com.neocat.common.config.MetricConfig;
+import com.neocat.analysis.config.MetricConfig;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
@@ -12,6 +12,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.stereotype.Component;
 
 /**
  * Metric 小时内排名（技术方案 01-architecture.md §6.4、06 §4）。
@@ -26,13 +31,13 @@ import java.util.Objects;
  *       <b>而不是用 other 的值冒充</b>。</li>
  * </ul>
  */
-@org.springframework.stereotype.Component
-@org.springframework.context.annotation.DependsOn("metricConfig")
+@Component
+@DependsOn("metricConfig")
 public class InMemoryMetricHourRank implements MetricHourRank {
 
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
+    @Getter
+    @EqualsAndHashCode
+    @ToString
     private static class Group {
         private final String service;
 

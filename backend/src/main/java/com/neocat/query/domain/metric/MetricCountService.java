@@ -11,13 +11,16 @@ import java.time.*;
 import java.util.*;
 import org.apache.commons.collections4.CollectionUtils;
 import java.util.Objects;
+import java.time.temporal.ChronoUnit;
+import java.util.function.Predicate;
+import org.springframework.modulith.NamedInterface;
 
 /** Exact counts from observation rows, preserving identity and uncertainty across source hours. */
-@org.springframework.modulith.NamedInterface("query")
+@NamedInterface("query")
 public class MetricCountService {
     public List<Map<String, Object>> points(List<AggregatedRow> rows, List<MetricLabelMetadata.Entry> metadata,
                                           List<Bucket> buckets, MetricFilters filters, Instant now,
-                                          java.util.function.Predicate<Bucket> dropped) {
+                                          Predicate<Bucket> dropped) {
         List<Map<String, Object>> result = new ArrayList<>();
         for (Bucket bucket : buckets) {
             var sources = rows.stream().filter(r -> bucket.contains(r.bucketStart())).toList();
@@ -29,9 +32,9 @@ public class MetricCountService {
             long count = 0;
             for (var row : sources) {
                 if (filters.total()) { count += row.valueCount(); continue; }
-                Instant sourceHour = row.level() == AggregationLevel.DAY ? row.bucketStart()
-                        : row.bucketStart().truncatedTo(java.time.temporal.ChronoUnit.HOURS);
-                Instant sourceEnd = row.level() == AggregationLevel.DAY ? sourceHour.plusSeconds(86400) : sourceHour.plusSeconds(3600);
+                Instant sourceHour = Objects.equals(row.level(), AggregationLevel.DAY) ? row.bucketStart()
+                        : row.bucketStart().truncatedTo(ChronoUnit.HOURS);
+                Instant sourceEnd = Objects.equals(row.level(), AggregationLevel.DAY) ? sourceHour.plusSeconds(86400) : sourceHour.plusSeconds(3600);
                 var entries = metadata.stream().filter(e -> e.getHour().plusSeconds(3600).isAfter(sourceHour) && e.getHour().isBefore(sourceEnd)).toList();
                 if (CollectionUtils.isEmpty(entries)) { unknown = true; continue; }
                 if (Objects.equals(SeriesKey.OTHER_LABELS, row.key().getMetricLabels())) {

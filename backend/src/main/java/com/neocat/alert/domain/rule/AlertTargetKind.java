@@ -1,4 +1,5 @@
 package com.neocat.alert.domain.rule;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 告警目标类型（PRD 06 §1、§8）。
@@ -8,7 +9,7 @@ package com.neocat.alert.domain.rule;
  *   <li>{@link #CARD_RESULT} 卡片结果目标：引用组织大盘中某张卡片的当前计算结果。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("alert")
+@NamedInterface("alert")
 public enum AlertTargetKind {
     RAW_METRIC,
     CARD_RESULT

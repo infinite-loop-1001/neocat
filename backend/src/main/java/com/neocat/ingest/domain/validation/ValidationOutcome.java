@@ -1,14 +1,18 @@
 package com.neocat.ingest.domain.validation;
 
 import com.neocat.common.error.ErrorCode;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 校验结果（技术方案 04 §4）。
  */
-@org.springframework.modulith.NamedInterface("tree")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("tree")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class ValidationOutcome {
     private final boolean valid;
 
@@ -39,7 +43,3 @@ public class ValidationOutcome {
         return new ValidationOutcome(false, code, message);
     }
 }
-
-
-
-

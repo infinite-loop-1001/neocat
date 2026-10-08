@@ -1,10 +1,10 @@
 package com.neocat.web
 
-import com.neocat.identity.api.http.auth.AuthWhitelist
+import com.neocat.common.error.ErrorCode
+import com.neocat.common.error.exception.BusinessRuleException
 import com.neocat.common.http.error.ApiError
 import com.neocat.common.http.error.ErrorCodeMapping
-import com.neocat.common.error.ErrorCode
-import com.neocat.common.error.NeocatException
+import com.neocat.identity.api.http.auth.AuthWhitelist
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -86,7 +86,7 @@ class ApiContractSpec extends Specification {
 
     def "业务异常携带错误码，供 web 层映射"() {
         when:
-        def ex = new com.neocat.common.error.exception.BusinessRuleException(ErrorCode.LEAF_HAS_RESOURCES)
+        def ex = new BusinessRuleException(ErrorCode.LEAF_HAS_RESOURCES)
 
         then:
         ex.code() == ErrorCode.LEAF_HAS_RESOURCES

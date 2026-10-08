@@ -1,11 +1,14 @@
 package com.neocat.dashboard.api.internal;
 
 import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 /** Stable cross-module card change, published synchronously within the card transaction. */
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@Getter
+@EqualsAndHashCode
+@ToString
 public class CardChange {
     private final long cardId;
 
@@ -41,7 +44,6 @@ public class CardChange {
     }
 
 }
-
 
 
 

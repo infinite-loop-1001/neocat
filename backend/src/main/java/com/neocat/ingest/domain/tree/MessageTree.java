@@ -2,6 +2,10 @@ package com.neocat.ingest.domain.tree;
 
 import java.util.List;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 一棵本地 MessageTree（PRD 02 §2、技术方案 04 §2）。
@@ -14,10 +18,10 @@ import java.util.Objects;
  *   <li>{@code treeTimestamp} 树内最早节点事件时间，用于迟到判定与 Trace 过期计算。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("tree")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("tree")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class MessageTree {
     private final String serviceName;
 
@@ -47,6 +51,3 @@ public class MessageTree {
         return Objects.nonNull(parentMessageId) && !parentMessageId.isBlank();
     }
 }
-
-
-

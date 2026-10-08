@@ -5,9 +5,9 @@ import com.neocat.catalog.domain.entry.ServiceEntry;
 
 import java.time.Instant;
 import java.util.List;
+import org.springframework.modulith.NamedInterface;
 
-@org.springframework.modulith.NamedInterface("catalog")
-
+@NamedInterface("catalog")
 public interface CatalogRepository {
 
     /** 幂等 upsert 服务；返回当前记录。 */

@@ -11,6 +11,9 @@ import com.neocat.ingest.domain.tree.RawNode;
 
 import java.time.Instant;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * Problem 分析器（PRD 02 §9、PRD 03 §9）。
@@ -29,8 +32,8 @@ import java.util.Objects;
  * <p>阈值在构造时注入（来自 platform 配置），变更只影响此后创建的实例，
  * 从而天然满足「阈值只影响后续处理，不重算历史」。
  */
-@org.springframework.modulith.NamedInterface("analysis")
-@org.springframework.stereotype.Component
+@NamedInterface("analysis")
+@Component
 public class ProblemAnalyzer implements Analyzer {
 
     private final HourlyReportStore store;
@@ -43,7 +46,7 @@ public class ProblemAnalyzer implements Analyzer {
 
     private final int slowCacheMs;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public ProblemAnalyzer(HourlyReportStore store, SlowThresholdProvider thresholds) {
         this(store, thresholds.urlMs(), thresholds.sqlMs(), thresholds.callMs(), thresholds.cacheMs());
     }
@@ -62,14 +65,14 @@ public class ProblemAnalyzer implements Analyzer {
     @Override
     public void analyze(MessageTree tree) {
         for (RawNode node : tree.getNodes()) {
-            if (node.getKind() != NodeKind.TRANSACTION && node.getKind() != NodeKind.EVENT) {
+            if (!Objects.equals(node.getKind(), NodeKind.TRANSACTION) && !Objects.equals(node.getKind(), NodeKind.EVENT)) {
                 continue;
             }
             Instant eventTime = Instant.ofEpochMilli(node.getTimestamp());
             if (!node.succeeded()) {
                 recordException(tree, node, eventTime);
             }
-            if (node.getKind() == NodeKind.TRANSACTION) {
+            if (Objects.equals(node.getKind(), NodeKind.TRANSACTION)) {
                 recordSlow(tree, node, eventTime);
             }
         }
@@ -113,4 +116,3 @@ public class ProblemAnalyzer implements Analyzer {
         return Objects.isNull(exception) ? null : exception.getExceptionName();
     }
 }
-

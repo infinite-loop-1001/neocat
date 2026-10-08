@@ -90,7 +90,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, ApiError } from "../api";
-import type { Point } from "../api/types";
+import type { CardSeries, Point } from "../api/types";
 import type { Card, Dashboard } from "../mock/model";
 import ReportChart from "../components/ReportChart.vue";
 
@@ -156,7 +156,7 @@ async function reloadCards() {
 
 async function select(card: Card) {
   selectedCardId.value = card.id;
-  const response = await api<{ points: Point[] }>(`/cards/${card.id}/series`, {
+  const response = await api<CardSeries>(`/cards/${card.id}/series`, {
     query: { range: card.timeRange },
   });
   points.value = response.points ?? [];

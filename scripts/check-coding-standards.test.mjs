@@ -23,7 +23,7 @@ test('JDK 语法树检查覆盖注释、注解、多行字段与默认访问级�
       void run() { int a = 1; int b = 2; }
     }`);
     assert.equal(valid.status, 0, valid.stderr);
-    const invalid = run(`import static stream.Collectors.toMap;
+    const invalid = run(`import static java.util.stream.Collectors.toMap;
       class Fixture {
         final Object a =
           new Object();
@@ -38,7 +38,7 @@ test('JDK 语法树检查覆盖注释、注解、多行字段与默认访问级�
       assert.ok(invalid.stderr.includes(message), invalid.stderr);
     }
     const collector = run(`class Fixture {
-      void run() { var m = list.stream().collect(stream.Collectors.toMap(
+      void run() { var m = list.stream().collect(java.util.stream.Collectors.toMap(
         x -> pair(x.a, x.b), x -> x.value, (left, right) -> { throw new IllegalStateException(); })); }
     }`);
     assert.equal(collector.status, 0, collector.stderr);
@@ -74,7 +74,7 @@ test('Java 判空检查覆盖左右比较、括号、三元与 lambda，忽略�
     }`);
     assert.equal(invalid.status, 1, invalid.stderr);
     assert.equal((invalid.stderr.match(/Java 判空必须使用/g) ?? []).length, 9, invalid.stderr);
-    const valid = run(`import Objects;
+    const valid = run(`import java.util.Objects;
       class Fixture {
         boolean run(Object value, Object other) {
           // value == null; null != value;
@@ -88,7 +88,7 @@ test('Java 判空检查覆盖左右比较、括号、三元与 lambda，忽略�
           function.Predicate<Object> isNull = Objects::isNull;
           Object required = Objects.requireNonNull(other);
           Object empty = null;
-          return Objects.isNull(value) || Objects.nonNull(value) && value != other;
+           return Objects.isNull(value) || Objects.nonNull(value) && !Objects.equals(value, other);
         }
       }`);
     assert.equal(valid.status, 0, valid.stderr);
@@ -106,7 +106,7 @@ test('容器判空必须走 CollectionUtils / MapUtils，且不误报字符串 i
     return spawnSync('java', [helper, file], { encoding: 'utf8' });
   };
   try {
-    const invalid = run(`import Objects;
+    const invalid = run(`import java.util.Objects;
       class Fixture {
       boolean run(List<String> list, Map<String, String> map, Set<String> set) {
         boolean a = Objects.isNull(list) || list.isEmpty();
@@ -122,7 +122,7 @@ test('容器判空必须走 CollectionUtils / MapUtils，且不误报字符串 i
 
     const valid = run(`import org.apache.commons.collections4.CollectionUtils;
       import org.apache.commons.collections4.MapUtils;
-      import Objects;
+      import java.util.Objects;
       class Fixture {
         boolean run(List<String> list, Map<String, String> map, String text) {
           // String.isEmpty 与容器判空规则无关。
@@ -141,7 +141,7 @@ test('Objects 判空保持短路、三元默认值与副作用表达式单次求
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-null-semantics-'));
   const file = path.join(dir, 'Fixture.java');
   try {
-    fs.writeFileSync(file, `import Objects;
+    fs.writeFileSync(file, `import java.util.Objects;
       class Fixture {
         private static int calls;
 
@@ -173,6 +173,69 @@ test('Objects 判空保持短路、三元默认值与副作用表达式单次求
   }
 });
 
+test('生产时间入口与领域配置归属检查，仅允许公共实现及测试时钟', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-time-standards-'));
+  const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));
+  const run = (relative, source) => {
+    const file = path.join(dir, relative);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, source);
+    return spawnSync('java', [helper, file], { encoding: 'utf8' });
+  };
+  try {
+    const invalid = run('backend/src/main/java/com/neocat/common/Fixture.java', `package com.neocat.common;
+      class Fixture {
+        @ApolloStaticValue("key") public static volatile int VALUE;
+
+        private final java.time.Clock clock;
+        Fixture(java.time.Clock clock) { this.clock = clock; }
+        java.time.Clock bean() { return java.time.Clock.systemUTC(); }
+        void run() { java.time.Instant.now(); System.currentTimeMillis(); }
+      }`);
+    assert.equal(invalid.status, 1, invalid.stderr);
+    for (const message of ['禁止持有或注入 Clock', '禁止提供 Clock Bean', '禁止直接读取系统墙上时间', '领域动态配置禁止放入 common']) {
+      assert.ok(invalid.stderr.includes(message), invalid.stderr);
+    }
+    const validSource = `class Fixture {
+      void run() { java.time.Instant value = TimeProvider.now(); System.nanoTime(); }
+    }`;
+    assert.equal(run('backend/src/main/java/com/neocat/alert/Fixture.java', validSource).status, 0);
+    const implementation = run('backend/src/main/java/com/neocat/common/time/clock/TimeProvider.java',
+      'package com.neocat.common.time.clock; class TimeProvider { java.time.Clock clock = java.time.Clock.systemUTC(); }');
+    assert.equal(implementation.status, 0, implementation.stderr);
+    const testClock = run('backend/src/test/java/Fixture.java', 'class Fixture { java.time.Clock clock = java.time.Clock.systemUTC(); }');
+    assert.equal(testClock.status, 0, testClock.stderr);
+    const config = run('backend/src/main/java/com/neocat/alert/config/Fixture.java',
+      'package com.neocat.alert.config; class Fixture { @ApolloStaticValue("key") public static volatile int VALUE; }');
+    assert.equal(config.status, 0, config.stderr);
+    const staticCalls = run('backend/src/main/java/com/neocat/alert/Fixture.java', `
+      import static java.time.Instant.now;
+      import static java.lang.System.*;
+      import static java.time.Clock.*;
+      class Fixture {
+        void run() {
+          now(); currentTimeMillis(); systemUTC();
+          java.util.function.Supplier<java.time.Instant> reference = java.time.Instant::now;
+          java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+        }
+      }`);
+    assert.equal(staticCalls.status, 1, staticCalls.stderr);
+    assert.equal((staticCalls.stderr.match(/禁止直接读取系统墙上时间/g) ?? []).length, 5, staticCalls.stderr);
+    const rounded = run('backend/src/main/java/com/neocat/alert/Fixture.java', `
+      class Fixture {
+        long minute() { return TimeProvider.now().minusSeconds(5).toEpochMilli() / 60_000L * 60_000L; }
+        long other() { return TimeProvider.millis() / 60_000L; }
+      }`);
+    assert.equal(rounded.status, 1, rounded.stderr);
+    assert.equal((rounded.stderr.match(/分钟点对齐禁止手写毫秒取整/g) ?? []).length, 2, rounded.stderr);
+    const aligned = run('backend/src/main/java/com/neocat/alert/Fixture.java',
+      'class Fixture { long minute() { return TimeProvider.delayedMinuteStart(5).toEpochMilli(); } }');
+    assert.equal(aligned.status, 0, aligned.stderr);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('空 JDK 容器工厂与 subList 禁止使用', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-collections-standards-'));
   const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));
@@ -191,6 +254,134 @@ test('空 JDK 容器工厂与 subList 禁止使用', () => {
     assert.equal(result.status, 1, result.stderr);
     assert.equal((result.stderr.match(/空容器必须使用/g) ?? []).length, 4, result.stderr);
     assert.equal((result.stderr.match(/源码中禁止使用 subList/g) ?? []).length, 1, result.stderr);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('枚举与对象相等必须使用 Objects.equals，原始类型常量不误报', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-enum-equals-standards-'));
+  const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));
+  const run = source => {
+    const file = path.join(dir, 'Fixture.java');
+    fs.writeFileSync(file, source);
+    return spawnSync('java', [helper, file], { encoding: 'utf8' });
+  };
+  try {
+    const invalid = run(`enum AggregationLevel { DAY, HOUR, WEEK }
+      enum NodeKind { EVENT }
+      class Fixture {
+      boolean run(AggregationLevel level, Node node, String text) {
+        boolean a = level == AggregationLevel.DAY;
+        boolean b = level != AggregationLevel.HOUR;
+        boolean c = node.getKind() != NodeKind.EVENT;
+        boolean d = (AggregationLevel.WEEK) == (level);
+        boolean e = node.level() == level;
+        return a || b || c || d || e;
+      }
+      enum Unit { COUNT, NUMBER;
+        boolean same(Unit other) { return this == other; }
+        boolean self() { return this == NUMBER || other_check(); }
+        boolean other_check() { return true; }
+        boolean mixed(Unit other) { return other == COUNT; }
+      }
+    }`);
+    assert.equal(invalid.status, 1, invalid.stderr);
+    assert.equal((invalid.stderr.match(/对象与枚举相等必须使用/g) ?? []).length, 8, invalid.stderr);
+
+    const valid = run(`import java.util.Objects;
+      class Fixture {
+        static final int MAX = 100;
+
+        boolean run(long durationMin, int size, char flag, Long parentId, long current) {
+          // 原始类型、数值常量与拆箱后的数值比较保留 ==
+          boolean a = durationMin == Long.MAX_VALUE;
+          boolean b = size == 0;
+          boolean c = flag == 'x';
+          boolean d = parentId == current;
+          boolean e = Objects.equals(parentId, current);
+          String sql = "level == AggregationLevel.DAY";
+          // level != AggregationLevel.HOUR
+          return a && b && c && d && e && size != Fixture.MAX;
+        }
+        enum Unit { COUNT, NUMBER;
+          static final int LIMIT = 5;
+
+          boolean numeric(int count) { return count == LIMIT; }
+          boolean same(Unit other) { return Objects.equals(this, other); }
+        }
+      }`);
+    assert.equal(valid.status, 0, valid.stderr);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('枚举检查依据跨文件声明与 import，而非常量命名', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-enum-imports-'));
+  const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));
+  try {
+    const enumFile = path.join(dir, 'Kinds.java');
+    const fixture = path.join(dir, 'Fixture.java');
+    fs.writeFileSync(enumFile, 'package sample; class Kinds { enum Level { low, HIGH } }');
+    fs.writeFileSync(fixture, `import sample.Kinds;
+      import sample.Kinds.Level;
+      class Fixture {
+        boolean run(Level level) {
+          return (level) != ((Kinds.Level.low)) || Level.HIGH == level;
+        }
+      }`);
+    const result = spawnSync('java', [helper, enumFile, fixture], { encoding: 'utf8' });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal((result.stderr.match(/对象与枚举相等必须使用/g) ?? []).length, 2, result.stderr);
+    fs.writeFileSync(fixture, `class Fixture {
+      static final long MAX = 100L;
+
+      boolean run(long value) { return value == Fixture.MAX; }
+    }`);
+    const numeric = spawnSync('java', [helper, enumFile, fixture], { encoding: 'utf8' });
+    assert.equal(numeric.status, 0, numeric.stderr);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('Objects.equals 枚举替换保持 null、短路、三元与求值顺序', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-enum-semantics-'));
+  const file = path.join(dir, 'Fixture.java');
+  try {
+    fs.writeFileSync(file, `import java.util.Objects;
+      class Fixture {
+        enum Level { DAY, HOUR }
+        static String calls = "";
+
+        static Level next(String label, Level level) { calls += label; return level; }
+        static void check(boolean valid) { if (!valid) throw new AssertionError(calls); }
+        public static void main(String[] args) {
+          Level absent = null;
+          check(!Objects.equals(absent, Level.DAY));
+          check(!Objects.equals(Level.DAY, absent));
+          check(Objects.equals(absent, absent));
+          check(!Objects.equals(Level.DAY, Level.HOUR));
+          check(Objects.equals(next("A", Level.DAY), Level.DAY)
+              || Objects.equals(next("bad", Level.HOUR), Level.HOUR));
+          check(calls.equals("A"));
+          check(!Objects.equals(next("B", Level.HOUR), Level.HOUR)
+              && Objects.equals(next("bad", Level.DAY), Level.DAY) || true);
+          check(calls.equals("AB"));
+          check(Objects.equals(next("C", Level.DAY), next("D", Level.DAY)));
+          check(calls.equals("ABCD"));
+          String result = Objects.equals(next("E", Level.HOUR), Level.DAY) ? "day" : "hour";
+          check(result.equals("hour") && calls.equals("ABCDE"));
+          // 原始 double 的 EQ/NEQ 不替换为 Double.equals，避免改变 NaN 与正负零语义。
+          double positive = 0.0;
+          double negative = -0.0;
+          check(positive == negative);
+          check(!Objects.equals(positive, negative));
+        }
+      }`);
+    const result = spawnSync('java', [file], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

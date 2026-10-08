@@ -3,6 +3,8 @@ package com.neocat.query.domain.series;
 import com.neocat.query.domain.stat.Stat;
 
 import java.util.Objects;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Component;
 
 /**
  * 数据质量判定（PRD 00 §6、PRD 03 §5、PRD 06 §6）。
@@ -26,8 +28,8 @@ import java.util.Objects;
  *   <li>部分覆盖桶只覆盖了一部分时间，同样不能断言。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("query")
-@org.springframework.stereotype.Component
+@NamedInterface("query")
+@Component
 public class QualityResolver {
 
     public Quality resolve(QualityInput input) {
@@ -71,7 +73,7 @@ public class QualityResolver {
         if (quality.gap()) {
             return false;
         }
-        if (quality == Quality.ZERO) {
+        if (Objects.equals(quality, Quality.ZERO)) {
             return zeroHasValue(stat);
         }
         return true;

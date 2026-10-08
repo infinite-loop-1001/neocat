@@ -1,4 +1,5 @@
 package com.neocat.platform.domain.init;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 超级管理员创建钩子。
@@ -7,7 +8,7 @@ package com.neocat.platform.domain.init;
  * platform 通过该抽象单向调用 identity，避免反向依赖。
  */
 @FunctionalInterface
-@org.springframework.modulith.NamedInterface("platform")
+@NamedInterface("platform")
 public interface SuperAdminProvisioner {
 
     /**

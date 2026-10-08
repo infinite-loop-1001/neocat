@@ -1,5 +1,7 @@
 package com.neocat.alert.infra.jdbc;
 
+import java.math.BigDecimal;
+
 import com.google.common.collect.Lists;
 import com.neocat.alert.domain.rule.AlertChannel;
 import com.neocat.alert.domain.rule.AlertRule;
@@ -13,15 +15,21 @@ import com.neocat.alert.domain.rule.Comparator;
 import com.neocat.alert.domain.rule.Condition;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.organization.api.internal.OrgResourceIndex;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
+
+import java.sql.Timestamp;
+import java.util.stream.Collectors;
 
 /**
  * 告警规则与窗口状态的 MyBatis 适配器
@@ -48,6 +56,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         this.mapper = mapper;
         this.resources = resources;
     }
+
     @Override
     @Transactional
     public AlertRule save(AlertRule rule) {
@@ -65,10 +74,10 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         row.setTargetName(rule.getTarget().getName());
         row.setTargetMetricLabels(rule.getTarget().getMetricLabels());
         row.setFormulaStats(CollectionUtils.isEmpty(rule.getTarget().getFormulaStats()) ? "" :
-                rule.getTarget().getFormulaStats().stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
+                rule.getTarget().getFormulaStats().stream().map(Enum::name).collect(Collectors.joining(",")));
         row.setTargetStat(rule.getConditions().get(0).getStat().name());
         row.setChannels(rule.getChannels().stream().map(Enum::name)
-                .collect(java.util.stream.Collectors.joining(",")));
+                .collect(Collectors.joining(",")));
         row.setTargetCardId(rule.getTarget().isCardResult() ? rule.getTarget().getCardId() : null);
         row.setCombinator(rule.getCombinator().name());
         row.setWindowPoints(rule.getWindowPoints());
@@ -76,7 +85,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         row.setInvalid(rule.isInvalid());
         row.setStateSince(Objects.isNull(rule.getStateSince())
                 ? null
-                : java.sql.Timestamp.from(Instant.ofEpochMilli(rule.getStateSince())));
+                : Timestamp.from(Instant.ofEpochMilli(rule.getStateSince())));
 
         if (Objects.isNull(row.getId())) {
             mapper.insertRule(row);
@@ -109,25 +118,30 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
 
         return rule.getId() == 0 ? rule.withId(ruleId) : rule;
     }
+
     @Override
     public AlertRule findById(long ruleId) {
         AlertRuleRow row = mapper.selectRule(ruleId);
         return Objects.isNull(row) ? null : toDomain(row);
     }
+
     @Override
     public List<AlertRule> findAll() {
         return mapper.selectAllRules().stream().map(this::toDomain).toList();
     }
+
     @Override
     public List<AlertRule> enabledRules() {
         return mapper.selectEnabledRules().stream().map(this::toDomain).toList();
     }
+
     @Override
     public List<AlertRule> byOrg(long orgId) {
         return mapper.selectRulesByOrg(orgId).stream().map(this::toDomain).toList();
     }
+
     @Override
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public void delete(long ruleId) {
         AlertRuleRow existing = mapper.selectRule(ruleId);
         // 表定义无外键，级联必须在同一事务内按依赖顺序显式删除：
@@ -145,9 +159,10 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
     public void saveWindowState(AlertWindowState state) {
         mapper.deleteWindowPoints(state.getRuleId());
         for (Long minute : state.getPoints()) {
-            mapper.insertWindowPoint(state.getRuleId(), java.sql.Timestamp.from(Instant.ofEpochMilli(minute)));
+            mapper.insertWindowPoint(state.getRuleId(), Timestamp.from(Instant.ofEpochMilli(minute)));
         }
     }
+
     @Override
     public void clearWindowState(long ruleId) {
         mapper.deleteWindowPoints(ruleId);
@@ -164,7 +179,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         List<AlertRecipientRow> recipients = mapper.selectRecipients(row.getId());
         List<Long> recipientIds = recipients.stream().map(AlertRecipientRow::getAccountId).distinct().toList();
         List<AlertChannel> channels = Objects.isNull(row.getChannels()) || row.getChannels().isBlank()
-                ? Lists.newArrayList() : java.util.Arrays.stream(row.getChannels().split(","))
+                ? Lists.newArrayList() : Arrays.stream(row.getChannels().split(","))
                 .map(AlertChannel::valueOf).toList();
 
         AlertTarget target = new AlertTarget(
@@ -194,8 +209,13 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
                 row.isInvalid(),
                 Objects.isNull(row.getStateSince()) ? null : row.getStateSince().toInstant().toEpochMilli());
     }
-    /** 规则行。 */
+
+    /**
+     * 规则行。
+     */
+    @Data
     public static class AlertRuleRow {
+
         private Long id;
 
         private String scope;
@@ -234,218 +254,47 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
 
         private boolean invalid;
 
-        private java.sql.Timestamp stateSince;
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getScope() {
-            return scope;
-        }
-
-        public void setScope(String scope) {
-            this.scope = scope;
-        }
-
-        public Long getOrgId() {
-            return orgId;
-        }
-
-        public void setOrgId(Long orgId) {
-            this.orgId = orgId;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
-        public String getReportKind() { return reportKind; }
-        public void setReportKind(String reportKind) { this.reportKind = reportKind; }
-        public String getTargetMetricLabels() { return targetMetricLabels; }
-        public void setTargetMetricLabels(String targetMetricLabels) { this.targetMetricLabels = targetMetricLabels; }
-        public String getFormulaStats() { return formulaStats; }
-        public void setFormulaStats(String formulaStats) { this.formulaStats = formulaStats; }
-        public String getTargetStat() { return targetStat; }
-        public void setTargetStat(String targetStat) { this.targetStat = targetStat; }
-        public String getChannels() { return channels; }
-        public void setChannels(String channels) { this.channels = channels; }
-
-        public String getTargetKind() {
-            return targetKind;
-        }
-
-        public void setTargetKind(String targetKind) {
-            this.targetKind = targetKind;
-        }
-
-        public String getTargetService() {
-            return targetService;
-        }
-
-        public void setTargetService(String targetService) {
-            this.targetService = targetService;
-        }
-
-        public String getTargetType() {
-            return targetType;
-        }
-
-        public void setTargetType(String targetType) {
-            this.targetType = targetType;
-        }
-
-        public String getTargetName() {
-            return targetName;
-        }
-
-        public void setTargetName(String targetName) {
-            this.targetName = targetName;
-        }
-
-        public Long getTargetCardId() {
-            return targetCardId;
-        }
-
-        public void setTargetCardId(Long targetCardId) {
-            this.targetCardId = targetCardId;
-        }
-
-        public String getCombinator() {
-            return combinator;
-        }
-
-        public void setCombinator(String combinator) {
-            this.combinator = combinator;
-        }
-
-        public int getWindowPoints() {
-            return windowPoints;
-        }
-
-        public void setWindowPoints(int windowPoints) {
-            this.windowPoints = windowPoints;
-        }
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public boolean isInvalid() {
-            return invalid;
-        }
-
-        public void setInvalid(boolean invalid) {
-            this.invalid = invalid;
-        }
-
-        public java.sql.Timestamp getStateSince() {
-            return stateSince;
-        }
-
-        public void setStateSince(java.sql.Timestamp stateSince) {
-            this.stateSince = stateSince;
-        }
+        private Timestamp stateSince;
     }
-    /** 条件行。 */
+
+    /**
+     * 条件行。
+     */
+    @Data
     public static class AlertConditionRow {
+
         private String stat;
 
         private String comparator;
 
-        private double threshold;
-
-        public String getStat() {
-            return stat;
-        }
-
-        public void setStat(String stat) {
-            this.stat = stat;
-        }
-
-        public String getComparator() {
-            return comparator;
-        }
-
-        public void setComparator(String comparator) {
-            this.comparator = comparator;
-        }
-
-        public double getThreshold() {
-            return threshold;
-        }
-
-        public void setThreshold(double threshold) {
-            this.threshold = threshold;
-        }
+        private BigDecimal threshold;
     }
-    /** 收件人行。 */
+
+    /**
+     * 收件人行。
+     */
+    @Data
+
     public static class AlertRecipientRow {
+
         private long accountId;
 
         private String channel;
 
-        public long getAccountId() {
-            return accountId;
-        }
-
-        public void setAccountId(long accountId) {
-            this.accountId = accountId;
-        }
-
-        public String getChannel() {
-            return channel;
-        }
-
-        public void setChannel(String channel) {
-            this.channel = channel;
-        }
     }
-    /** 窗口点行。 */
+
+    /**
+     * 窗口点行。
+     */
+    @Data
     public static class AlertWindowPointRow {
-        private java.sql.Timestamp pointMinute;
+
+        private Timestamp pointMinute;
 
         private boolean satisfied;
 
-        public java.sql.Timestamp getPointMinute() {
-            return pointMinute;
-        }
-
-        public void setPointMinute(java.sql.Timestamp pointMinute) {
-            this.pointMinute = pointMinute;
-        }
-
-        public boolean isSatisfied() {
-            return satisfied;
-        }
-
-        public void setSatisfied(boolean satisfied) {
-            this.satisfied = satisfied;
-        }
     }
 }
-
-
-
-
-
-
-
-
 
 
 

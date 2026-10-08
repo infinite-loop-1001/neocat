@@ -12,6 +12,9 @@ import java.sql.*
 import javax.sql.DataSource
 import org.mockito.ArgumentCaptor
 import static org.mockito.Mockito.*
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.neocat.analysis.infra.store.InMemoryMetricLabelMetadata
+import java.sql.Date
 
 class ReportSnapshotJdbcSpec extends Specification {
     static void verifyPrepared(Connection connection, ArgumentCaptor<String> sql) {
@@ -96,7 +99,8 @@ class ReportSnapshotJdbcSpec extends Specification {
         def time = Instant.parse('2026-10-02T10:00:00Z')
         when(result.getTimestamp('bucket_start')).thenReturn(Timestamp.from(time))
         when(result.getLong('total_value_count')).thenReturn(2L)
-        when(result.getObject('last_value')).thenReturn(lastValue)
+        when(result.getBigDecimal('total_value')).thenReturn(0.0)
+        when(result.getBigDecimal('last_value')).thenReturn(lastValue)
         when(result.getTimestamp('last_sample_time')).thenReturn(lastValue == null ? null : Timestamp.from(time.plusSeconds(30)))
         when:
         def row = new JdbcClickHouseReportQuery(ds).minuteRows('order','HEARTBEAT','jvm','gc-count','one',time,time.plusSeconds(60))[0]
@@ -105,7 +109,7 @@ class ReportSnapshotJdbcSpec extends Specification {
         row.getValueLastTime() == (lastValue == null ? null : time.plusSeconds(30))
         row.getValueCount() == 2L
         where:
-        lastValue << [0d,null]
+        lastValue << [0.0,null]
     }
 
     def "日桶查询与落库使用平台日期而非 UTC 日期"() {
@@ -132,9 +136,9 @@ class ReportSnapshotJdbcSpec extends Specification {
         new JdbcReportBucketSink(ds,{zone}).writeDayBuckets([row])
         new JdbcClickHouseReportQuery(ds,{zone}).dayRows('order','METRIC','m',null,'all',time,time.plusSeconds(86400))
         then:
-        verify(statement).setObject(8, java.sql.Date.valueOf('2026-10-02')); true
-        verify(statement).setObject(3, java.sql.Date.valueOf('2026-10-02')); true
-        verify(statement).setObject(4, java.sql.Date.valueOf('2026-10-03')); true
+        verify(statement).setObject(8, Date.valueOf('2026-10-02')); true
+        verify(statement).setObject(3, Date.valueOf('2026-10-02')); true
+        verify(statement).setObject(4, Date.valueOf('2026-10-03')); true
     }
 
     def "metadata 重试与内存重复快照只保留每来源最大版本及合并标记"() {
@@ -147,7 +151,7 @@ class ReportSnapshotJdbcSpec extends Specification {
         when(connection.prepareStatement(anyString())).thenReturn(statement)
         when(statement.executeQuery()).thenReturn(result)
         when(result.next()).thenReturn(true,false)
-        def memory = new com.neocat.analysis.infra.store.InMemoryMetricLabelMetadata()
+        def memory = new InMemoryMetricLabelMetadata()
         def time = Instant.parse('2026-10-02T10:00:00Z')
         memory.record('order','m',[x:'y'],SeriesKey.OTHER_LABELS,time)
         memory.record('order','m',[x:'y'],SeriesKey.OTHER_LABELS,time)
@@ -161,7 +165,7 @@ class ReportSnapshotJdbcSpec extends Specification {
         when(result.getLong('report_count')).thenReturn(1L)
         when(result.getBoolean('is_merged')).thenReturn(true)
         when:
-        def entries = new JdbcMetricMetadataPort(ds,new com.fasterxml.jackson.databind.ObjectMapper(),memory).entries('order','m',time,time.plusSeconds(60))
+        def entries = new JdbcMetricMetadataPort(ds,new ObjectMapper(),memory).entries('order','m',time,time.plusSeconds(60))
         then:
         entries.size() == 1
         entries[0].getVersion() == 2L

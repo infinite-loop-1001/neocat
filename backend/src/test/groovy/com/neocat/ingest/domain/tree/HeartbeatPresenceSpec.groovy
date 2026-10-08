@@ -5,6 +5,7 @@ import com.neocat.ingest.domain.validation.FingerprintCalculator
 import spock.lang.Specification
 import com.neocat.ingest.infra.protocol.IngestRequestMapper
 import com.neocat.protocol.ingest.v1.Heartbeat
+import com.neocat.analysis.domain.analyzer.AnalysisFixtures
 
 class HeartbeatPresenceSpec extends Specification {
     def "新的载荷区分缺失和真实零，旧载荷仍兼容五项"() {
@@ -31,7 +32,7 @@ class HeartbeatPresenceSpec extends Specification {
 
     def "新指标变化与缺失vs零参与幂等指纹，而旧五项指纹保持稳定"() {
         given:
-        def template = com.neocat.analysis.domain.analyzer.AnalysisFixtures.heartbeatTree('order','one',1000L)
+        def template = AnalysisFixtures.heartbeatTree('order','one',1000L)
         def node = template.getNodes()[0]
         def makeTree = { Map values ->
             def replacement = new RawNode(node.getNodeId(),node.getKind(),node.getCategory(),node.getName(),node.getStatus(),node.getTimestamp(),node.getDurationMs(),node.getParentNodeId(),node.getMetric(),new HeartbeatValue(values),node.getRemoteCall(),node.getException(),node.getTags())

@@ -1,12 +1,18 @@
 package com.neocat.analysis.domain.bucket;
 
+import java.math.BigDecimal;
+
+import com.neocat.common.DecimalMath;
+
 import java.time.Instant;
 import java.util.Objects;
+
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 已持久化的一行聚合数据（对应 ClickHouse 各层级桶表的一行）。
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public class AggregatedRow {
 
     private final SeriesKey key;
@@ -25,19 +31,19 @@ public class AggregatedRow {
 
     private long durationMax;
 
-    private double valueSum;
+    private BigDecimal valueSum;
 
     private long valueCount;
 
     private boolean valueCountMissing;
 
-    private Double valueLast;
+    private BigDecimal valueLast;
 
     private Instant valueLastTime;
 
     private long coveredSeconds;
 
-    private com.neocat.analysis.domain.bucket.DurationDistribution distribution;
+    private DurationDistribution distribution;
 
     public AggregatedRow(SeriesKey key, Instant bucketStart, AggregationLevel level, long coveredSeconds) {
         this.key = key;
@@ -46,44 +52,58 @@ public class AggregatedRow {
         this.coveredSeconds = coveredSeconds;
         this.durationMin = Long.MAX_VALUE;
         this.durationMax = Long.MIN_VALUE;
-        this.distribution = new com.neocat.analysis.domain.bucket.DurationDistribution();
+        this.valueSum = BigDecimal.ZERO;
+        this.distribution = new DurationDistribution();
     }
+
     public SeriesKey key() {
         return key;
     }
+
     public Instant bucketStart() {
         return bucketStart;
     }
+
     public AggregationLevel level() {
         return level;
     }
+
     public long coveredSeconds() {
         return coveredSeconds;
     }
+
     public void setCoveredSeconds(long coveredSeconds) {
         this.coveredSeconds = coveredSeconds;
     }
+
     public long count() {
         return count;
     }
+
     public long failCount() {
         return failCount;
     }
+
     public long durationSum() {
         return durationSum;
     }
+
     public long durationMin() {
         return durationMin == Long.MAX_VALUE ? 0L : durationMin;
     }
+
     public long durationMax() {
         return durationMax == Long.MIN_VALUE ? 0L : durationMax;
     }
-    public double valueSum() {
+
+    public BigDecimal valueSum() {
         return valueSum;
     }
+
     public long valueCount() {
         return valueCount;
     }
+
     public void addCount(long count, long failCount, long durationSum, long durationMin, long durationMax) {
         this.count += count;
         this.failCount += failCount;
@@ -91,46 +111,74 @@ public class AggregatedRow {
         this.durationMin = Math.min(this.durationMin, durationMin);
         this.durationMax = Math.max(this.durationMax, durationMax);
     }
+
     /**
      * 耗时分布（跨桶分位合并的基础）。
      *
      * <p>由产生该行的分析器填充；聚合时逐段相加，绝不对已算出的分位取平均。
      */
-    public com.neocat.analysis.domain.bucket.DurationDistribution distribution() {
+    public DurationDistribution distribution() {
         return distribution;
     }
-    /** 记录一个耗时样本到本行分布。 */
+
+    /**
+     * 记录一个耗时样本到本行分布。
+     */
     public void recordDuration(long durationMs) {
         distribution.record(durationMs);
     }
-    /** 用已合并的分布整体替换本行分布（跨桶聚合时使用）。 */
-    public void setDistribution(com.neocat.analysis.domain.bucket.DurationDistribution merged) {
+
+    /**
+     * 用已合并的分布整体替换本行分布（跨桶聚合时使用）。
+     */
+    public void setDistribution(DurationDistribution merged) {
         this.distribution = merged;
     }
-    public void addValue(double valueSum, long valueCount) {
-        this.valueSum += valueSum;
+
+    public void addValue(BigDecimal valueSum, long valueCount) {
+        this.valueSum = this.valueSum.add(Objects.requireNonNull(valueSum, "valueSum"));
         this.valueCount += valueCount;
     }
-    public Double valueLast() { return valueLast; }
-    public boolean valueCountMissing() { return valueCountMissing; }
-    public void markValueCountMissing(boolean missing) { valueCountMissing |= missing; }
-    public Instant valueLastTime() { return valueLastTime; }
-    public void mergeLastValue(Double value, Instant time) {
+
+    public BigDecimal valueLast() {
+        return valueLast;
+    }
+
+    public boolean valueCountMissing() {
+        return valueCountMissing;
+    }
+
+    public void markValueCountMissing(boolean missing) {
+        valueCountMissing |= missing;
+    }
+
+    public Instant valueLastTime() {
+        return valueLastTime;
+    }
+
+    public void mergeLastValue(BigDecimal value, Instant time) {
         if (Objects.isNull(value) || Objects.isNull(time)) return;
         if (Objects.isNull(valueLastTime) || time.isAfter(valueLastTime)
-                || (Objects.equals(time, valueLastTime) && value > valueLast)) {
+                || (Objects.equals(time, valueLastTime) && value.compareTo(valueLast) > 0)) {
             valueLast = value;
             valueLastTime = time;
         }
     }
-    /** 平均耗时；无调用时无值。 */
-    public Double averageDuration() {
-        return count == 0 ? null : (double) durationSum / count;
+
+    /**
+     * 平均耗时；无调用时无值。
+     */
+    public BigDecimal averageDuration() {
+        return count == 0 ? null : DecimalMath.result(DecimalMath.divide(durationSum, count));
     }
-    /** 失败率；无调用时无值。 */
-    public Double failureRate() {
-        return count == 0 ? null : (double) failCount / count;
+
+    /**
+     * 失败率；无调用时无值。
+     */
+    public BigDecimal failureRate() {
+        return count == 0 ? null : DecimalMath.result(DecimalMath.divide(failCount, count));
     }
+
     /**
      * QPS 分母（PRD 03 §4 三态）：
      * <ul>
@@ -139,15 +187,7 @@ public class AggregatedRow {
      *   <li>日 / 周 / 月 / 自定义：桶实际覆盖秒数。</li>
      * </ul>
      */
-    public Double qps() {
-        return coveredSeconds <= 0 ? null : (double) count / coveredSeconds;
+    public BigDecimal qps() {
+        return coveredSeconds <= 0 ? null : DecimalMath.result(DecimalMath.divide(count, coveredSeconds));
     }
 }
-
-
-
-
-
-
-
-

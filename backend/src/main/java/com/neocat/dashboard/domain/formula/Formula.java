@@ -1,9 +1,17 @@
 package com.neocat.dashboard.domain.formula;
 
+import java.math.BigDecimal;
+
 import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.Stat;
 
 import java.util.List;
+import java.util.ArrayList;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 公式 AST（PRD 05 §4，技术方案 02 §9.2）。
@@ -18,21 +26,27 @@ import java.util.List;
  *
  * <p>不支持：自由脚本、条件表达式、跨服务公式、跨 Name 公式（PRD 05 §4）。
  */
-@org.springframework.modulith.NamedInterface("dashboard")
+@NamedInterface("dashboard")
 public sealed interface Formula {
 
-    /** 单位推导结果。 */
+    /**
+     * 单位推导结果。
+     */
     Unit unit();
 
-    /** 公式引用到的统计项；用于建立卡片与告警目标的依赖关系。 */
+    /**
+     * 公式引用到的统计项；用于建立卡片与告警目标的依赖关系。
+     */
     List<Stat> referencedStats();
 
-    /** 四则运算。 */
-    @org.springframework.modulith.NamedInterface("dashboard")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class Binary implements Formula {
+    /**
+     * 四则运算。
+     */
+    @NamedInterface("dashboard")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class Binary implements Formula {
         private final FormulaOperator op;
 
         private final Formula left;
@@ -56,17 +70,20 @@ public sealed interface Formula {
 
         @Override
         public List<Stat> referencedStats() {
-            List<Stat> all = new java.util.ArrayList<>(left.referencedStats());
+            List<Stat> all = new ArrayList<>(left.referencedStats());
             all.addAll(right.referencedStats());
             return List.copyOf(all);
         }
     }
-    /** 聚合函数包裹。 */
-    @org.springframework.modulith.NamedInterface("dashboard")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class Aggregate implements Formula {
+
+    /**
+     * 聚合函数包裹。
+     */
+    @NamedInterface("dashboard")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class Aggregate implements Formula {
         private final FormulaAggregate agg;
 
         private final Stat stat;
@@ -86,12 +103,15 @@ public sealed interface Formula {
             return List.of(stat);
         }
     }
-    /** 裸统计项。 */
-    @org.springframework.modulith.NamedInterface("dashboard")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class Ref implements Formula {
+
+    /**
+     * 裸统计项。
+     */
+    @NamedInterface("dashboard")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class Ref implements Formula {
         private final Stat stat;
 
         public Ref(Stat stat) {
@@ -109,15 +129,18 @@ public sealed interface Formula {
             return List.of(stat);
         }
     }
-    /** 常数。 */
-    @org.springframework.modulith.NamedInterface("dashboard")
-    @lombok.Getter
-    @lombok.EqualsAndHashCode
-    @lombok.ToString
-    public static final class Constant implements Formula {
-        private final double value;
 
-        public Constant(double value) {
+    /**
+     * 常数。
+     */
+    @NamedInterface("dashboard")
+    @Getter
+    @EqualsAndHashCode
+    @ToString
+    final class Constant implements Formula {
+        private final BigDecimal value;
+
+        public Constant(BigDecimal value) {
             this.value = value;
         }
 
@@ -133,4 +156,3 @@ public sealed interface Formula {
         }
     }
 }
-

@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /** 原始树、报表与上报共用的 ClickHouse 连接，独立于 MySQL 主 DataSource。 */
 @Configuration
@@ -18,7 +19,7 @@ public class ClickHouseConnection {
                 .url(url).username(username).password(password).build();
     }
     @Bean
-    public RawTreeQuery rawTreeQuery(@org.springframework.beans.factory.annotation.Qualifier("clickHouseDataSource")
+    public RawTreeQuery rawTreeQuery(@Qualifier("clickHouseDataSource")
                                      DataSource dataSource) {
         return new JdbcRawTreeQuery(dataSource);
     }

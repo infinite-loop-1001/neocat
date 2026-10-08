@@ -1,5 +1,7 @@
 package com.neocat.query.infra.service;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
@@ -13,8 +15,10 @@ import com.neocat.query.infra.port.*;
 import java.time.*;
 import java.util.*;
 import java.util.function.Supplier;
+import com.neocat.analysis.domain.metric.MetricLabelMetadata;
+import org.springframework.stereotype.Service;
 
-@org.springframework.stereotype.Service
+@Service
 public class MetricCountQueryService {
     private final ReportDataPort data;
 
@@ -24,21 +28,19 @@ public class MetricCountQueryService {
 
     private final Supplier<ZoneId> zone;
 
-    private final Clock clock;
 
     private final ObjectMapper json;
 
     public MetricCountQueryService(ReportDataPort data, MetricMetadataPort metadata, TimeBucketResolver buckets,
-                                 Supplier<ZoneId> zone, Clock clock, ObjectMapper json) {
+                                 Supplier<ZoneId> zone, ObjectMapper json) {
         this.data = data;
         this.metadata = metadata;
         this.ranges = new RangeResolver(buckets);
         this.zone = zone;
-        this.clock = clock;
         this.json = json;
     }
     private RangeResolver.ResolvedRange range(String raw) {
-        return ranges.resolve(RangeParams.parse(raw, clock.instant()), zone.get());
+        return ranges.resolve(RangeParams.parse(raw, TimeProvider.now()), zone.get());
     }
     public List<Map<String, String>> metrics(String service, String range) {
         var window = range(range);
@@ -66,9 +68,9 @@ public class MetricCountQueryService {
         // One level per source interval; preserves label identity and never sums multiple rollup levels.
         var rows = data.metricSourceRows(service, metric, window.getFrom(), window.getTo(),
                 Granularity.fromSeconds(window.bucketSeconds()));
-        var entries = conditions.total() ? Lists.<com.neocat.analysis.domain.metric.MetricLabelMetadata.Entry>newArrayList()
+        var entries = conditions.total() ? Lists.<MetricLabelMetadata.Entry>newArrayList()
                 : metadata.entries(service, metric, window.getFrom(), window.getTo());
-        Instant now = clock.instant();
+        Instant now = TimeProvider.now();
         var points = new MetricCountService().points(rows, entries, window.getBuckets(), conditions, now,
                 bucket -> data.droppedBetween("METRIC", service, metric, null, bucket.getStart(),
                         bucket.getEnd().isAfter(now) ? now : bucket.getEnd()));

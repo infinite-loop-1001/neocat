@@ -39,6 +39,16 @@
 - `SUPER_ADMIN`：ADMIN + 授予/取消 ADMIN。
 - 组织大盘/组织告警：**仅叶子有效成员**（直系或祖先继承），管理员无旁路。
 
+### 1.3 统计数值精度
+
+- 后端分析桶中的数值观测、统计计算、分位插值、报表/环比读模型、卡片公式与告警阈值链路使用 `BigDecimal`。原始整数计数、ID、时间戳与直方图计数仍为整数。
+- 加减乘不主动舍入，不使用 `MathContext`；每次除法保留 7 位小数，`HALF_UP`。完整统计或卡片计算结果最后保留 6 位，`HALF_UP`；供卡片继续计算的内部统计输入不提前舍入到 6 位。
+- 告警比较使用数值比较（`compareTo`），`1.0` 与 `1.000000` 相等；统计缺数仍为 `null`，不满足任何比较条件。除零仍由卡片 `isUndefined` 数组表达，不混入 `gaps`。
+- JSON 仍输出数字而非字符串，最终结果可能写为 `1.500000`。字段、端点、数组与 null 结构不变，不承诺 JSON 数字的字节格式与迁移前相同。
+- 告警请求中的 `threshold` 必须显式非空；数值须能精确存入既有 `DECIMAL(20,6)`（绝对值小于 `10^14`，有效小数不超过 6 位）。不符合时返回 `400 / INVALID_PARAM`，不依赖 MySQL 静默截断。
+- Protobuf `double`、ClickHouse `Float64` 列及整数直方图协议不改。Metric 在分析入口用 `BigDecimal.valueOf` 转换；Heartbeat 整数直接转换；JDBC 用 `getBigDecimal` 读取。既有输入/数据库浮点精度、SQL 浮点聚合、整数直方图量化与分箱估算误差仍然存在，十进制迁移不能恢复这些边界前已丢失的精度。
+- 前端按既有 JSON 数字契约使用 JavaScript `number`，仅用于展示与输入传输，不是任意精度十进制端到端协议。超过浏览器安全精度的阈值经现有 UI 仍可能失真；后台直接接收的十进制 JSON 文本则按原精度绑定。
+
 ---
 
 ## 2. 身份与会话（identity）
@@ -318,10 +328,16 @@ Metric 页面不从旧排名列表累加总量，使用以下独立契约。真�
 {
   "cardId": 12, "formula": "failures / hits", "unit": "RATE", "thresholdLines": [...],
   "points": [ { "bucketStart": 1790696400000, "value": 0.012, "quality": "OK" } ],
-  "undefined": [ { "bucketStart": 1790698800000, "reason": "DIVIDE_BY_ZERO" } ],
+  "isUndefined": [ { "bucketStart": 1790698800000, "reason": "DIVIDE_BY_ZERO" } ],
   "gaps": [ { "bucketStart": 1790697000000, "missingInputs": ["hits"] } ]
 }
 ```
+
+`isUndefined` 固定为除零点数组（不是布尔值），没有除零点时返回 `[]`；缺数仍归入
+`gaps`，两类点的 `value` 都保持 `null`，不改为 0。2026-10-08 经用户确认，将旧
+`undefined` 字段统一改名为 `isUndefined`，不再输出旧键，调用方须同步升级。
+当前前端 mock 只生成趋势、未计算真实公式除零，因此返回空的 `isUndefined` 数组；
+非空除零数组由后端离线契约规格覆盖，真实端口表现仍需现场验收。
 
 **组织告警可选目标**
 

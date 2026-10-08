@@ -3,6 +3,10 @@ package com.neocat.query.domain.report;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 机器维度视图（PRD 03 §7.3、§10）。
@@ -22,10 +26,10 @@ import org.apache.commons.collections4.CollectionUtils;
  * @param all        全部机器的明细行（未截断，供分页）
  * @param selected   用户手动勾选的机器行；非空时 top 与 other 不再使用
  */
-@org.springframework.modulith.NamedInterface("query")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("query")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class MachineView {
     private final List<MachineRow> top;
 

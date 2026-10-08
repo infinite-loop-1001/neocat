@@ -1,7 +1,7 @@
 package com.neocat.client
 
 import com.neocat.protocol.ingest.v1.IngestRequest
-import spock.lang.Specification
+import com.neocat.protocol.ingest.v1.MessageTree
 
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -25,7 +25,7 @@ class CollectingSender implements MessageSender {
         return payloads.collect { IngestRequest.parseFrom(it) }
     }
 
-    List<com.neocat.protocol.ingest.v1.MessageTree> trees() {
+    List<MessageTree> trees() {
         return requests().collectMany { it.treesList }
     }
 }

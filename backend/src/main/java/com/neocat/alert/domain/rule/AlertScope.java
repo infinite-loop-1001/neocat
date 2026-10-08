@@ -1,4 +1,5 @@
 package com.neocat.alert.domain.rule;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 告警作用范围（PRD 06 §1）。
@@ -9,7 +10,7 @@ package com.neocat.alert.domain.rule;
  *       仅叶子有效成员可配置。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("alert")
+@NamedInterface("alert")
 public enum AlertScope {
     SERVICE,
     // fixme: 这里用大盘告警更合适一点

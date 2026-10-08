@@ -5,7 +5,9 @@
  * （大盘、组织告警）通过 {@code OrgResourceGateway} 抽象由上层实现，
  * 因此本模块不依赖 {@code dashboard} 或 {@code alert}。
  */
-@org.springframework.modulith.ApplicationModule(
+@ApplicationModule(
         displayName = "Organization",
         allowedDependencies = {"common", "common :: locking", "common :: error", "common :: http", "common :: config", "common :: time", "common :: queue"})
 package com.neocat.organization;
+
+import org.springframework.modulith.ApplicationModule;

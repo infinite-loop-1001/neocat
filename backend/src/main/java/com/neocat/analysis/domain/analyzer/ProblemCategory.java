@@ -1,6 +1,8 @@
 package com.neocat.analysis.domain.analyzer;
 
 import java.util.Objects;
+import java.util.Locale;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * Problem 分类（PRD 03 §9）。
@@ -14,7 +16,7 @@ import java.util.Objects;
  *
  * <p>同一次调用可以同时属于异常和慢类。
  */
-@org.springframework.modulith.NamedInterface("analysis")
+@NamedInterface("analysis")
 public enum ProblemCategory {
     EXCEPTION("异常"),
     SLOW_URL("慢请求"),
@@ -32,7 +34,7 @@ public enum ProblemCategory {
     }
     /** 该分类是否为慢类（慢类支持耗时分位，异常不支持）。 */
     public boolean slow() {
-        return this != EXCEPTION;
+        return !Objects.equals(this, EXCEPTION);
     }
     /**
      * 由 Transaction 节点的 category 推导慢类；非慢类类别返回 {@code null}。
@@ -43,7 +45,7 @@ public enum ProblemCategory {
         if (Objects.isNull(transactionCategory)) {
             return null;
         }
-        return switch (transactionCategory.toUpperCase(java.util.Locale.ROOT)) {
+        return switch (transactionCategory.toUpperCase(Locale.ROOT)) {
             case "URL" -> SLOW_URL;
             case "SQL" -> SLOW_SQL;
             case "CALL" -> SLOW_CALL;

@@ -6,7 +6,9 @@
  * {@code domain} 包有编译依赖 —— 这是「树模型是跨模块共享契约」的体现，
  * 已在 {@code ingest/domain/package-info.java} 中声明为具名接口。
  */
-@org.springframework.modulith.ApplicationModule(
+@ApplicationModule(
         displayName = "Analysis",
-        allowedDependencies = {"common", "common :: error", "common :: config", "common :: time", "common :: queue", "ingest :: tree", "platform :: platform", "platform :: internal"})
+        allowedDependencies = {"common", "common :: error", "common :: config", "common :: time", "common :: queue", "ingest :: tree", "ingest :: config", "platform :: platform", "platform :: internal"})
 package com.neocat.analysis;
+
+import org.springframework.modulith.ApplicationModule;

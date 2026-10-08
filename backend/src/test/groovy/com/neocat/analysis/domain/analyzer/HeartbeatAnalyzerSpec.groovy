@@ -7,6 +7,10 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import java.time.Instant
+import com.neocat.analysis.infra.store.InMemoryHourlyReportStore
+import com.neocat.ingest.domain.tree.HeartbeatValue
+import com.neocat.ingest.domain.tree.NodeKind
+import com.neocat.ingest.domain.tree.RawNode
 
 /**
  * G6 任务35（红）：Heartbeat 实例级分析。
@@ -17,11 +21,11 @@ class HeartbeatAnalyzerSpec extends Specification {
 
     static final Instant T = Instant.parse("2026-09-24T04:23:41Z")
 
-    com.neocat.analysis.infra.store.InMemoryHourlyReportStore store
+    InMemoryHourlyReportStore store
     HeartbeatAnalyzer analyzer
 
     def setup() {
-        store = new com.neocat.analysis.infra.store.InMemoryHourlyReportStore()
+        store = new InMemoryHourlyReportStore()
         analyzer = new HeartbeatAnalyzer(store)
     }
 
@@ -98,9 +102,9 @@ class HeartbeatAnalyzerSpec extends Specification {
         given:
         def later = T.plusSeconds(120)
         def tree = AnalysisFixtures.treeWithTimes("order", "10.0.0.8", T.toEpochMilli(),
-                [new com.neocat.ingest.domain.tree.RawNode("n-1", com.neocat.ingest.domain.tree.NodeKind.HEARTBEAT,
+                [new RawNode("n-1", NodeKind.HEARTBEAT,
                         "jvm", "jvm", "0", later.toEpochMilli(), 0L, null, null,
-                        new com.neocat.ingest.domain.tree.HeartbeatValue(1L, 2L, 3L, 4L, 5L),
+                        new HeartbeatValue(1L, 2L, 3L, 4L, 5L),
                         null, null, Map.of())])
 
         when:
@@ -141,7 +145,7 @@ class HeartbeatAnalyzerSpec extends Specification {
     def "缺少 Heartbeat 载荷的节点被跳过而不报错"() {
         given:
         def tree = AnalysisFixtures.treeWithTimes("order", "10.0.0.8", T.toEpochMilli(),
-                [new com.neocat.ingest.domain.tree.RawNode("n-1", com.neocat.ingest.domain.tree.NodeKind.HEARTBEAT,
+                [new RawNode("n-1", NodeKind.HEARTBEAT,
                         "jvm", "jvm", "0", T.toEpochMilli(), 0L, null, null, null, null, null, Map.of())])
 
         when:

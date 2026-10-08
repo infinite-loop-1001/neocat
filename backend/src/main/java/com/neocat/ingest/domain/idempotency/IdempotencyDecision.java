@@ -1,9 +1,10 @@
 package com.neocat.ingest.domain.idempotency;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 幂等判定结果（PRD 02 §6.1）。
  */
-@org.springframework.modulith.NamedInterface("tree")
+@NamedInterface("tree")
 public enum IdempotencyDecision {
     /** 未见过该 messageId，正常接收并处理。 */
     NEW,

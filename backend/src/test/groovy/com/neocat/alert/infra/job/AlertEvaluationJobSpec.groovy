@@ -1,15 +1,23 @@
 package com.neocat.alert.infra.job
 
-import com.neocat.alert.domain.engine.*
-import com.neocat.alert.domain.recipient.*
-import com.neocat.alert.domain.rule.*
-import com.neocat.common.config.AlertConfig
 import spock.lang.Specification
+
+import com.neocat.alert.config.AlertConfig
+import com.neocat.alert.domain.engine.AlertEngine
+import com.neocat.alert.domain.engine.AlertWindowState
+import com.neocat.alert.domain.rule.*
+import com.neocat.common.time.clock.TimeProvider
+import com.neocat.query.domain.stat.Stat
+
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
 class AlertEvaluationJobSpec extends Specification {
+    def cleanup() {
+        TimeProvider.clock = Clock.systemUTC()
+    }
+
     static final long T = 1_790_000_000_000L
     static final long MINUTE = 60_000L
 
@@ -21,7 +29,7 @@ class AlertEvaluationJobSpec extends Specification {
         new AlertRule(id, AlertScope.SERVICE, null, "r$id", '',
                 AlertTarget.rawMetric('order', 'TRANSACTION', 'URL', '/a'),
                 Combinator.AND, window,
-                [new Condition(com.neocat.query.domain.stat.Stat.HITS, Comparator.GT, 0d)],
+                [new Condition(Stat.HITS, Comparator.GT, 0d)],
                 [1L], [AlertChannel.EMAIL], enabled, false, T)
     }
 
@@ -90,8 +98,8 @@ class AlertEvaluationJobSpec extends Specification {
 
     def 'scheduler waits for the configured delay then evaluates the completed minute once'() {
         given:
-        def delayed = new AlertEvaluationJob(repository, engine,
-                Clock.fixed(Instant.ofEpochMilli(T).plusSeconds(6), ZoneOffset.UTC))
+        TimeProvider.clock = Clock.fixed(Instant.ofEpochMilli(T).plusSeconds(6), ZoneOffset.UTC)
+        def delayed = new AlertEvaluationJob(repository, engine)
 
         when:
         delayed.evaluate()
@@ -122,8 +130,8 @@ class AlertEvaluationJobSpec extends Specification {
     def 'a delay longer than one minute still schedules completed points'() {
         given:
         AlertConfig.EVALUATE_DELAY_SECONDS = 90
-        def delayed = new AlertEvaluationJob(repository, engine,
-                Clock.fixed(Instant.parse('2026-09-24T04:02:30Z'), ZoneOffset.UTC))
+        TimeProvider.clock = Clock.fixed(Instant.parse('2026-09-24T04:02:30Z'), ZoneOffset.UTC)
+        def delayed = new AlertEvaluationJob(repository, engine)
 
         when:
         delayed.evaluate()

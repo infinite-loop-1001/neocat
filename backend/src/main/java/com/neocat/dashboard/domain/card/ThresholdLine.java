@@ -1,5 +1,13 @@
 package com.neocat.dashboard.domain.card;
 
+import java.math.BigDecimal;
+import java.util.Objects;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
+
 /**
  * 阈值线（PRD 05 §7，技术方案 02 §9.1）。
  *
@@ -12,17 +20,17 @@ package com.neocat.dashboard.domain.card;
  *   <li>阈值线修改**不自动修改已有告警规则的比较阈值**。</li>
  * </ul>
  */
-@org.springframework.modulith.NamedInterface("dashboard")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("dashboard")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class ThresholdLine {
     private final ThresholdDirection direction;
 
-    private final double value;
+    private final BigDecimal value;
 
-    public ThresholdLine(ThresholdDirection direction, double value) {
+    public ThresholdLine(ThresholdDirection direction, BigDecimal value) {
         this.direction = direction;
-        this.value = value;
+        this.value = Objects.requireNonNull(value, "value");
     }
 }

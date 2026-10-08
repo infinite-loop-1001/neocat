@@ -1,18 +1,23 @@
 package com.neocat.dashboard.domain.card;
 
+import java.math.BigDecimal;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.neocat.dashboard.domain.access.CardInputSource;
 import com.neocat.dashboard.domain.formula.Formula;
 import com.neocat.dashboard.domain.formula.FormulaParser;
 import com.neocat.query.domain.stat.Stat;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
 import org.apache.commons.collections4.ListUtils;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.stereotype.Service;
 
 /**
  * 卡片序列组装（PRD 05 §5，技术方案 02 §9.2）。
@@ -28,8 +33,8 @@ import org.apache.commons.collections4.ListUtils;
  * <p>求值**逐桶独立**，因此结构上不存在「沿用上一点」的可能。
  * 输入缺数被判为缺口而非 0（PRD 05 §5）。
  */
-@org.springframework.stereotype.Service
-@org.springframework.modulith.NamedInterface("dashboard")
+@Service
+@NamedInterface("dashboard")
 public class CardSeriesService {
 
     private final CardInputSource inputs;
@@ -43,6 +48,7 @@ public class CardSeriesService {
         this.evaluator = new CardEvaluator();
         this.parser = new FormulaParser();
     }
+
     /**
      * 计算卡片序列。
      *
@@ -56,17 +62,18 @@ public class CardSeriesService {
         Formula formula = parsed.getFormula();
 
         List<long[]> boundaries = inputs.bucketBoundaries(from, to, bucketSeconds);
-        Map<Long, Map<Stat, Double>> values = inputs.buckets(card, from, to, bucketSeconds);
+        Map<Long, Map<Stat, BigDecimal>> values = inputs.buckets(card, from, to, bucketSeconds);
 
         List<CardPoint> points = new ArrayList<>(boundaries.size());
         for (long[] boundary : boundaries) {
             long start = boundary[0];
             long end = boundary[1];
-            Map<Stat, Double> bucketValues = values.getOrDefault(start, Maps.newHashMap());
+            Map<Stat, BigDecimal> bucketValues = values.getOrDefault(start, Maps.newHashMap());
             points.add(evaluator.evaluate(formula, bucketValues, start, end));
         }
         return List.copyOf(points);
     }
+
     /**
      * 转成对外契约结构（技术方案 03-api-contract.md §5）。
      */
@@ -83,10 +90,10 @@ public class CardSeriesService {
             item.put("outcome", point.getOutcome().name());
             rendered.add(item);
 
-            if (point.gap()) {
+            if (point.isGap()) {
                 gaps.add(Map.of("bucketStart", point.getBucketStart(), "missingInputs", point.getMissingInputs()));
             }
-            if (point.undefined()) {
+            if (point.isUndefined()) {
                 // 除零与缺口是不同语义，分开表达（PRD 05 §5）
                 undefined.add(Map.of("bucketStart", point.getBucketStart(), "reason", "DIVIDE_BY_ZERO"));
             }
@@ -99,7 +106,7 @@ public class CardSeriesService {
         result.put("thresholdLines", ListUtils.emptyIfNull(card.getThresholdLines()));
         result.put("points", rendered);
         result.put("gaps", gaps);
-        result.put("undefined", undefined);
+        result.put("isUndefined", undefined);
         return result;
     }
 }

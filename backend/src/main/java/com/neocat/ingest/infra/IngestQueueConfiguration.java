@@ -4,9 +4,10 @@ import com.neocat.common.queue.BoundedDropQueue;
 import com.neocat.ingest.domain.tree.MessageTree;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 @Configuration
-@org.springframework.context.annotation.DependsOn("ingestConfig")
+@DependsOn("ingestConfig")
 public class IngestQueueConfiguration {
     @Bean
     public BoundedDropQueue<MessageTree> ingestQueue() {

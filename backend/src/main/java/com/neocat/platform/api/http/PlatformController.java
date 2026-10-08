@@ -1,5 +1,7 @@
 package com.neocat.platform.api.http;
 
+import com.neocat.common.time.clock.TimeProvider;
+
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.error.exception.BusinessRuleException;
 import com.neocat.platform.api.http.dto.PlatformDtos.*;
@@ -7,7 +9,6 @@ import com.neocat.platform.api.http.convert.PlatformConvert;
 import com.neocat.platform.domain.profile.PlatformService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.time.Clock;
 
 /** 平台 HTTP 入口：时区初始化后不可修改，JSON 契约保持不变。 */
 @RestController
@@ -15,11 +16,8 @@ import java.time.Clock;
 public class PlatformController {
     private final PlatformService platform;
 
-    private final Clock clock;
-
-    public PlatformController(PlatformService platform, Clock clock) {
+    public PlatformController(PlatformService platform) {
         this.platform = platform;
-        this.clock = clock;
     }
 
     @GetMapping("/init-status")
@@ -29,7 +27,7 @@ public class PlatformController {
 
     @PostMapping("/initialize")
     public ResponseEntity<ProfileResponse> initialize(@RequestBody InitRequest body) {
-        platform.initialize(PlatformConvert.init(body), clock.instant());
+        platform.initialize(PlatformConvert.init(body), TimeProvider.now());
         return profile();
     }
 

@@ -1,6 +1,10 @@
 package com.neocat.trace.domain.tree;
 
 import java.util.Map;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * 树内节点（用于 Trace 展示）。
@@ -15,10 +19,10 @@ import java.util.Map;
  * @param detail     附加信息（异常消息、SQL 语句等）
  * @param tags       标签
  */
-@org.springframework.modulith.NamedInterface("trace")
-@lombok.Getter
-@lombok.EqualsAndHashCode
-@lombok.ToString
+@NamedInterface("trace")
+@Getter
+@EqualsAndHashCode
+@ToString
 public class TraceNode {
     private final String nodeId;
 
@@ -51,9 +55,3 @@ public class TraceNode {
     }
 
 }
-
-
-
-
-
-
