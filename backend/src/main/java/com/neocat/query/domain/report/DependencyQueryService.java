@@ -18,7 +18,8 @@ import java.util.Objects;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
-import com.neocat.query.domain.stat.Merged;
+import com.neocat.query.domain.stat.result.Merged;
+import com.neocat.query.domain.report.result.DependencyRow;
 
 /**
  * 依赖查询（PRD 04 §6、§8，链路 22）。

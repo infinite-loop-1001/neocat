@@ -1,7 +1,7 @@
 package com.neocat.alert.infra.adapter
 
 import com.neocat.alert.domain.engine.PreviewService
-import com.neocat.alert.domain.engine.PreviewResultType
+import com.neocat.alert.domain.engine.result.PreviewResultType
 import com.neocat.alert.domain.rule.AlertChannel
 import com.neocat.alert.domain.rule.AlertRule
 import com.neocat.alert.domain.rule.AlertScope

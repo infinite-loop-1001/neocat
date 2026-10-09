@@ -12,6 +12,7 @@ import java.util.Objects;
 
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+import com.neocat.trace.domain.tree.result.AssemblyResult;
 
 /**
  * Trace 组装（PRD 02 §10、技术方案 02 §7）。

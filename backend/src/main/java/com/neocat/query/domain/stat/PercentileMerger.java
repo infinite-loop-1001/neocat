@@ -10,6 +10,7 @@ import java.util.Objects;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
+import com.neocat.query.domain.stat.result.Percentiles;
 
 /**
  * 分位合并（PRD 03 §3、PRD 04 §9，技术方案 03 §8.1）。

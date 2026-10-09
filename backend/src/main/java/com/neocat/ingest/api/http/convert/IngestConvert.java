@@ -1,7 +1,7 @@
 package com.neocat.ingest.api.http.convert;
 
 import com.neocat.ingest.api.http.dto.QueueStatsResponse;
-import com.neocat.ingest.domain.receive.QueueStats;
+import com.neocat.ingest.domain.receive.result.QueueStats;
 
 public final class IngestConvert {
     private IngestConvert() {

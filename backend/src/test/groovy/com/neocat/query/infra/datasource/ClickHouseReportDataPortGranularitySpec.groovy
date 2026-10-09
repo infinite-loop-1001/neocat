@@ -8,6 +8,7 @@ import spock.lang.Specification
 
 import java.time.Instant
 import java.time.ZoneOffset
+import com.neocat.query.infra.datasource.row.BucketRow
 
 /**
  * ClickHouse 读取的**粒度折叠**（技术方案 03 §4.1、§6 §10）。

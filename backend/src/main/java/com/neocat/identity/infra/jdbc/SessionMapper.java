@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.sql.Timestamp;
+import com.neocat.identity.infra.jdbc.row.SessionRow;
 
 @Mapper
 public interface SessionMapper {

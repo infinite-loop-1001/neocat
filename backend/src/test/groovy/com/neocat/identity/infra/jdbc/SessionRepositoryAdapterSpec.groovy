@@ -5,6 +5,7 @@ import spock.lang.Specification
 
 import java.sql.Timestamp
 import java.time.Instant
+import com.neocat.identity.infra.jdbc.row.SessionRow
 
 class SessionRepositoryAdapterSpec extends Specification {
     static final Instant NOW = Instant.parse('2026-09-24T04:00:00Z')

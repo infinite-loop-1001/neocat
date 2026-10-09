@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.Objects;
+import com.neocat.identity.infra.jdbc.row.SessionRow;
 
 /**
  * MySQL-backed sessions. Expiry is exclusive and renewal never revives an expired session.

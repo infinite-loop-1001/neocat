@@ -7,7 +7,7 @@ import com.neocat.trace.domain.tree.TraceNode;
 import com.neocat.trace.api.http.dto.Node;
 import com.neocat.trace.api.http.dto.Span;
 import com.neocat.trace.api.http.dto.TraceResponse;
-import com.neocat.trace.domain.tree.AssemblyResult;
+import com.neocat.trace.domain.tree.result.AssemblyResult;
 
 public final class TraceConvert {
     private TraceConvert() {

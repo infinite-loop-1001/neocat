@@ -7,6 +7,10 @@ import org.apache.ibatis.annotations.Param;
 
 import java.sql.Timestamp;
 import java.util.List;
+import com.neocat.alert.infra.jdbc.row.AlertConditionRow;
+import com.neocat.alert.infra.jdbc.row.AlertRecipientRow;
+import com.neocat.alert.infra.jdbc.row.AlertRuleRow;
+import com.neocat.alert.infra.jdbc.row.AlertWindowPointRow;
 
 /**
  * 告警 Mapper（表 {@code nc_alert_rule} / {@code nc_alert_condition} /

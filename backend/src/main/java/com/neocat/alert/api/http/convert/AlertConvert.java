@@ -1,9 +1,8 @@
 package com.neocat.alert.api.http.convert;
 
 import com.google.common.collect.Lists;
-import com.neocat.alert.api.http.dto.*;
 import com.neocat.alert.domain.rule.*;
-import com.neocat.alert.domain.engine.PreviewResult;
+import com.neocat.alert.domain.engine.result.PreviewResult;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.error.exception.ValidationException;
@@ -15,12 +14,12 @@ import java.util.Objects;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
-import com.neocat.alert.api.http.dto.AlertDraft;
-import com.neocat.alert.api.http.dto.ConditionDraft;
-import com.neocat.alert.api.http.dto.PreviewResponse;
-import com.neocat.alert.api.http.dto.RuleResponse;
-import com.neocat.alert.api.http.dto.TargetDraft;
-import com.neocat.alert.api.http.dto.TargetResponse;
+import com.neocat.alert.api.http.dto.rule.AlertDraft;
+import com.neocat.alert.api.http.dto.rule.ConditionDraft;
+import com.neocat.alert.api.http.dto.preview.PreviewResponse;
+import com.neocat.alert.api.http.dto.rule.RuleResponse;
+import com.neocat.alert.api.http.dto.rule.TargetDraft;
+import com.neocat.alert.api.http.dto.rule.TargetResponse;
 
 /**
  * 告警 HTTP 契约与领域模型之间的转换（PRD 06 §1、§2、§4）。

@@ -2,8 +2,8 @@ package com.neocat.ingest.infra.protocol;
 
 import com.neocat.common.error.NeocatException;
 import com.neocat.common.error.ErrorCode;
-import com.neocat.ingest.domain.receive.IngestResult;
-import com.neocat.ingest.domain.receive.IngestStatus;
+import com.neocat.ingest.domain.receive.result.IngestResult;
+import com.neocat.ingest.domain.receive.result.IngestStatus;
 import com.neocat.protocol.ingest.v1.IngestResponse;
 import com.neocat.protocol.ingest.v1.Status;
 import java.util.Objects;

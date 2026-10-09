@@ -3,7 +3,6 @@ package com.neocat.organization.api.http;
 import com.neocat.common.error.exception.AuthorizationException;
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.http.context.RequestActor;
-import com.neocat.organization.api.http.dto.*;
 import com.neocat.organization.api.http.convert.OrgConvert;
 import com.neocat.organization.domain.lifecycle.OrgLifecycleService;
 import com.neocat.organization.domain.membership.OrgMembershipService;
@@ -18,11 +17,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
-import com.neocat.organization.api.http.dto.DeletionResponse;
-import com.neocat.organization.api.http.dto.MemberDraft;
-import com.neocat.organization.api.http.dto.OrgDraft;
-import com.neocat.organization.api.http.dto.OrgResponse;
-import com.neocat.organization.api.http.dto.Success;
+import com.neocat.organization.api.http.dto.deletion.DeletionResponse;
+import com.neocat.organization.api.http.dto.member.MemberDraft;
+import com.neocat.organization.api.http.dto.org.OrgDraft;
+import com.neocat.organization.api.http.dto.org.OrgResponse;
+import com.neocat.organization.api.http.dto.common.Success;
 
 /** 组织与成员管理 HTTP 入口；管理员检查不改变。 */
 @Tag(name = "组织与成员", description = "组织树维护、成员关系与删除预检")

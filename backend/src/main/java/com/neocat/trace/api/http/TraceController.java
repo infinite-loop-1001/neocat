@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Duration;
 
 import org.springframework.context.annotation.DependsOn;
-import com.neocat.trace.domain.tree.AssemblyResult;
+import com.neocat.trace.domain.tree.result.AssemblyResult;
 
 /**
  * Trace 接口（技术方案 03-api-contract.md §4.9、02 §7）。

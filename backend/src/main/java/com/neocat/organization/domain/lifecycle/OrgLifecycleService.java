@@ -3,7 +3,7 @@ package com.neocat.organization.domain.lifecycle;
 import com.neocat.organization.domain.membership.EffectiveLeafRepository;
 import com.neocat.organization.domain.membership.MembershipRepository;
 import com.neocat.organization.domain.membership.OrgMembershipService;
-import com.neocat.organization.domain.tree.DeletionPreview;
+import com.neocat.organization.domain.tree.result.DeletionPreview;
 import com.neocat.organization.domain.tree.OrgNode;
 import com.neocat.organization.domain.tree.OrgNodeRepository;
 import com.neocat.common.error.exception.BusinessRuleException;

@@ -1,14 +1,14 @@
 package com.neocat.web
 
-import com.neocat.alert.domain.engine.PreviewResult
-import com.neocat.alert.domain.engine.PreviewResultType
+import com.neocat.alert.domain.engine.result.PreviewResult
+import com.neocat.alert.domain.engine.result.PreviewResultType
 import com.neocat.dashboard.domain.card.Card
 import com.neocat.dashboard.domain.formula.FormulaParser
 import com.neocat.organization.domain.lifecycle.OrgLifecycleService
 import com.neocat.organization.domain.lifecycle.OrgResourceGateway
 import com.neocat.organization.domain.membership.EffectiveLeafRepository
 import com.neocat.organization.domain.membership.MembershipRepository
-import com.neocat.organization.domain.tree.DeletionPreview
+import com.neocat.organization.domain.tree.result.DeletionPreview
 import com.neocat.organization.domain.tree.OrgNode
 import com.neocat.organization.domain.tree.OrgNodeRepository
 import com.neocat.query.domain.series.Point
@@ -18,8 +18,8 @@ import com.neocat.trace.domain.tree.NodeAvailability
 import spock.lang.Specification
 
 import java.time.Instant
-import com.neocat.alert.domain.engine.PointEvaluation
-import com.neocat.organization.domain.tree.DashboardSummary
+import com.neocat.alert.domain.engine.result.PointEvaluation
+import com.neocat.organization.domain.tree.result.DashboardSummary
 
 /**
  * 字段级契约规格（成功标准 2 的支撑）。

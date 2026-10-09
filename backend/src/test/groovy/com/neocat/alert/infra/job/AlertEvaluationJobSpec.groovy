@@ -12,7 +12,7 @@ import com.neocat.query.domain.stat.Stat
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import com.neocat.alert.domain.engine.EvaluationResult
+import com.neocat.alert.domain.engine.result.EvaluationResult
 
 class AlertEvaluationJobSpec extends Specification {
     def cleanup() {

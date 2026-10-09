@@ -1,4 +1,5 @@
 package com.neocat.platform.api.internal;
+import com.neocat.platform.api.internal.result.Thresholds;
 
 public interface PlatformReadModel {
 

@@ -17,7 +17,7 @@ import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
-import com.neocat.query.domain.stat.Merged;
+import com.neocat.query.domain.stat.result.Merged;
 
 /**
  * Type / Name 表查询（PRD 03 §7.1、§7.2、§8、§9）。

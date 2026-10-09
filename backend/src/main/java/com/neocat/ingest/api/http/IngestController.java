@@ -8,7 +8,7 @@ import com.neocat.common.error.ErrorCode;
 import com.neocat.ingest.infra.protocol.IngestRequestMapper;
 import com.neocat.ingest.infra.protocol.IngestResponseMapper;
 import com.neocat.ingest.domain.receive.IngestBatch;
-import com.neocat.ingest.domain.receive.IngestResult;
+import com.neocat.ingest.domain.receive.result.IngestResult;
 import com.neocat.ingest.domain.receive.IngestService;
 import com.neocat.protocol.ingest.v1.IngestRequest;
 import com.neocat.protocol.ingest.v1.IngestResponse;

@@ -2,7 +2,6 @@ package com.neocat.identity.api.http;
 
 import com.neocat.common.time.clock.TimeProvider;
 
-import com.neocat.identity.api.http.dto.*;
 import com.neocat.identity.api.http.convert.IdentityConvert;
 
 import com.neocat.common.error.exception.AuthorizationException;
@@ -26,10 +25,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import com.neocat.identity.api.http.dto.PasswordDraft;
-import com.neocat.identity.api.http.dto.RoleDraft;
-import com.neocat.identity.api.http.dto.UserDraft;
-import com.neocat.identity.api.http.dto.UserResponse;
+import com.neocat.identity.api.http.dto.user.PasswordDraft;
+import com.neocat.identity.api.http.dto.user.RoleDraft;
+import com.neocat.identity.api.http.dto.user.UserDraft;
+import com.neocat.identity.api.http.dto.user.UserResponse;
 
 /** 账号管理 HTTP 入口。 */
 @Tag(name = "账号管理", description = "管理员账号维护：创建、重置口令、角色变更、启停用")

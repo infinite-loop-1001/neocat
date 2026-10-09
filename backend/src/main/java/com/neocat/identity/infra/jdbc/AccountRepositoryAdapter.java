@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.List;
+import com.neocat.identity.infra.jdbc.row.AccountRow;
 
 /**
  * 账号仓储的 MyBatis 适配器（表 {@code nc_account}）。

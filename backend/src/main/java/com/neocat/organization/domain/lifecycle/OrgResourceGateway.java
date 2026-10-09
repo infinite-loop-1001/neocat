@@ -2,7 +2,7 @@ package com.neocat.organization.domain.lifecycle;
 
 import java.util.List;
 import org.springframework.modulith.NamedInterface;
-import com.neocat.organization.domain.tree.DashboardSummary;
+import com.neocat.organization.domain.tree.result.DashboardSummary;
 
 /**
  * 组织资源归属查询（大盘、组织告警）。

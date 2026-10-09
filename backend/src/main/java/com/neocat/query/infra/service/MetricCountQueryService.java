@@ -15,8 +15,8 @@ import java.time.*;
 import java.util.*;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Service;
-import com.neocat.analysis.domain.metric.Entry;
-import com.neocat.query.domain.report.ResolvedRange;
+import com.neocat.analysis.domain.metric.metadata.Entry;
+import com.neocat.query.domain.report.result.ResolvedRange;
 
 @Service
 public class MetricCountQueryService {

@@ -12,6 +12,7 @@ import spock.lang.Specification
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import com.neocat.analysis.domain.schedule.result.EvictionResult
 
 class ReportSchedulerSpec extends Specification {
     static final ZoneId SH = ZoneId.of('Asia/Shanghai')

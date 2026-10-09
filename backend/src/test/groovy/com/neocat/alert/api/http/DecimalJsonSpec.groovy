@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
 import com.neocat.alert.api.http.convert.AlertConvert
-import com.neocat.alert.api.http.dto.AlertDraft
+import com.neocat.alert.api.http.dto.rule.AlertDraft
 import com.neocat.alert.domain.engine.MinutePointSource
 import com.neocat.alert.domain.engine.NotificationDispatcher
 import com.neocat.alert.domain.engine.PreviewService
@@ -19,7 +19,7 @@ import com.neocat.common.http.error.ApiExceptionHandler
 import com.neocat.dashboard.api.http.convert.DashboardConvert
 import com.neocat.dashboard.domain.access.CardInputSource
 import com.neocat.dashboard.domain.card.*
-import com.neocat.query.api.http.dto.Point
+import com.neocat.query.api.http.dto.report.Point
 import com.neocat.query.domain.stat.Stat
 import org.mapstruct.factory.Mappers
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter

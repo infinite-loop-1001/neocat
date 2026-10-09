@@ -21,7 +21,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-import static com.neocat.ingest.domain.receive.IngestStatus.*
+import static com.neocat.ingest.domain.receive.result.IngestStatus.*
 import static com.neocat.ingest.domain.receive.QualityType.*
 import com.neocat.common.time.clock.TimeProvider
 import com.neocat.ingest.infra.InMemoryIdempotencyStore

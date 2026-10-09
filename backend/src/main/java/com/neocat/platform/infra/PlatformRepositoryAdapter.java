@@ -12,6 +12,8 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 import java.sql.Timestamp;
+import com.neocat.platform.infra.row.ChannelRow;
+import com.neocat.platform.infra.row.PlatformRow;
 
 /**
  * 平台档案与通道配置的 MyBatis 适配器

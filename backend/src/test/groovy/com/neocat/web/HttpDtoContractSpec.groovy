@@ -14,7 +14,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 import com.neocat.alert.api.http.AlertController
 import com.neocat.alert.api.http.convert.AlertConvert
-import com.neocat.alert.domain.engine.PreviewResult
+import com.neocat.alert.domain.engine.result.PreviewResult
 import com.neocat.catalog.api.http.CatalogController
 import com.neocat.catalog.api.http.convert.CatalogConvert
 import com.neocat.dashboard.api.http.DashboardController
@@ -40,23 +40,23 @@ import java.time.Instant
 import org.mapstruct.factory.Mappers
 import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.web.bind.annotation.RequestMapping
-import com.neocat.alert.api.http.dto.AlertDraft
-import com.neocat.alert.domain.engine.PointEvaluation
-import com.neocat.dashboard.api.http.dto.CardDraft
-import com.neocat.dashboard.api.http.dto.DashboardDraft
-import com.neocat.identity.api.http.dto.ChangePasswordRequest
-import com.neocat.identity.api.http.dto.LoginRequest
-import com.neocat.identity.api.http.dto.PasswordDraft
-import com.neocat.identity.api.http.dto.RoleDraft
-import com.neocat.identity.api.http.dto.UserDraft
-import com.neocat.ingest.domain.receive.QueueStats
-import com.neocat.organization.api.http.dto.MemberDraft
-import com.neocat.organization.api.http.dto.OrgDraft
-import com.neocat.platform.api.http.dto.ChannelsRequest
-import com.neocat.platform.api.http.dto.InitRequest
-import com.neocat.platform.api.http.dto.SlowThresholdsRequest
-import com.neocat.query.api.http.dto.Series
-import com.neocat.trace.domain.tree.AssemblyResult
+import com.neocat.alert.api.http.dto.rule.AlertDraft
+import com.neocat.alert.domain.engine.result.PointEvaluation
+import com.neocat.dashboard.api.http.dto.card.CardDraft
+import com.neocat.dashboard.api.http.dto.dashboard.DashboardDraft
+import com.neocat.identity.api.http.dto.auth.ChangePasswordRequest
+import com.neocat.identity.api.http.dto.auth.LoginRequest
+import com.neocat.identity.api.http.dto.user.PasswordDraft
+import com.neocat.identity.api.http.dto.user.RoleDraft
+import com.neocat.identity.api.http.dto.user.UserDraft
+import com.neocat.ingest.domain.receive.result.QueueStats
+import com.neocat.organization.api.http.dto.member.MemberDraft
+import com.neocat.organization.api.http.dto.org.OrgDraft
+import com.neocat.platform.api.http.dto.profile.ChannelsRequest
+import com.neocat.platform.api.http.dto.init.InitRequest
+import com.neocat.platform.api.http.dto.profile.SlowThresholdsRequest
+import com.neocat.query.api.http.dto.report.Series
+import com.neocat.trace.domain.tree.result.AssemblyResult
 
 /** 实际执行 Jackson 绑定/输出，覆盖 Lombok 构造器及保留 null 的契约。 */
 class HttpDtoContractSpec extends Specification {

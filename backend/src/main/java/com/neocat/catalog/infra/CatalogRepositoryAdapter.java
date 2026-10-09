@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
+import com.neocat.catalog.infra.row.InstanceRow;
+import com.neocat.catalog.infra.row.ServiceRow;
 
 /**
  * 服务与实例目录的 MyBatis 适配器（表 {@code nc_service} / {@code nc_instance}）。

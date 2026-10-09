@@ -27,6 +27,9 @@ import org.apache.commons.collections4.CollectionUtils;
 
 import java.sql.Timestamp;
 import java.util.stream.Collectors;
+import com.neocat.alert.infra.jdbc.row.AlertConditionRow;
+import com.neocat.alert.infra.jdbc.row.AlertRecipientRow;
+import com.neocat.alert.infra.jdbc.row.AlertRuleRow;
 
 /**
  * 告警规则与窗口状态的 MyBatis 适配器
@@ -208,5 +211,4 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
     }
 
 }
-
 

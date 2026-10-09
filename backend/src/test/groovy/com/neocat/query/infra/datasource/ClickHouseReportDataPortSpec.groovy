@@ -1,13 +1,13 @@
 package com.neocat.query.infra.datasource
 
 import com.neocat.analysis.domain.bucket.AggregationLevel
-import com.neocat.common.time.bucket.Granularity
 import com.neocat.analysis.domain.bucket.SeriesKey
 import com.neocat.analysis.domain.bucket.SeriesKind
+import com.neocat.common.time.bucket.Granularity
+import com.neocat.query.infra.datasource.row.BucketRow
 import spock.lang.Specification
 
 import java.time.Instant
-import java.util.Arrays
 
 /**
  * ClickHouse 报表读取适配器的规格。

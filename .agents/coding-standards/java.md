@@ -44,6 +44,7 @@ Collectors.toMap(Item::getId, Function.identity(), (left, right) -> {
 - 适用于 backend、client-java 的手写生产 Java 代码，不限于 HTTP 请求或响应：DTO、领域事件、值对象、内部接口结果与持久化模型等具名 class / interface / enum 应为独立顶层类型，文件名与类型名一致；禁止用 `XxxDtos` 等容器类集中声明多个类型，也不在同一文件并列声明多个顶层类型。
 - 例外：私有辅助类（private 嵌套类及其内部实现类型、仅在方法内部使用的局部辅助类）、SDK 的 `com.neocat.client.NeoCat.Builder`、生成代码、匿名类和测试夹具。不得将原本对外使用的类型改为 private 来规避规则。
 - 拆分保持所属业务模块和包边界，按需保留 public 或包级可见性；更新调用方、MapStruct、Groovy 测试、反射类名与持久化类型映射的引用。sealed 类型拆分后显式声明 permits，保持原有允许的子类型集合。
+- 独立文件不等于在父包平铺：按用途归职责子包，HTTP DTO 按接口用途归组，数据库行模型使用基础设施 `row` 子包，领域返回模型使用所属领域 `result` 子包。关联类型一起归组，沿用已有事件、公式、时间范围等完整类型族；禁止混入跨域通用 `model` 大包，也不为单个类型机械增加层级。
 - 字段、构造器、行为、Jackson / Lombok / SpringDoc 注解与 JSON / Protobuf 契约不变，尤其保留显式 `@Schema(name=…)`。具名接口导出基线只能按实际类型迁移更新，不借拆分增加模块依赖或扩大接口职责。
 - 迁移必须编译并运行序列化、映射、模块边界及相关动态测试；不能仅靠文本引用替换判定正确。
 

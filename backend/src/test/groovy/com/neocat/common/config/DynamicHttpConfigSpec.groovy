@@ -15,7 +15,7 @@ import java.time.*
 import com.neocat.alert.api.http.AlertController
 import com.neocat.alert.api.http.convert.AlertConvert
 
-import com.neocat.alert.domain.engine.PreviewResult
+import com.neocat.alert.domain.engine.result.PreviewResult
 import com.neocat.alert.domain.engine.PreviewService
 import com.neocat.common.error.exception.ResourceNotFoundException
 import com.neocat.common.time.bucket.DefaultTimeBucketResolver
@@ -23,10 +23,10 @@ import com.neocat.common.time.clock.TimeProvider
 import com.neocat.query.api.http.ReportController
 import java.util.function.Supplier
 import org.mapstruct.factory.Mappers
-import com.neocat.alert.api.http.dto.AlertDraft
-import com.neocat.alert.api.http.dto.ConditionDraft
-import com.neocat.alert.api.http.dto.TargetDraft
-import com.neocat.trace.domain.tree.AssemblyResult
+import com.neocat.alert.api.http.dto.rule.AlertDraft
+import com.neocat.alert.api.http.dto.rule.ConditionDraft
+import com.neocat.alert.api.http.dto.rule.TargetDraft
+import com.neocat.trace.domain.tree.result.AssemblyResult
 
 class DynamicHttpConfigSpec extends Specification {
     def cleanup() {

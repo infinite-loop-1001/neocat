@@ -20,6 +20,8 @@ import java.util.Objects;
 import org.apache.commons.collections4.ListUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import com.neocat.dashboard.infra.jdbc.row.CardRow;
+import com.neocat.dashboard.infra.jdbc.row.DashboardRow;
 
 /**
  * 大盘与卡片的 MyBatis 适配器（表 {@code nc_dashboard} / {@code nc_card} / {@code nc_card_threshold_line}）。

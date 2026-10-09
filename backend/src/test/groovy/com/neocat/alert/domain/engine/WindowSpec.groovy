@@ -13,6 +13,7 @@ import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 
 import static com.neocat.alert.domain.rule.AlertScope.SERVICE
+import com.neocat.alert.domain.engine.result.EvaluationResult
 
 /**
  * G10 任务79（红）：滑动窗口与分钟判定。

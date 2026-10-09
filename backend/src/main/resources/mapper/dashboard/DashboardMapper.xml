@@ -7,14 +7,14 @@
         SELECT COUNT(*) FROM nc_card WHERE dashboard_id = #{dashboardId}
     </select>
 
-    <resultMap id="dashboardRow" type="com.neocat.dashboard.infra.jdbc.DashboardRow">
+    <resultMap id="dashboardRow" type="com.neocat.dashboard.infra.jdbc.row.DashboardRow">
         <id property="id" column="id"/>
         <result property="orgId" column="org_id"/>
         <result property="name" column="name"/>
         <result property="orderNo" column="order_no"/>
     </resultMap>
 
-    <resultMap id="cardRow" type="com.neocat.dashboard.infra.jdbc.CardRow">
+    <resultMap id="cardRow" type="com.neocat.dashboard.infra.jdbc.row.CardRow">
         <id property="id" column="id"/>
         <result property="dashboardId" column="dashboard_id"/>
         <result property="service" column="service"/>
@@ -38,13 +38,13 @@
         SELECT id, org_id, name, order_no FROM nc_dashboard WHERE org_id = #{orgId} ORDER BY order_no, id
     </select>
 
-    <insert id="insertDashboard" parameterType="com.neocat.dashboard.infra.jdbc.DashboardRow"
+    <insert id="insertDashboard" parameterType="com.neocat.dashboard.infra.jdbc.row.DashboardRow"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO nc_dashboard (org_id, name, order_no, created_at)
         VALUES (#{orgId}, #{name}, #{orderNo}, NOW(3))
     </insert>
 
-    <update id="updateDashboard" parameterType="com.neocat.dashboard.infra.jdbc.DashboardRow">
+    <update id="updateDashboard" parameterType="com.neocat.dashboard.infra.jdbc.row.DashboardRow">
         UPDATE nc_dashboard SET name = #{name}, order_no = #{orderNo} WHERE id = #{id}
     </update>
 
@@ -64,7 +64,7 @@
         FROM nc_card WHERE dashboard_id = #{dashboardId} ORDER BY order_no, id
     </select>
 
-    <insert id="insertCard" parameterType="com.neocat.dashboard.infra.jdbc.CardRow"
+    <insert id="insertCard" parameterType="com.neocat.dashboard.infra.jdbc.row.CardRow"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO nc_card (dashboard_id, service, target_kind, target_type, target_name, metric_name,
                              metric_labels, instance_scope, formula, formula_unit, time_range, order_no, created_at)
@@ -72,7 +72,7 @@
                 #{metricLabels}, #{instanceScope}, #{formula}, #{formulaUnit}, #{timeRange}, #{orderNo}, NOW(3))
     </insert>
 
-    <update id="updateCard" parameterType="com.neocat.dashboard.infra.jdbc.CardRow">
+    <update id="updateCard" parameterType="com.neocat.dashboard.infra.jdbc.row.CardRow">
         UPDATE nc_card
         SET service     = #{service},
             target_kind = #{targetKind},
@@ -93,7 +93,7 @@
         DELETE FROM nc_card WHERE id = #{id}
     </delete>
 
-    <select id="selectThresholdLines" resultType="com.neocat.dashboard.infra.jdbc.ThresholdLineRow">
+    <select id="selectThresholdLines" resultType="com.neocat.dashboard.infra.jdbc.row.ThresholdLineRow">
         SELECT direction, value FROM nc_card_threshold_line WHERE card_id = #{cardId} ORDER BY id
     </select>
 

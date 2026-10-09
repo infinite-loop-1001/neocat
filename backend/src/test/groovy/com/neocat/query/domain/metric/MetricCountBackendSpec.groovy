@@ -9,6 +9,7 @@ import com.neocat.common.error.exception.ValidationException
 import java.time.Instant
 import com.neocat.analysis.infra.store.InMemoryMetricLabelMetadata
 import java.time.temporal.ChronoUnit
+import com.neocat.analysis.domain.metric.metadata.Entry
 
 class MetricCountBackendSpec extends Specification {
     def time = Instant.parse('2026-10-02T10:00:00Z')

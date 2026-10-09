@@ -21,6 +21,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.function.Supplier;
+import com.neocat.query.infra.datasource.row.BucketRow;
 
 /**
  * ClickHouse 报表查询的 JDBC 实现（技术方案 06 §10）。

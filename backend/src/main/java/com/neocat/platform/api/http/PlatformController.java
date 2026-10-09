@@ -4,7 +4,6 @@ import com.neocat.common.time.clock.TimeProvider;
 
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.error.exception.BusinessRuleException;
-import com.neocat.platform.api.http.dto.*;
 import com.neocat.platform.api.http.convert.PlatformConvert;
 import com.neocat.platform.domain.profile.PlatformService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,11 +12,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.neocat.platform.api.http.dto.ChannelsRequest;
-import com.neocat.platform.api.http.dto.InitRequest;
-import com.neocat.platform.api.http.dto.InitStatus;
-import com.neocat.platform.api.http.dto.ProfileResponse;
-import com.neocat.platform.api.http.dto.SlowThresholdsRequest;
+import com.neocat.platform.api.http.dto.profile.ChannelsRequest;
+import com.neocat.platform.api.http.dto.init.InitRequest;
+import com.neocat.platform.api.http.dto.init.InitStatus;
+import com.neocat.platform.api.http.dto.profile.ProfileResponse;
+import com.neocat.platform.api.http.dto.profile.SlowThresholdsRequest;
 
 /** 平台 HTTP 入口：时区初始化后不可修改，JSON 契约保持不变。 */
 @Tag(name = "平台配置", description = "初始化、平台档案、慢阈值与通知通道")

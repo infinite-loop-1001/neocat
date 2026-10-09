@@ -21,6 +21,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+import com.neocat.ingest.domain.receive.result.IngestResult;
+import com.neocat.ingest.domain.receive.result.IngestStatus;
+import com.neocat.ingest.domain.receive.result.QueueStats;
 
 /**
  * 上报接收编排（PRD 02 §4、§5、§8；技术方案 04 §5.2）。

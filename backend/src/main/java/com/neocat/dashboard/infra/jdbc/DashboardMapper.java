@@ -6,6 +6,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import com.neocat.dashboard.infra.jdbc.row.CardRow;
+import com.neocat.dashboard.infra.jdbc.row.DashboardRow;
+import com.neocat.dashboard.infra.jdbc.row.ThresholdLineRow;
 
 /**
  * 大盘与卡片 Mapper（表 {@code nc_dashboard} / {@code nc_card}）。

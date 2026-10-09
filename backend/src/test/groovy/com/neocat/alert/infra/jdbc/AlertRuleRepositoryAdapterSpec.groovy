@@ -1,8 +1,7 @@
 package com.neocat.alert.infra.jdbc
 
-import com.neocat.alert.domain.engine.*
-import com.neocat.alert.domain.recipient.*
 import com.neocat.alert.domain.rule.*
+import com.neocat.alert.infra.jdbc.row.AlertRuleRow
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 

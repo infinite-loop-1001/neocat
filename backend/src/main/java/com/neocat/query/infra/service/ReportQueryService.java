@@ -54,7 +54,7 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 import com.neocat.common.time.range.Explicit;
 import com.neocat.common.time.range.Hour;
-import com.neocat.query.domain.report.ResolvedRange;
+import com.neocat.query.domain.report.result.ResolvedRange;
 
 /**
  * 报表查询应用服务（技术方案 03-api-contract.md §4）。

@@ -3,6 +3,7 @@ package com.neocat.identity.infra.jdbc;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.util.List;
+import com.neocat.identity.infra.jdbc.row.AccountRow;
 
 /**
  * 账号表 Mapper（技术方案 05-mysql-schema.sql 的表 {@code nc_account}）。

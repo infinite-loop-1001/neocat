@@ -18,6 +18,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 
 import java.util.Locale;
+import com.neocat.alert.domain.engine.result.PointEvaluation;
+import com.neocat.alert.domain.engine.result.PreviewResult;
+import com.neocat.alert.domain.engine.result.PreviewResultType;
 
 /**
  * 预告警试算（PRD 06 §4）。

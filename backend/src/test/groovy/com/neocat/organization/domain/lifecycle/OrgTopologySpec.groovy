@@ -9,7 +9,7 @@ import com.neocat.common.error.NeocatException
 import spock.lang.Specification
 
 import static com.neocat.common.error.ErrorCode.*
-import com.neocat.organization.domain.tree.DashboardSummary
+import com.neocat.organization.domain.tree.result.DashboardSummary
 
 class OrgTopologySpec extends Specification {
     OrgNodeRepository nodes = Mock()

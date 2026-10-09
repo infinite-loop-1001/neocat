@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Repository;
+import com.neocat.trace.infra.clickhouse.row.TraceRelationRow;
+import com.neocat.trace.infra.clickhouse.row.TraceTreeRow;
 
 /**
  * 基于 ClickHouse 的原始树存储（技术方案 06 §5–6、02 §7）。

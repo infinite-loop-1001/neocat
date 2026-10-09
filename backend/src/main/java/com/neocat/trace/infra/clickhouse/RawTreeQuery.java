@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.util.List;
 
 import org.springframework.lang.Nullable;
+import com.neocat.trace.infra.clickhouse.row.TraceRelationRow;
+import com.neocat.trace.infra.clickhouse.row.TraceTreeRow;
 
 /**
  * 原始树与 Trace 关系的存储查询（技术方案 06 §5–6）。

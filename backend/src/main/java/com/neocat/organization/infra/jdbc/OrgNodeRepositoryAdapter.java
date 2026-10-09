@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Objects;
+import com.neocat.organization.infra.jdbc.row.OrgNodeRow;
 
 /**
  * 组织树仓储的 MyBatis 适配器（表 {@code nc_org_node}）。

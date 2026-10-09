@@ -37,7 +37,7 @@ import java.time.temporal.ChronoUnit
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import com.neocat.query.infra.datasource.BucketRow
+import com.neocat.query.infra.datasource.row.BucketRow
 
 class MetricHeartbeatHttpSpec extends Specification {
     def cleanup() {

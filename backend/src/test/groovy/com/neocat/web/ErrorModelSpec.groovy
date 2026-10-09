@@ -14,7 +14,7 @@ import com.neocat.common.error.exception.IngestException
 import com.neocat.ingest.infra.protocol.IngestResponseMapper
 import com.fasterxml.jackson.databind.ObjectMapper
 import spock.lang.Specification
-import com.neocat.ingest.domain.receive.IngestResult
+import com.neocat.ingest.domain.receive.result.IngestResult
 
 class ErrorModelSpec extends Specification {
     def "错误码分段且唯一，可反查"() {

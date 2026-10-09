@@ -5,6 +5,7 @@ import com.neocat.trace.domain.tree.TraceTree
 import spock.lang.Specification
 
 import java.time.Instant
+import com.neocat.trace.infra.clickhouse.row.TraceTreeRow
 
 /** The adapter is under test; ClickHouse queries are isolated at their interface. */
 class ClickHouseRawTreeStoreSpec extends Specification {

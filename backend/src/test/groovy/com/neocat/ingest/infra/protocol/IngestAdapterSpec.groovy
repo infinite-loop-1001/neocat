@@ -1,8 +1,8 @@
 package com.neocat.ingest.infra.protocol
 
 import com.neocat.common.error.NeocatException
-import com.neocat.ingest.domain.receive.IngestResult
-import com.neocat.ingest.domain.receive.IngestStatus
+import com.neocat.ingest.domain.receive.result.IngestResult
+import com.neocat.ingest.domain.receive.result.IngestStatus
 import com.neocat.ingest.domain.tree.NodeKind
 import com.neocat.protocol.ingest.v1.ExceptionInfo
 import com.neocat.protocol.ingest.v1.Heartbeat

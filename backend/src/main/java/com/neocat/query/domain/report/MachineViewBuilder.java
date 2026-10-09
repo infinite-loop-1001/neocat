@@ -14,7 +14,7 @@ import java.util.Objects;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
-import com.neocat.query.domain.stat.Merged;
+import com.neocat.query.domain.stat.result.Merged;
 
 /**
  * 机器维度视图构建（PRD 03 §7.3、§10；技术方案 03 §4.3）。

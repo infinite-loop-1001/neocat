@@ -26,6 +26,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import com.neocat.common.time.range.Explicit;
+import com.neocat.query.infra.datasource.row.BucketRow;
 
 /**
  * 基于 ClickHouse 的报表读取实现（技术方案 06 §10）。
@@ -38,7 +39,7 @@ import com.neocat.common.time.range.Explicit;
  *   <li>**把源桶卷到调用方要的桶**：分钟桶表只有分钟粒度的行，
  *       请求 5/10/20 分钟时必须在读侧合并，否则调用方按桶起点取数只能命中
  *       正好落在边界上的少数分钟，趋势图会大面积缺失；</li>
- *   <li>把 {@link com.neocat.query.infra.datasource.BucketRow} 转成 {@link AggregatedRow}，
+ *   <li>把 {@link com.neocat.query.infra.datasource.row.BucketRow} 转成 {@link AggregatedRow}，
  *       并用 {@link DurationDistribution#fromSegments} 还原分布；</li>
  *   <li>**无数据的桶不产生行**（与内存实现同一约定），
  *       缺口由查询层判定，不靠伪造 count=0 的行。</li>

@@ -22,6 +22,7 @@ import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.ListUtils;
+import com.neocat.alert.domain.engine.result.EvaluationResult;
 
 /**
  * 滑动窗口判定与分钟调度（PRD 06 §3.2、§5、§6）。

@@ -1,6 +1,5 @@
 package com.neocat.dashboard.api.http;
 
-import com.neocat.dashboard.api.http.dto.*;
 import com.neocat.dashboard.api.http.convert.DashboardConvert;
 import com.neocat.dashboard.domain.card.CardService;
 import com.neocat.dashboard.domain.dashboard.Dashboard;
@@ -16,13 +15,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
-import com.neocat.dashboard.api.http.dto.CardDraft;
-import com.neocat.dashboard.api.http.dto.CardResponse;
-import com.neocat.dashboard.api.http.dto.DashboardDraft;
-import com.neocat.dashboard.api.http.dto.DashboardResponse;
-import com.neocat.dashboard.api.http.dto.SeriesResponse;
-import com.neocat.dashboard.api.http.dto.Success;
-import com.neocat.dashboard.api.http.dto.TargetResponse;
+import com.neocat.dashboard.api.http.dto.card.CardDraft;
+import com.neocat.dashboard.api.http.dto.card.CardResponse;
+import com.neocat.dashboard.api.http.dto.dashboard.DashboardDraft;
+import com.neocat.dashboard.api.http.dto.dashboard.DashboardResponse;
+import com.neocat.dashboard.api.http.dto.series.SeriesResponse;
+import com.neocat.dashboard.api.http.dto.common.Success;
+import com.neocat.dashboard.api.http.dto.card.TargetResponse;
 
 /**
  * 大盘 HTTP 入口；权限仍由应用服务校验，管理员无成员旁路。

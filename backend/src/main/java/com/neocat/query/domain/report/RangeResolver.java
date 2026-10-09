@@ -15,6 +15,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import java.time.Duration;
 
 import org.springframework.modulith.NamedInterface;
+import com.neocat.query.domain.report.result.ResolvedRange;
 
 /**
  * 查询时间范围解析（PRD 03 §2、技术方案 03 §4.2）。

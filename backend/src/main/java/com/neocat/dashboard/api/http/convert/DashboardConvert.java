@@ -1,7 +1,6 @@
 package com.neocat.dashboard.api.http.convert;
 
 import com.google.common.collect.Lists;
-import com.neocat.dashboard.api.http.dto.*;
 import com.neocat.dashboard.domain.card.*;
 import com.neocat.dashboard.domain.dashboard.Dashboard;
 import com.neocat.dashboard.domain.formula.FormulaParser;
@@ -19,15 +18,16 @@ import org.mapstruct.NullValueMappingStrategy;
 
 import java.math.BigDecimal;
 
-import com.neocat.dashboard.api.http.dto.CardDraft;
-import com.neocat.dashboard.api.http.dto.CardResponse;
-import com.neocat.dashboard.api.http.dto.DashboardResponse;
-import com.neocat.dashboard.api.http.dto.Gap;
-import com.neocat.dashboard.api.http.dto.SeriesPoint;
-import com.neocat.dashboard.api.http.dto.SeriesResponse;
-import com.neocat.dashboard.api.http.dto.TargetResponse;
-import com.neocat.dashboard.api.http.dto.Threshold;
-import com.neocat.dashboard.api.http.dto.Undefined;
+import com.neocat.dashboard.api.http.dto.card.CardDraft;
+import com.neocat.dashboard.api.http.dto.card.CardResponse;
+import com.neocat.dashboard.api.http.dto.dashboard.DashboardResponse;
+import com.neocat.dashboard.api.http.dto.series.Gap;
+import com.neocat.dashboard.api.http.dto.series.SeriesPoint;
+import com.neocat.dashboard.api.http.dto.series.SeriesResponse;
+import com.neocat.dashboard.api.http.dto.card.TargetResponse;
+import com.neocat.dashboard.api.http.dto.card.Threshold;
+import com.neocat.dashboard.api.http.dto.series.Undefined;
+import com.neocat.dashboard.api.http.convert.series.SeriesModel;
 
 @Mapper(componentModel = "spring")
 public interface DashboardConvert {

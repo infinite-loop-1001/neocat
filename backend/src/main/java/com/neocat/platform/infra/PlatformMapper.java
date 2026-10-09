@@ -3,6 +3,8 @@ package com.neocat.platform.infra;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
+import com.neocat.platform.infra.row.ChannelRow;
+import com.neocat.platform.infra.row.PlatformRow;
 
 /**
  * 平台档案与通道配置 Mapper（表 {@code nc_platform_profile} / {@code nc_channel_config}）。

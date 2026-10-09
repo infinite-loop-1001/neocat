@@ -16,6 +16,7 @@ import com.neocat.alert.domain.rule.Comparator
 import com.neocat.alert.domain.rule.Condition
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
+import com.neocat.alert.infra.jdbc.row.AlertConditionRow
 
 /** 仅离线验证 MyBatis 类型绑定，不连接真实数据库。 */
 class DecimalMappingSpec extends Specification {

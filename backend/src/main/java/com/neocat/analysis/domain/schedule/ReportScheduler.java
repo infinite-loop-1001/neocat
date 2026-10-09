@@ -22,6 +22,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Component;
+import com.neocat.analysis.domain.schedule.result.EvictionResult;
 
 /**
  * 报表滚动编排（PRD 00 §10、PRD 03 §2.1，链路 23）。

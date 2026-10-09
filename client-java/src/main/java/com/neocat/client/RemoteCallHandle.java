@@ -7,7 +7,7 @@ public final class RemoteCallHandle {
 
     private final NeoCat cat;
 
-    private final com.neocat.client.RemoteCall delegate;
+    private final RemoteCall delegate;
 
     private final String downstreamService;
 
@@ -20,7 +20,7 @@ public final class RemoteCallHandle {
         this.downstreamService = downstreamService;
         this.callType = callType;
         this.name = name;
-        this.delegate = new com.neocat.client.RemoteCall(downstreamService, callType, name);
+        this.delegate = new RemoteCall(downstreamService, callType, name);
     }
 
     public void setStatus(String status) {

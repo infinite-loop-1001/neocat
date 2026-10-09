@@ -10,6 +10,8 @@ import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
 import java.sql.Timestamp;
 import org.springframework.jdbc.core.RowMapper;
+import com.neocat.trace.infra.clickhouse.row.TraceRelationRow;
+import com.neocat.trace.infra.clickhouse.row.TraceTreeRow;
 
 /**
  * 原始树与 Trace 关系的 JDBC 实现（技术方案 06 §5–6）。

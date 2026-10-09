@@ -8,7 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import com.neocat.organization.domain.tree.DashboardSummary;
+import com.neocat.organization.domain.tree.result.DashboardSummary;
 
 /** Synchronous projection: reads never guess zero when persistence is unavailable. */
 @Component

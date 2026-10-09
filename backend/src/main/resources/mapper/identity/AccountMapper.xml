@@ -7,7 +7,7 @@
 -->
 <mapper namespace="com.neocat.identity.infra.jdbc.AccountMapper">
 
-    <resultMap id="accountRow" type="com.neocat.identity.infra.jdbc.AccountRow">
+    <resultMap id="accountRow" type="com.neocat.identity.infra.jdbc.row.AccountRow">
         <id property="id" column="id"/>
         <result property="username" column="username"/>
         <result property="passwordHash" column="password_hash"/>
@@ -36,13 +36,13 @@
         ORDER BY id
     </select>
 
-    <insert id="insert" parameterType="com.neocat.identity.infra.jdbc.AccountRow"
+    <insert id="insert" parameterType="com.neocat.identity.infra.jdbc.row.AccountRow"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO nc_account (username, password_hash, role, status, must_change_password, created_at)
         VALUES (#{username}, #{passwordHash}, #{role}, #{status}, #{mustChangePassword}, NOW(3))
     </insert>
 
-    <update id="update" parameterType="com.neocat.identity.infra.jdbc.AccountRow">
+    <update id="update" parameterType="com.neocat.identity.infra.jdbc.row.AccountRow">
         UPDATE nc_account
         SET password_hash        = #{passwordHash},
             role                 = #{role},

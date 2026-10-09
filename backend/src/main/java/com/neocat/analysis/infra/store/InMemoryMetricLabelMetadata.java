@@ -16,7 +16,7 @@ import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import com.neocat.analysis.domain.metric.Entry;
+import com.neocat.analysis.domain.metric.metadata.Entry;
 
 @Component
 public  class InMemoryMetricLabelMetadata implements MetricLabelMetadata {

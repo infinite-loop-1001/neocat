@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import com.neocat.organization.infra.jdbc.row.OrgNodeRow;
 
 /**
  * 组织树 Mapper（表 {@code nc_org_node}）。

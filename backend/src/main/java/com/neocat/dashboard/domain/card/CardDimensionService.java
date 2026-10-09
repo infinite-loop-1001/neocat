@@ -14,6 +14,8 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+import com.neocat.dashboard.domain.card.result.CardDimensionView;
+import com.neocat.dashboard.domain.card.result.MachineSeries;
 
 /**
  * 卡片维度下钻（PRD 05 §6、§7，技术方案 02 §9.3）。

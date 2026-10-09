@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.time.temporal.ChronoUnit;
 import java.util.function.Predicate;
 import org.springframework.modulith.NamedInterface;
-import com.neocat.analysis.domain.metric.Entry;
+import com.neocat.analysis.domain.metric.metadata.Entry;
 
 /** Exact counts from observation rows, preserving identity and uncertainty across source hours. */
 @NamedInterface("query")

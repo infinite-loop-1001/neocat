@@ -5,6 +5,9 @@ import com.neocat.dashboard.domain.card.ThresholdDirection
 import com.neocat.dashboard.domain.card.ThresholdLine
 import com.neocat.organization.api.internal.OrgResourceIndex
 import spock.lang.Specification
+import com.neocat.dashboard.infra.jdbc.row.CardRow
+import com.neocat.dashboard.infra.jdbc.row.DashboardRow
+import com.neocat.dashboard.infra.jdbc.row.ThresholdLineRow
 
 class DashboardRepositoryAdapterSpec extends Specification {
     def 'metric card persists labels, scope, derived formula unit and threshold lines'() {

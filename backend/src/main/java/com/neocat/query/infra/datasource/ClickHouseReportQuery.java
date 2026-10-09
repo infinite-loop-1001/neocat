@@ -2,6 +2,7 @@ package com.neocat.query.infra.datasource;
 
 import java.time.Instant;
 import java.util.List;
+import com.neocat.query.infra.datasource.row.BucketRow;
 
 /**
  * ClickHouse 报表查询（技术方案 06 §10）。

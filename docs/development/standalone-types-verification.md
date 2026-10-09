@@ -2,6 +2,8 @@
 
 日期：2026-10-09。
 
+本文记录首轮独立文件迁移时的历史证据。后续按用途归包（100 个类型，保持类型族成组）及最新验证见 [type-package-organization-verification.md](type-package-organization-verification.md)；最终包名以迁移资源清单为准，不再要求与原容器同包。
+
 ## 范围与约束
 
 - 先写入 `.agents/coding-standards/java.md` 的通用强制规则，并在 README 强制项 14 与 HTTP API 规范引用；不限于 HTTP 请求／响应。

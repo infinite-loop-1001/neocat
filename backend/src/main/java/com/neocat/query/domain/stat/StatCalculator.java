@@ -12,6 +12,7 @@ import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Component;
+import com.neocat.query.domain.stat.result.Merged;
 
 /**
  * 统计项计算（PRD 03 §3、§4；技术方案 03 §8.1）。

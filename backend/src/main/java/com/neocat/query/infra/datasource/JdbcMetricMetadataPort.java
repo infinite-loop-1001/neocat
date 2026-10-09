@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.sql.SQLException;
 import java.time.temporal.ChronoUnit;
 import javax.sql.DataSource;
-import com.neocat.analysis.domain.metric.Entry;
+import com.neocat.analysis.domain.metric.metadata.Entry;
 
 /** Versioned snapshots: merge flags are monotone; never sum a re-written metadata snapshot. */
 public  class JdbcMetricMetadataPort implements MetricMetadataPort {

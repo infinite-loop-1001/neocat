@@ -13,7 +13,8 @@ import com.neocat.alert.domain.rule.Condition
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 
-import static com.neocat.alert.domain.engine.PreviewResultType.*
+import static com.neocat.alert.domain.engine.result.PreviewResultType.*
+import com.neocat.alert.domain.engine.result.PreviewResult
 
 /**
  * G10 任务77（红）：预告警试算。
