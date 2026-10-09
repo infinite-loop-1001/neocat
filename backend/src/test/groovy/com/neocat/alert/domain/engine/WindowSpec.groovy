@@ -69,6 +69,30 @@ class WindowSpec extends Specification {
 
     // ── X=3 的触发点 ─────────────────────────────────────────
 
+    def "实时判定仍向数据源传递过滤空项且整体去重的统计项"() {
+        given:
+        def cardTarget = new AlertTarget(null, 12L, "order", "TRANSACTION", "URL", "/a", null,
+                [Stat.AVG, null, Stat.HITS, Stat.AVG])
+        def r = new AlertRule(1L, SERVICE, null, "r", "", cardTarget, Combinator.AND, 1,
+                [new Condition(Stat.HITS, Comparator.GT, 1G),
+                 new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05G)],
+                [], [], true, false, T)
+        def requestedStats = []
+        def realTimeSource = Stub(MinutePointSource) {
+            values(cardTarget, T, _) >> { AlertTarget target, long minute, List<Stat> stats ->
+                requestedStats.add(stats)
+                [(Stat.AVG): 10.0G, (Stat.HITS): 10.0G, (Stat.FAILURE_RATE): 0.1G]
+            }
+        }
+
+        when:
+        def satisfied = new AlertEngine(realTimeSource, Mock(Notifier)).pointSatisfied(r, T)
+
+        then:
+        satisfied
+        requestedStats == [[Stat.AVG, Stat.HITS, Stat.FAILURE_RATE]]
+    }
+
     def "X=3 时第 3 个满足点触发"() {
         given:
         def r = rule(3)

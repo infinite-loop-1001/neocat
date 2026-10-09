@@ -2,10 +2,12 @@ package com.neocat.alert.domain.engine;
 
 import java.math.BigDecimal;
 
+import com.google.common.collect.Lists;
 import com.neocat.alert.domain.rule.AlertRule;
 import com.neocat.alert.domain.rule.Combinator;
 import com.neocat.alert.domain.rule.Condition;
 import com.neocat.query.domain.stat.Stat;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
 
@@ -54,7 +56,7 @@ public class PreviewService {
     // rules: 复杂逻辑需要注释解释流程, 以及为什么这么做
     public PreviewResult preview(AlertRule rule, long latestMinute) {
         int window = Math.max(1, rule.getWindowPoints());
-        List<Stat> requiredStats = requiredStats(rule);
+        List<Stat> requiredStats = new ArrayList<>(rule.requiredStats());
         List<PointEvaluation> evaluations = new ArrayList<>(window);
         boolean anyUnknown = false;
 
@@ -78,7 +80,7 @@ public class PreviewService {
         boolean allSatisfied = evaluations.stream().allMatch(PointEvaluation::isSatisfied);
         return new PreviewResult(allSatisfied
                 ? PreviewResultType.TRIGGER
-                : PreviewResultType.NO_TRIGGER, List.copyOf(evaluations));
+                : PreviewResultType.NO_TRIGGER, Lists.newArrayList(evaluations));
     }
 
     /**
@@ -106,21 +108,6 @@ public class PreviewService {
     // ── 内部 ─────────────────────────────────────────────────
 
     /**
-     * 该规则需要的全部统计项：条件统计项 ∪ 目标公式统计项。
-     */
-    // fixme: 这个逻辑应该收束成 AlterRule 聚合内部逻辑
-    private List<Stat> requiredStats(AlertRule rule) {
-        List<Stat> stats = new ArrayList<>();
-        if (Objects.nonNull(rule.getTarget()) && Objects.nonNull(rule.getTarget().getFormulaStats())) {
-            stats.addAll(rule.getTarget().getFormulaStats());
-        }
-        if (Objects.nonNull(rule.getConditions())) {
-            rule.getConditions().stream().map(Condition::getStat).filter(s -> !stats.contains(s)).forEach(stats::add);
-        }
-        return List.copyOf(stats);
-    }
-
-    /**
      * 返回第一个缺失的统计项名；全部齐备返回 null。
      *
      * <p>注意：值为 0 是**已知值**，不算缺失；只有 {@code null} 或键不存在才算缺数。
@@ -128,7 +115,8 @@ public class PreviewService {
     // fixme: 这里逻辑需要收束到 AlterWindowStateService 里
     private String firstMissing(List<Stat> requiredStats, Map<Stat, BigDecimal> values) {
         for (Stat stat : requiredStats) {
-            if (MapUtils.isEmpty(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
+            if (MapUtils.isEmpty(values) || BooleanUtils.isFalse(values.containsKey(stat))
+                    || Objects.isNull(values.get(stat))) {
                 return displayOf(stat);
             }
         }

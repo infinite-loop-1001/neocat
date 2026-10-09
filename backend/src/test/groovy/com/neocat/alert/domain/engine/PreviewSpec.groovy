@@ -56,6 +56,33 @@ class PreviewSpec extends Specification {
 
     // ── 三态 ─────────────────────────────────────────────────
 
+    def "预览使用规则去重后的依赖，并优先提示第一个缺失的公式统计项"() {
+        given:
+        def cardTarget = AlertTarget.cardResult(12L, "order", "TRANSACTION", "URL", "/a",
+                [Stat.AVG, Stat.HITS, Stat.AVG])
+        def r = AlertRule.draft(AlertScope.SERVICE, null, "r", "", cardTarget,
+                Combinator.AND, 2, [hitsAbove(1G), failureRateAbove(0.05G)], [], [])
+        def requestedStats = []
+        def requestedMinutes = []
+        def s = new PreviewService(Stub(MinutePointSource) {
+            values(cardTarget, _, _) >> { AlertTarget target, long minute, List<Stat> stats ->
+                requestedStats.add(stats)
+                requestedMinutes.add(minute)
+                [(Stat.HITS): 10.0G]
+            }
+        })
+
+        when:
+        def preview = s.preview(r, MIN_10_00)
+
+        then:
+        requestedStats == [[Stat.AVG, Stat.HITS, Stat.FAILURE_RATE],
+                           [Stat.AVG, Stat.HITS, Stat.FAILURE_RATE]]
+        requestedMinutes == [MIN_10_00, MIN_10_00 - MINUTE]
+        preview.getResult() == INSUFFICIENT_DATA
+        preview.getPoints().every { !it.isKnown() && !it.isSatisfied() && it.getMissingStat() == 'avgDuration' }
+    }
+
     def "窗口内所有点满足时返回「当前会触发」"() {
         given: "X=3，最近三个点都满足"
         def r = rule(Combinator.AND, 3, [failureRateAbove(0.05)])
@@ -71,6 +98,47 @@ class PreviewSpec extends Specification {
         preview.getResult() == TRIGGER
         preview.getPoints().size() == 3
         preview.getPoints().every { it.isSatisfied() && it.isKnown() }
+    }
+
+    def "预览跳过公式中的空统计项，不把空项传给数据源也不影响缺数判定"() {
+        given: "公式含空项，只要空项被跳过就只缺 AVG"
+        def cardTarget = new AlertTarget(null, 12L, "order", "TRANSACTION", "URL", "/a", null,
+                [Stat.AVG, null])
+        def r = AlertRule.draft(AlertScope.SERVICE, null, "r", "", cardTarget,
+                Combinator.AND, 1, [hitsAbove(1G)], [], [])
+        def sourceWithoutNullStat = Mock(MinutePointSource)
+
+        when:
+        def preview = new PreviewService(sourceWithoutNullStat).preview(r, MIN_10_00)
+
+        then: "数据源只收到有效统计项"
+        1 * sourceWithoutNullStat.values(cardTarget, MIN_10_00, [Stat.AVG, Stat.HITS]) >>
+                [(Stat.HITS): 10.0G]
+        0 * sourceWithoutNullStat._
+        preview.getResult() == INSUFFICIENT_DATA
+        preview.getPoints()[0].getMissingStat() == 'avgDuration'
+        preview.getPoints()[0].isKnown() == false
+    }
+
+    def "预览传递可修改统计项列表，但数据源修改该列表不会修改规则"() {
+        given:
+        def r = rule(Combinator.AND, 1, [hitsAbove(1G)])
+        def originalConditions = new ArrayList<>(r.getConditions())
+        def mutableSource = Mock(MinutePointSource)
+
+        when:
+        def result = new PreviewService(mutableSource).preview(r, MIN_10_00)
+
+        then:
+        1 * mutableSource.values(r.getTarget(), MIN_10_00, [Stat.HITS]) >>
+                { AlertTarget target, long minute, List<Stat> stats ->
+                    stats.add(Stat.FAILURES)
+                    [(Stat.HITS): 10.0G, (Stat.FAILURES): 0.0G]
+                }
+        result.getResult() == TRIGGER
+        r.getConditions() == originalConditions
+        r.requiredStats() == [Stat.HITS]
+        r.getTarget().getFormulaStats() == []
     }
 
     def "窗口内存在不满足的点时返回「当前不会触发」"() {
@@ -323,8 +391,10 @@ class PreviewSpec extends Specification {
 
     def "预告警数据结构上不含持久化字段（不产生站内记录）"() {
         expect:
-        !PreviewResult.declaredFields*.name.any { it.toLowerCase().contains("history")
-                || it.toLowerCase().contains("record") }
+        !PreviewResult.declaredFields*.name.any {
+            it.toLowerCase().contains("history")
+                    || it.toLowerCase().contains("record")
+        }
     }
 
     def "无论结果如何都不抛异常"() {

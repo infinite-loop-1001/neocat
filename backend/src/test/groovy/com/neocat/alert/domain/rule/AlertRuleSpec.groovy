@@ -161,8 +161,10 @@ class AlertRuleSpec extends Specification {
 
     def "一期不支持环比告警：不存在环比相关字段"() {
         expect:
-        !AlertRule.declaredFields*.name.any { it.toLowerCase().contains("mom")
-                || it.toLowerCase().contains("compare") }
+        !AlertRule.declaredFields*.name.any {
+            it.toLowerCase().contains("mom")
+                    || it.toLowerCase().contains("compare")
+        }
     }
 
     def "一期不支持恢复通知、静默窗口、确认状态与严重度"() {
@@ -176,8 +178,10 @@ class AlertRuleSpec extends Specification {
 
     def "一期不支持告警事件历史：规则内不保存任何触发记录"() {
         expect:
-        !AlertRule.declaredFields*.name.any { it.toLowerCase().contains("history")
-                || it.toLowerCase().contains("trigger") }
+        !AlertRule.declaredFields*.name.any {
+            it.toLowerCase().contains("history")
+                    || it.toLowerCase().contains("trigger")
+        }
     }
 
     // ── 条件匹配语义 ─────────────────────────────────────────
@@ -191,15 +195,15 @@ class AlertRuleSpec extends Specification {
         c.matches(value) == expected
 
         where:
-        comparator         | threshold | value | expected
-        Comparator.GT      | 10.0       | 11.0   | true
-        Comparator.GT      | 10.0       | 10.0   | false
-        Comparator.GTE     | 10.0       | 10.0   | true
-        Comparator.LT      | 10.0       | 9.0    | true
-        Comparator.LT      | 10.0       | 10.0   | false
-        Comparator.LTE     | 10.0       | 10.0   | true
-        Comparator.EQ      | 10.0       | 10.0   | true
-        Comparator.NEQ     | 10.0       | 9.0    | true
+        comparator     | threshold | value | expected
+        Comparator.GT  | 10.0      | 11.0  | true
+        Comparator.GT  | 10.0      | 10.0  | false
+        Comparator.GTE | 10.0      | 10.0  | true
+        Comparator.LT  | 10.0      | 9.0   | true
+        Comparator.LT  | 10.0      | 10.0  | false
+        Comparator.LTE | 10.0      | 10.0  | true
+        Comparator.EQ  | 10.0      | 10.0  | true
+        Comparator.NEQ | 10.0      | 9.0   | true
     }
 
     def "缺数不满足任何条件（未知点既不高于也不低于）"() {
@@ -232,6 +236,119 @@ class AlertRuleSpec extends Specification {
     }
 
     // ── 引用统计项 ───────────────────────────────────────────
+
+    def "规则依赖取公式与条件的有序去重并集，引用检查仍只看公式"() {
+        given:
+        def formulaStats = [Stat.AVG, Stat.HITS, Stat.AVG]
+        def conditions = [condition(Stat.HITS, Comparator.GT, 1.0),
+                          condition(Stat.FAILURES, Comparator.GT, 0.0),
+                          condition(Stat.FAILURES, Comparator.LT, 10.0)]
+        def cardTarget = AlertTarget.cardResult(12L, "order", "TRANSACTION", "URL", "/a", formulaStats)
+        def rule = AlertRule.draft(AlertScope.ORGANIZATION, 7L, "r", "", cardTarget,
+                Combinator.AND, 1, conditions, [1L], [EMAIL])
+
+        expect:
+        rule.requiredStats() == [Stat.AVG, Stat.HITS, Stat.FAILURES]
+        rule.referencedStats() == formulaStats
+        rule.getTarget().getFormulaStats() == formulaStats
+        rule.getConditions() == conditions
+
+        when: "调用方自行复制后筛选，不反向修改聚合或后续收集结果"
+        def selectedStats = new ArrayList<>(rule.requiredStats())
+        selectedStats.remove(Stat.AVG)
+
+        then:
+        selectedStats == [Stat.HITS, Stat.FAILURES]
+        rule.requiredStats() == [Stat.AVG, Stat.HITS, Stat.FAILURES]
+        rule.referencedStats() == formulaStats
+        rule.getTarget().getFormulaStats() == formulaStats
+        rule.getConditions() == conditions
+    }
+
+    def "规则依赖是快照，源列表后续修改不影响已返回的列表"() {
+        given:
+        def formulaStats = [Stat.AVG, Stat.AVG]
+        def conditions = [condition(Stat.HITS, Comparator.GT, 1.0)]
+        def suppliedTarget = new AlertTarget(null, 12L, "order", "TRANSACTION", "URL", "/a", null, formulaStats)
+        def rule = new AlertRule(1L, AlertScope.SERVICE, null, "r", "", suppliedTarget,
+                Combinator.AND, 1, conditions, [], [], false, false, null)
+        def first = new ArrayList<>(rule.requiredStats())
+        def second = rule.requiredStats()
+
+        when:
+        formulaStats.add(Stat.FAILURES)
+        conditions.add(condition(Stat.FAILURE_RATE, Comparator.GT, 0.05))
+        first.remove(0)
+
+        then:
+        first == [Stat.HITS]
+        second == [Stat.AVG, Stat.HITS]
+        rule.requiredStats() == [Stat.AVG, Stat.FAILURES, Stat.HITS, Stat.FAILURE_RATE]
+        formulaStats == [Stat.AVG, Stat.AVG, Stat.FAILURES]
+        conditions*.getStat() == [Stat.HITS, Stat.FAILURE_RATE]
+    }
+
+    @Unroll
+    def "规则依赖兼容尚未完整装配的目标与条件：#caseName"() {
+        given:
+        def rule = new AlertRule(1L, AlertScope.SERVICE, null, "r", "", suppliedTarget,
+                Combinator.AND, 1, suppliedConditions, [], [], false, false, null)
+
+        expect:
+        rule.requiredStats() == expected
+
+        when: "调用方复制后加工，空结果也不影响后续调用"
+        def result = new ArrayList<>(rule.requiredStats())
+        result.add(Stat.FAILURES)
+
+        then:
+        result == expected + [Stat.FAILURES]
+        rule.requiredStats() == expected
+
+        where:
+        caseName              | suppliedTarget                                                               | suppliedConditions                            | expected
+        "都未设置"            | null                                                                         | null                                          | []
+        "仅条件"              | null                                                                         | [new Condition(Stat.HITS, Comparator.GT, 1G)] | [Stat.HITS]
+        "公式未设置"          | new AlertTarget(null, 0L, "order", "TRANSACTION", "URL", "/a", null, null)   | [new Condition(Stat.HITS, Comparator.GT, 1G)] | [Stat.HITS]
+        "仅公式"              | AlertTarget.cardResult(12L, "order", "TRANSACTION", "URL", "/a", [Stat.AVG]) | null                                          | [Stat.AVG]
+        "公式为空、条件未设置" | AlertTarget.rawMetric("order", "TRANSACTION", "URL", "/a")                   | null                                          | []
+        "目标未设置、条件为空" | null                                                                         | []                                            | []
+        "空集合"              | AlertTarget.rawMetric("order", "TRANSACTION", "URL", "/a")                   | []                                            | []
+    }
+
+    @Unroll
+    def "规则依赖跳过空统计项并对公式与条件整体去重：#caseName"() {
+        given:
+        def suppliedTarget = new AlertTarget(null, 0L, "order", "TRANSACTION", "URL", "/a", null, formulaStats)
+        def rule = new AlertRule(1L, AlertScope.SERVICE, null, "r", "", suppliedTarget,
+                Combinator.AND, 1, conditions, [], [], false, false, null)
+
+        expect:
+        rule.requiredStats() == expected
+        rule.getTarget().getFormulaStats() == formulaStats
+        rule.getConditions() == conditions
+
+        where:
+        caseName             | formulaStats            | conditions                                                                                 | expected
+        "公式含空项"         | [null, Stat.HITS]       | []                                                                                         | [Stat.HITS]
+        "条件统计项为空"     | [Stat.HITS]             | [new Condition(null, Comparator.GT, 1G)]                                                   | [Stat.HITS]
+        "公式空项重复"       | [null, Stat.HITS, null] | [new Condition(null, Comparator.GT, 1G)]                                                   | [Stat.HITS]
+        "条件空项重复"       | null                    | [new Condition(null, Comparator.GT, 1G), new Condition(null, Comparator.LT, 2G)]           | []
+        "仅条件且统计项重复" | []                      | [new Condition(Stat.HITS, Comparator.GT, 1G), new Condition(Stat.HITS, Comparator.LT, 2G)] | [Stat.HITS]
+        "公式重复项去重"     | [Stat.HITS, Stat.HITS]  | [new Condition(Stat.HITS, Comparator.GT, 1G)]                                              | [Stat.HITS]
+    }
+
+    def "规则依赖收集不吞掉空条件对象"() {
+        given:
+        def rule = new AlertRule(1L, AlertScope.SERVICE, null, "r", "", target(),
+                Combinator.AND, 1, [null], [], [], false, false, null)
+
+        when:
+        rule.requiredStats()
+
+        then:
+        thrown(NullPointerException)
+    }
 
     def "原始指标规则引用条件中的统计项"() {
         when:

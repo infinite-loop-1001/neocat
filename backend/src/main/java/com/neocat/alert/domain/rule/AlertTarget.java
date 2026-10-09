@@ -2,9 +2,7 @@ package com.neocat.alert.domain.rule;
 
 import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.Stat;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 import org.springframework.modulith.NamedInterface;
 
 import java.util.List;
@@ -32,7 +30,9 @@ import java.util.Objects;
 @Getter
 @EqualsAndHashCode
 @ToString
+@AllArgsConstructor
 public class AlertTarget {
+
     private final AlertTargetKind kind;
 
     private final long cardId;
@@ -49,31 +49,22 @@ public class AlertTarget {
 
     private final List<Stat> formulaStats;
 
-    public AlertTarget(
-            AlertTargetKind kind, long cardId, String service, String reportKind,
-            String type, String name, String metricLabels, List<Stat> formulaStats) {
-        this.kind = kind;
-        this.cardId = cardId;
-        this.service = service;
-        this.reportKind = reportKind;
-        this.type = type;
-        this.name = name;
-        this.metricLabels = metricLabels;
-        this.formulaStats = formulaStats;
+    public static AlertTarget rawMetric(String service, String reportKind, String type, String name) {
+
+        return new AlertTarget(AlertTargetKind.RAW_METRIC,
+                0, service, reportKind, type, name, null, Lists.newArrayList());
     }
 
-    public static AlertTarget rawMetric(String service, String reportKind, String type, String name) {
-        return new AlertTarget(AlertTargetKind.RAW_METRIC, 0, service,
-                reportKind, type, name, null, Lists.newArrayList());
-    }
     public static AlertTarget cardResult(long cardId, String service, String reportKind,
                                          String type, String name, List<Stat> formulaStats) {
-        return new AlertTarget(AlertTargetKind.CARD_RESULT, cardId, service, reportKind, type, name, null,
-                List.copyOf(formulaStats));
+
+        return new AlertTarget(AlertTargetKind.CARD_RESULT,
+                cardId, service, reportKind, type, name, null, Lists.newArrayList(formulaStats));
     }
     public boolean isCardResult() {
         return Objects.equals(kind, AlertTargetKind.CARD_RESULT);
     }
+
     /** 目标身份：同服务同指标对象视为同一目标。 */
     public String identity() {
         return service + "|" + reportKind + "|" + (Objects.isNull(type) ? "" : type)

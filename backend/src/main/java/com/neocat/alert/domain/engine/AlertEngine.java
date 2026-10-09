@@ -4,20 +4,13 @@ import java.math.BigDecimal;
 
 import com.google.common.collect.Lists;
 import com.neocat.alert.domain.recipient.RecipientGateway;
-import com.neocat.alert.domain.rule.AlertChannel;
-import com.neocat.alert.domain.rule.AlertRule;
-import com.neocat.alert.domain.rule.Combinator;
-import com.neocat.alert.domain.rule.Condition;
+import com.neocat.alert.domain.rule.*;
 import com.neocat.query.domain.stat.Stat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -102,7 +95,7 @@ public class AlertEngine {
                 trimmed.add(appended.get(index));
             }
         }
-        AlertWindowState advanced = new AlertWindowState(rule.getId(), current.getBaselineAt(), List.copyOf(trimmed));
+        AlertWindowState advanced = new AlertWindowState(rule.getId(), current.getBaselineAt(), Lists.newArrayList(trimmed));
 
         if (trimmed.size() < window) {
             return new EvaluationResult(false, Lists.newArrayList(), advanced);
@@ -124,7 +117,7 @@ public class AlertEngine {
      * <p>任一所需要统计项缺失 → 返回 false（缺数打断窗口）。
      */
     public boolean pointSatisfied(AlertRule rule, long minute) {
-        List<Stat> required = requiredStats(rule);
+        List<Stat> required = rule.requiredStats();
         Map<Stat, BigDecimal> values = points.values(rule.getTarget(), minute, required);
         for (Stat stat : required) {
             if (MapUtils.isEmpty(values) || !values.containsKey(stat) || Objects.isNull(values.get(stat))) {
@@ -153,19 +146,6 @@ public class AlertEngine {
         return aggregate;
     }
 
-    // fixme: 这个逻辑应该收束成 AlterRule 聚合内部逻辑
-    private List<Stat> requiredStats(AlertRule rule) {
-        // fixme: 这里去重直接使用 stream 流就可以
-        Map<Stat, Boolean> unique = new LinkedHashMap<>();
-        if (Objects.nonNull(rule.getTarget()) && Objects.nonNull(rule.getTarget().getFormulaStats())) {
-            rule.getTarget().getFormulaStats().forEach(stat -> unique.put(stat, true));
-        }
-        if (Objects.nonNull(rule.getConditions())) {
-            rule.getConditions().forEach(condition -> unique.put(condition.getStat(), true));
-        }
-        return List.copyOf(unique.keySet());
-    }
-
     /**
      * 发送通知。
      *
@@ -189,11 +169,11 @@ public class AlertEngine {
         List<AlertNotification> sent = new ArrayList<>();
         for (AlertChannel channel : rule.getChannels()) {
             AlertNotification notification = new AlertNotification(
-                    rule.getId(), rule.getName(), List.copyOf(recipients), channel, message, minute);
+                    rule.getId(), rule.getName(), Lists.newArrayList(recipients), channel, message, minute);
             notifier.send(notification);
             sent.add(notification);
         }
-        return List.copyOf(sent);
+        return Lists.newArrayList(sent);
     }
 
 }
