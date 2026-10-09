@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import javax.tools.ToolProvider;
+import javax.lang.model.element.Modifier;
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaFileObject;
@@ -142,6 +143,7 @@ public final class CheckJavaStandards {
                 String source = Files.readString(Path.of(unit.getSourceFile().toUri()));
                 String filePath = Path.of(unit.getSourceFile().toUri()).toString().replace('\\', '/');
                 boolean backendProduction = filePath.contains("/backend/src/main/java/");
+                boolean handwrittenProduction = backendProduction || filePath.contains("/client-java/src/main/java/");
                 String packageName = Objects.isNull(unit.getPackageName()) ? "" : unit.getPackageName().toString();
                 boolean timeImplementation = Objects.equals(packageName, "com.neocat.common.time.clock")
                         && filePath.endsWith("/TimeProvider.java");
@@ -423,6 +425,7 @@ public final class CheckJavaStandards {
 
                     @Override
                     public Void visitClass(ClassTree type, Void unused) {
+                        checkTypeFile(type);
                         boolean isEnum = Objects.equals(type.getKind(), Tree.Kind.ENUM);
                         if (Objects.equals(type.getKind().name(), "RECORD")) {
                             error(trees.getSourcePositions().getStartPosition(unit, type), "禁止声明 record");
@@ -450,6 +453,28 @@ public final class CheckJavaStandards {
                             previous = field;
                         }
                         return super.visitClass(type, unused);
+                    }
+
+                    /** 私有实现、匿名类型和 SDK Builder 不适用独立文件规则。 */
+                    private void checkTypeFile(ClassTree type) {
+                        if (!handwrittenProduction || type.getSimpleName().length() == 0) return;
+                        for (TreePath path = getCurrentPath(); Objects.nonNull(path); path = path.getParentPath()) {
+                            if (path.getLeaf() instanceof MethodTree) return;
+                            if (path.getLeaf() instanceof ClassTree owner
+                                    && (owner.getSimpleName().length() == 0
+                                    || owner.getModifiers().getFlags().contains(Modifier.PRIVATE))) return;
+                        }
+                        String qualified = className(unit, getCurrentPath());
+                        if (Objects.equals(qualified, "com.neocat.client.NeoCat.Builder")
+                                || qualified.startsWith("com.neocat.client.NeoCat.Builder.")) return;
+                        Tree parent = getCurrentPath().getParentPath().getLeaf();
+                        if (!(parent instanceof CompilationUnitTree)) {
+                            error(trees.getSourcePositions().getStartPosition(unit, type),
+                                    "具名生产类型必须拆为独立顶层类型（一种类型一个文件）");
+                        } else if (!filePath.endsWith("/" + type.getSimpleName() + ".java")) {
+                            error(trees.getSourcePositions().getStartPosition(unit, type),
+                                    "顶层类型名必须与独立 Java 文件名一致");
+                        }
                     }
 
                     @Override

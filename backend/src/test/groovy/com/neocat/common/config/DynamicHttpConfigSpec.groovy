@@ -14,7 +14,7 @@ import spock.lang.Specification
 import java.time.*
 import com.neocat.alert.api.http.AlertController
 import com.neocat.alert.api.http.convert.AlertConvert
-import com.neocat.alert.api.http.dto.AlertDtos
+
 import com.neocat.alert.domain.engine.PreviewResult
 import com.neocat.alert.domain.engine.PreviewService
 import com.neocat.common.error.exception.ResourceNotFoundException
@@ -23,6 +23,10 @@ import com.neocat.common.time.clock.TimeProvider
 import com.neocat.query.api.http.ReportController
 import java.util.function.Supplier
 import org.mapstruct.factory.Mappers
+import com.neocat.alert.api.http.dto.AlertDraft
+import com.neocat.alert.api.http.dto.ConditionDraft
+import com.neocat.alert.api.http.dto.TargetDraft
+import com.neocat.trace.domain.tree.AssemblyResult
 
 class DynamicHttpConfigSpec extends Specification {
     def cleanup() {
@@ -59,9 +63,9 @@ class DynamicHttpConfigSpec extends Specification {
         TimeProvider.clock = Clock.fixed(Instant.parse('2026-10-03T02:02:30Z'), ZoneOffset.UTC)
         def controller = new AlertController(null, null, null, preview,
                 null, null, null, convert)
-        def target = new AlertDtos.TargetDraft('RAW_METRIC', 0, 's', 'TRANSACTION', 'URL', 'n', [])
-        def condition = new AlertDtos.ConditionDraft('hits', 'GT', 0)
-        def draft = new AlertDtos.AlertDraft('SERVICE', null, 'r', '',
+        def target = new TargetDraft('RAW_METRIC', 0, 's', 'TRANSACTION', 'URL', 'n', [])
+        def condition = new ConditionDraft('hits', 'GT', 0)
+        def draft = new AlertDraft('SERVICE', null, 'r', '',
                 target, 'AND', 1, [condition], [], [])
 
         when:
@@ -89,7 +93,7 @@ class DynamicHttpConfigSpec extends Specification {
         controller.trace('one')
 
         then:
-        1 * assembler.assemble('one', _ as Instant, Duration.ofDays(7)) >> new TraceAssembler.AssemblyResult(null, false, true)
+        1 * assembler.assemble('one', _ as Instant, Duration.ofDays(7)) >> new AssemblyResult(null, false, true)
         thrown(ResourceNotFoundException)
 
         when:
@@ -97,7 +101,7 @@ class DynamicHttpConfigSpec extends Specification {
         controller.trace('two')
 
         then:
-        1 * assembler.assemble('two', _ as Instant, Duration.ofDays(2)) >> new TraceAssembler.AssemblyResult(null, false, true)
+        1 * assembler.assemble('two', _ as Instant, Duration.ofDays(2)) >> new AssemblyResult(null, false, true)
         thrown(ResourceNotFoundException)
     }
 

@@ -22,8 +22,8 @@ class ClickHouseReportDataPortSpec extends Specification {
     static final Instant FROM = Instant.parse("2026-09-24T00:00:00Z")
 
     ClickHouseReportQuery query
-    List<ClickHouseReportQuery.BucketRow> minuteRows
-    List<ClickHouseReportQuery.BucketRow> hourRows
+    List<BucketRow> minuteRows
+    List<BucketRow> hourRows
     ClickHouseReportDataPort port
 
     def setup() {
@@ -48,10 +48,10 @@ class ClickHouseReportDataPortSpec extends Specification {
         return new long[16]
     }
 
-    static ClickHouseReportQuery.BucketRow row(long count, long fail, long durationSum,
+    static BucketRow row(long count, long fail, long durationSum,
                                               long min, long max, long[] distribution,
                                               long covered, Instant start = FROM) {
-        return new ClickHouseReportQuery.BucketRow(
+        return new BucketRow(
                 "order", "TRANSACTION", "URL", "POST /orders", SeriesKey.ALL, "", "",
                 start, AggregationLevel.MINUTE,
                 count, fail, durationSum, min, max, 0d, 0L, distribution, covered)
@@ -95,7 +95,7 @@ class ClickHouseReportDataPortSpec extends Specification {
 
     def "只有数值而无次数的桶（Metric 场景）也会产生行"() {
         given:
-        def metricRow = new ClickHouseReportQuery.BucketRow(
+        def metricRow = new BucketRow(
                 "order", "METRIC", "order.amount", "", SeriesKey.ALL, "", "city=上海;",
                 FROM, AggregationLevel.MINUTE, 0L, 0L, 0L, 0L, 0L, 128.5d, 3L, emptyDistribution(), 60L)
         minuteRows = [metricRow]
@@ -299,7 +299,7 @@ class ClickHouseReportDataPortSpec extends Specification {
 
     def "转换后的行保留完整序列身份（含 Problem 分类与 Metric 标签）"() {
         given:
-        def problemRow = new ClickHouseReportQuery.BucketRow(
+        def problemRow = new BucketRow(
                 "order", "PROBLEM", "SLOW_SQL", "select_order", SeriesKey.ALL, "SLOW_SQL", "",
                 FROM, AggregationLevel.MINUTE, 7L, 0L, 2100L, 300L, 400L, 0d, 0L, emptyDistribution(), 60L)
         minuteRows = [problemRow]

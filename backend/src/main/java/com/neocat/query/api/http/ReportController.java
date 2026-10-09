@@ -1,6 +1,6 @@
 package com.neocat.query.api.http;
 
-import com.neocat.query.api.http.dto.ReportDtos.*;
+import com.neocat.query.api.http.dto.*;
 import com.neocat.query.api.http.convert.ReportConvert;
 import com.neocat.query.infra.service.ReportQueryService;
 import com.neocat.query.infra.port.ReportDataPort;
@@ -22,6 +22,15 @@ import java.util.function.Supplier;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
+import com.neocat.query.api.http.dto.Dependency;
+import com.neocat.query.api.http.dto.HeartbeatInstance;
+import com.neocat.query.api.http.dto.HeartbeatSeries;
+import com.neocat.query.api.http.dto.MetricRank;
+import com.neocat.query.api.http.dto.ProblemCategory;
+import com.neocat.query.api.http.dto.ProblemName;
+import com.neocat.query.api.http.dto.Sample;
+import com.neocat.query.api.http.dto.Series;
+import com.neocat.query.api.http.dto.TableRow;
 
 @Tag(name = "报表", description = "Transaction / Event / Problem / Heartbeat / Metric / Dependency 读模型与取样")
 @RestController

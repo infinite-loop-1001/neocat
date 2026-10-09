@@ -9,9 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Objects;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
+
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
 
@@ -40,35 +38,7 @@ public class TraceAssembler {
     public TraceAssembler(RawTreeStore store) {
         this.store = store;
     }
-    /**
-     * 组装结果。
-     *
-     * @param root    根节点；树完全不可用时为 null
-     * @param expired 种子树已过期（曾收到但超期）
-     * @param missing 种子树从未收到
-     */
-    @NamedInterface("trace")
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    public static class AssemblyResult {
-        private final TraceTreeNode root;
 
-        private final boolean expired;
-
-        private final boolean missing;
-
-        public AssemblyResult(TraceTreeNode root, boolean expired, boolean missing) {
-            this.root = root;
-            this.expired = expired;
-            this.missing = missing;
-        }
-
-
-        public boolean usable() {
-            return Objects.nonNull(root);
-        }
-    }
     public AssemblyResult assemble(String messageId, Instant now, Duration retention) {
         TraceTree seedTree = store.findByMessageId(messageId);
         if (Objects.isNull(seedTree)) {
@@ -126,6 +96,7 @@ public class TraceAssembler {
         }
         return new AssemblyResult(root, false, false);
     }
+
     /**
      * 为「调用方已记录但子树不可用」的子服务构造占位节点。
      *
@@ -151,12 +122,14 @@ public class TraceAssembler {
                 downstreamService, null, approxTimestamp, NodeAvailability.MISSING,
                 "调用方已记录该下游调用，但未收到其 MessageTree");
     }
+
     private TraceTreeNode nodeOf(TraceTree tree, NodeAvailability availability, String reason) {
         TraceTreeNode node = new TraceTreeNode(tree.getMessageId(), tree.getServiceName(), tree.getInstanceId(),
                 tree.getTreeTimestamp(), availability, reason);
         tree.getNodes().forEach(node::addSpan);
         return node;
     }
+
     private boolean isExpired(long treeTimestamp, Instant now, Duration retention) {
         Instant at = Instant.ofEpochMilli(treeTimestamp);
         return at.isBefore(now.minus(retention));

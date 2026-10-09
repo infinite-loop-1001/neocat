@@ -2,11 +2,8 @@ package com.neocat.query.domain.metric
 
 import spock.lang.Specification
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.neocat.analysis.domain.analyzer.*
 import com.neocat.analysis.domain.bucket.*
-import com.neocat.analysis.domain.dependency.*
 import com.neocat.analysis.domain.metric.*
-import com.neocat.analysis.domain.schedule.*
 import com.neocat.common.time.bucket.Bucket
 import com.neocat.common.error.exception.ValidationException
 import java.time.Instant
@@ -22,13 +19,13 @@ class MetricCountBackendSpec extends Specification {
         row
     }
     def entry(Map labels, boolean merged = false) {
-        new MetricLabelMetadata.Entry('order', 'm', time, MetricLabels.canonicalize(labels), labels, merged, 1)
+        new Entry('order', 'm', time, MetricLabels.canonicalize(labels), labels, merged, 1)
     }
 
     def "全量使用 valueCount 且包含 other 一次，筛选同键 OR 异键 AND"() {
         given:
         def metadata = [entry([channel:'app', city:'上海']), entry([channel:'web', city:'上海']),
-                new MetricLabelMetadata.Entry('order','m',time,'channel=partner;',[channel:'partner'],true,2)]
+                new Entry('order','m',time,'channel=partner;',[channel:'partner'],true,2)]
         def rows = [row(metadata[0].getCanonicalLabels(), 4), row(metadata[1].getCanonicalLabels(), 3), row(SeriesKey.OTHER_LABELS, 2)]
         def buckets = [new Bucket(time, time.plusSeconds(60), false, 60)]
         def service = new MetricCountService()
@@ -96,7 +93,7 @@ class MetricCountBackendSpec extends Specification {
         def day = time.truncatedTo(ChronoUnit.DAYS)
         def older = new AggregatedRow(SeriesKey.metric('order','m','city=上海;'),time.minusSeconds(3600),AggregationLevel.HOUR,3600)
         older.addValue(9d,3)
-        def entries = [new MetricLabelMetadata.Entry('order','m',time.minusSeconds(3600),'city=上海;',[city:'上海'],false,1)]
+        def entries = [new Entry('order','m',time.minusSeconds(3600),'city=上海;',[city:'上海'],false,1)]
         def result = new MetricCountService().points([older],entries,[new Bucket(day,day.plusSeconds(86400),false,86400)],
                 MetricFilters.parse('{"city":["上海"]}',json),time.plusSeconds(80),{false})
         expect:

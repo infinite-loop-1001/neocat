@@ -6,7 +6,6 @@ import com.google.common.collect.Lists;
 import com.neocat.dashboard.domain.access.OrgAccessGateway;
 import com.neocat.dashboard.domain.dashboard.Dashboard;
 import com.neocat.dashboard.domain.dashboard.DashboardRepository;
-import com.neocat.dashboard.domain.event.CardEvent;
 import com.neocat.dashboard.domain.event.CardEventPublisher;
 import com.neocat.dashboard.domain.formula.FormulaParser;
 import com.neocat.common.error.exception.AuthorizationException;
@@ -38,15 +37,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.neocat.dashboard.domain.event.CardDeleted;
+import com.neocat.dashboard.domain.event.CardTargetChanged;
+import com.neocat.dashboard.domain.formula.ParseOutcome;
 
 /**
  * 卡片用例（PRD 05 §2–§9）。
  *
  * <p>与告警的联动契约（PRD 05 §8）由两类事件承载：
  * <ul>
- *   <li>{@link CardEvent.CardTargetChanged}：**仅当公式或目标变化时**发布。
+ *   <li>{@link com.neocat.dashboard.domain.event.CardTargetChanged}：**仅当公式或目标变化时**发布。
  *       这样「只改时间范围/顺序」不会无谓地把已启用的规则关掉；</li>
- *   <li>{@link CardEvent.CardDeleted}：删除卡片时发布，附带受影响统计项，
+ *   <li>{@link com.neocat.dashboard.domain.event.CardDeleted}：删除卡片时发布，附带受影响统计项，
  *       让 alert 能按「是否仍被其他卡片引用」决定失效与否。</li>
  * </ul>
  *
@@ -98,7 +100,7 @@ public class CardService {
     /**
      * 更新卡片。
      *
-     * <p>仅当**目标或公式**发生变化时发布 {@link CardEvent.CardTargetChanged}：
+     * <p>仅当**目标或公式**发生变化时发布 {@link com.neocat.dashboard.domain.event.CardTargetChanged}：
      * 该事件会让关联的组织告警跟随新公式、保存为关闭并清零窗口。
      */
     @Transactional
@@ -113,20 +115,20 @@ public class CardService {
         Card saved = dashboards.saveCard(updated);
 
         if (targetOrFormulaChanged(existing, saved)) {
-            events.publish(new CardEvent.CardTargetChanged(
+            events.publish(new CardTargetChanged(
                     saved.getId(), saved.getDashboardId(), orgIdOf(saved),
                     saved.getService(), saved.getTargetKind(), saved.getTargetType(), saved.getTargetName(),
                     saved.getMetricLabels(), saved.getFormula(), statNames(saved.getFormula())));
         }
         return saved;
     }
-    /** 删除卡片：发布 {@link CardEvent.CardDeleted}。 */
+    /** 删除卡片：发布 {@link com.neocat.dashboard.domain.event.CardDeleted}。 */
     @Transactional
     @MySqlLocked("metadata")
     public void deleteCard(long accountId, long cardId) {
         Card existing = requireCard(accountId, cardId);
         dashboards.deleteCard(cardId);
-        events.publish(new CardEvent.CardDeleted(
+        events.publish(new CardDeleted(
                 existing.getId(), existing.getDashboardId(), orgIdOf(existing),
                 existing.targetIdentity(), statNames(existing.getFormula())));
     }
@@ -178,7 +180,7 @@ public class CardService {
         Instant from = to.minusSeconds(bucketSeconds * 12L);
         List<CardPoint> points = seriesService.series(card, from, to, bucketSeconds);
 
-        FormulaParser.ParseOutcome parsed = new FormulaParser().parse(card.getFormula());
+        ParseOutcome parsed = new FormulaParser().parse(card.getFormula());
         String unit = parsed.valid() ? parsed.getFormula().unit().name() : "NUMBER";
         return seriesService.describe(card, points, unit);
     }
@@ -311,7 +313,7 @@ public class CardService {
         if (Objects.isNull(formula)) {
             return Lists.newArrayList();
         }
-        FormulaParser.ParseOutcome parsed = new FormulaParser().parse(formula);
+        ParseOutcome parsed = new FormulaParser().parse(formula);
         if (!parsed.valid()) {
             return Lists.newArrayList();
         }

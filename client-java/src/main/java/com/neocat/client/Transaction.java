@@ -88,6 +88,3 @@ public class Transaction {
         return completed;
     }
 }
-
-
-

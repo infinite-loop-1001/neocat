@@ -293,6 +293,54 @@ test('接口文档注解完整性：Controller 需 @Tag、端点需 @Operation�
   }
 });
 
+test('具名生产类型独立文件：覆盖 DTO、接口隐式 public、枚举与约定除外项', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-type-file-standards-'));
+  const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));
+  const run = (relative, source) => {
+    const file = path.join(dir, relative);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, source);
+    return spawnSync('java', [helper, file], { encoding: 'utf8' });
+  };
+  try {
+    const invalid = run('backend/src/main/java/sample/Fixture.java', `package sample;
+      class Fixture {
+        public static class Result {}
+        interface Port { class Response {} }
+        enum State { ON, OFF }
+        class PackageHelper {}
+      }
+      class Another {}`);
+    assert.equal(invalid.status, 1, invalid.stderr);
+    assert.equal((invalid.stderr.match(/具名生产类型必须拆/g) ?? []).length, 5, invalid.stderr);
+    assert.ok(invalid.stderr.includes('顶层类型名必须与独立 Java 文件名一致'), invalid.stderr);
+    const valid = run('backend/src/main/java/sample/Fixture.java', `package sample;
+      class Fixture {
+        private static class Helper { class Implementation {} }
+        void run() { class LocalHelper {} }
+        Object helper() { return new Object() { class AnonymousHelper {} }; }
+      }`);
+    assert.equal(valid.status, 0, valid.stderr);
+    const builder = run('client-java/src/main/java/com/neocat/client/NeoCat.java',
+      'package com.neocat.client; class NeoCat { public static class Builder { class State {} } }');
+    assert.equal(builder.status, 0, builder.stderr);
+    const sdk = run('client-java/src/main/java/com/neocat/client/NeoCat.java',
+      'package com.neocat.client; class NeoCat { public static class RemoteCallHandle {} }');
+    assert.equal(sdk.status, 1, sdk.stderr);
+    const fakeBuilder = run('backend/src/main/java/sample/Fixture.java',
+      'package sample; class Fixture { public static class Builder {} }');
+    assert.equal(fakeBuilder.status, 1, fakeBuilder.stderr);
+    const testFixture = run('backend/src/test/java/sample/Fixture.java',
+      'package sample; class Fixture { public static class Result {} }');
+    assert.equal(testFixture.status, 0, testFixture.stderr);
+    const generated = run('backend/target/generated-sources/sample/Fixture.java',
+      'package sample; class Fixture { public static class Result {} }');
+    assert.equal(generated.status, 0, generated.stderr);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('空 JDK 容器工厂与 subList 禁止使用', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neocat-collections-standards-'));
   const helper = fileURLToPath(new URL('./CheckJavaStandards.java', import.meta.url));

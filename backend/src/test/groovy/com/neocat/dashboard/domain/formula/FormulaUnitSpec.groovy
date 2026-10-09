@@ -21,8 +21,8 @@ class FormulaUnitSpec extends Specification {
 
         then:
         r.valid()
-        r.getFormula() instanceof Formula.Ref
-        (r.getFormula() as Formula.Ref).getStat() == Stat.HITS
+        r.getFormula() instanceof Ref
+        (r.getFormula() as Ref).getStat() == Stat.HITS
     }
 
     def "解析聚合函数 sum(hits)"() {
@@ -31,9 +31,9 @@ class FormulaUnitSpec extends Specification {
 
         then:
         r.valid()
-        r.getFormula() instanceof Formula.Aggregate
-        (r.getFormula() as Formula.Aggregate).getAgg() == FormulaAggregate.SUM
-        (r.getFormula() as Formula.Aggregate).getStat() == Stat.HITS
+        r.getFormula() instanceof Aggregate
+        (r.getFormula() as Aggregate).getAgg() == FormulaAggregate.SUM
+        (r.getFormula() as Aggregate).getStat() == Stat.HITS
     }
 
     @Unroll
@@ -43,7 +43,7 @@ class FormulaUnitSpec extends Specification {
 
         then:
         r.valid()
-        (r.getFormula() as Formula.Aggregate).getAgg() == expected
+        (r.getFormula() as Aggregate).getAgg() == expected
 
         where:
         agg     | expected
@@ -67,8 +67,8 @@ class FormulaUnitSpec extends Specification {
 
         then:
         r.valid()
-        r.getFormula() instanceof Formula.Binary
-        (r.getFormula() as Formula.Binary).getOp() == FormulaOperator.DIVIDE
+        r.getFormula() instanceof Binary
+        (r.getFormula() as Binary).getOp() == FormulaOperator.DIVIDE
     }
 
     @Unroll
@@ -78,7 +78,7 @@ class FormulaUnitSpec extends Specification {
 
         then:
         r.valid()
-        (r.getFormula() as Formula.Binary).getOp() == expected
+        (r.getFormula() as Binary).getOp() == expected
 
         where:
         op | expected
@@ -94,9 +94,9 @@ class FormulaUnitSpec extends Specification {
 
         then: "根节点是加法，右子树是除法"
         r.valid()
-        def root = r.getFormula() as Formula.Binary
+        def root = r.getFormula() as Binary
         root.getOp() == FormulaOperator.ADD
-        (root.getRight() as Formula.Binary).getOp() == FormulaOperator.DIVIDE
+        (root.getRight() as Binary).getOp() == FormulaOperator.DIVIDE
     }
 
     def "单位不兼容的复合公式在解析期被拒（hits + failures / hits）"() {
@@ -113,9 +113,9 @@ class FormulaUnitSpec extends Specification {
         def r = parser.parse("(hits + failures) / hits")
 
         then:
-        def root = r.getFormula() as Formula.Binary
+        def root = r.getFormula() as Binary
         root.getOp() == FormulaOperator.DIVIDE
-        (root.getLeft() as Formula.Binary).getOp() == FormulaOperator.ADD
+        (root.getLeft() as Binary).getOp() == FormulaOperator.ADD
     }
 
     def "解析常数参与运算"() {
@@ -124,9 +124,9 @@ class FormulaUnitSpec extends Specification {
 
         then:
         r.valid()
-        def root = r.getFormula() as Formula.Binary
+        def root = r.getFormula() as Binary
         root.getOp() == FormulaOperator.MULTIPLY
-        (root.getRight() as Formula.Constant).getValue() == 100.0d
+        (root.getRight() as Constant).getValue() == 100.0d
     }
 
     def "解析 PRD 中的示例公式"() {
@@ -212,7 +212,7 @@ class FormulaUnitSpec extends Specification {
         expect: "平均耗时 × 次数 = 耗时"
         parser.parse("avgDuration * hits").valid()
         and:
-        (parser.parse("avgDuration * hits").getFormula() as Formula.Binary).unit() == Unit.DURATION
+        (parser.parse("avgDuration * hits").getFormula() as Binary).unit() == Unit.DURATION
     }
 
     def "除法推导单位"() {
@@ -221,21 +221,21 @@ class FormulaUnitSpec extends Specification {
 
         then:
         r.valid()
-        (r.getFormula() as Formula.Binary).unit() == Unit.RATE
+        (r.getFormula() as Binary).unit() == Unit.RATE
     }
 
     def "常数参与运算不改变单位"() {
         expect:
-        (parser.parse("hits * 100").getFormula() as Formula.Binary).unit() == Unit.COUNT
-        (parser.parse("100 * hits").getFormula() as Formula.Binary).unit() == Unit.COUNT
-        (parser.parse("hits / 60").getFormula() as Formula.Binary).unit() == Unit.COUNT
+        (parser.parse("hits * 100").getFormula() as Binary).unit() == Unit.COUNT
+        (parser.parse("100 * hits").getFormula() as Binary).unit() == Unit.COUNT
+        (parser.parse("hits / 60").getFormula() as Binary).unit() == Unit.COUNT
     }
 
     def "PRD 示例公式的单位推导"() {
         expect:
-        (parser.parse("failures / hits").getFormula() as Formula.Binary).unit() == Unit.RATE
-        (parser.parse("tp99 - avgDuration").getFormula() as Formula.Binary).unit() == Unit.DURATION
-        (parser.parse("tp99").getFormula() as Formula.Ref).unit() == Unit.DURATION
+        (parser.parse("failures / hits").getFormula() as Binary).unit() == Unit.RATE
+        (parser.parse("tp99 - avgDuration").getFormula() as Binary).unit() == Unit.DURATION
+        (parser.parse("tp99").getFormula() as Ref).unit() == Unit.DURATION
     }
 
     def "validateUnits 对合法公式返回 null"() {

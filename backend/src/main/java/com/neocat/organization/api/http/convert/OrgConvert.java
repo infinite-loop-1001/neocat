@@ -1,8 +1,11 @@
 package com.neocat.organization.api.http.convert;
 
-import com.neocat.organization.api.http.dto.OrgDtos.*;
+import com.neocat.organization.api.http.dto.*;
 import com.neocat.organization.domain.tree.OrgNode;
 import com.neocat.organization.domain.tree.DeletionPreview;
+import com.neocat.organization.api.http.dto.DashboardSummary;
+import com.neocat.organization.api.http.dto.DeletionResponse;
+import com.neocat.organization.api.http.dto.OrgResponse;
 
 public final class OrgConvert {
     private OrgConvert() {

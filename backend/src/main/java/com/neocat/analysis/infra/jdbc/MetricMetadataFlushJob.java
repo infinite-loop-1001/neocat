@@ -25,8 +25,8 @@ public class MetricMetadataFlushJob {
 
     private final JdbcTemplate jdbc;
 
+    // fixme: 统一用 Json 序列化/反序列静态工具
     private final ObjectMapper json;
-
 
     private final MetricHourRank rank;
 

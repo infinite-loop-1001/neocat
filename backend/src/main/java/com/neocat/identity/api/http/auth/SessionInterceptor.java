@@ -39,7 +39,6 @@ public class SessionInterceptor implements HandlerInterceptor {
 
     private final SessionGuard guard;
 
-
     public SessionInterceptor(SessionGuard guard) {
         this.guard = guard;
     }

@@ -15,6 +15,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.time.DayOfWeek;
 import org.springframework.modulith.NamedInterface;
+import com.neocat.common.time.range.Day;
+import com.neocat.common.time.range.Explicit;
+import com.neocat.common.time.range.Hour;
+import com.neocat.common.time.range.Month;
+import com.neocat.common.time.range.QuickRange;
+import com.neocat.common.time.range.Week;
 
 /**
  * {@link TimeBucketResolver} 的默认实现。
@@ -36,31 +42,32 @@ public class DefaultTimeBucketResolver implements TimeBucketResolver {
     @Override
     public List<Bucket> resolve(RangeSpec spec, ZoneId zone) {
         // 注意：Java 17 不支持 switch 模式匹配（预览特性），此处使用 instanceof 模式链。
-        if (spec instanceof RangeSpec.Hour hour) {
+        if (spec instanceof Hour hour) {
             Instant start = alignToHour(hour.getHourStart(), zone);
             return fixedRange(start, start.plus(Duration.ofHours(1)), Granularity.MINUTE_1, zone);
         }
-        if (spec instanceof RangeSpec.Day day) {
+        if (spec instanceof Day day) {
+            // fixme: RangeSpec 内部支持根据 zone 返回日期的起始结束时间
             Instant start = day.getDate().atStartOfDay(zone).toInstant();
             Instant end = day.getDate().plusDays(1).atStartOfDay(zone).toInstant();
             return fixedRange(start, end, Granularity.MINUTE_10, zone);
         }
-        if (spec instanceof RangeSpec.Week week) {
+        if (spec instanceof Week week) {
             LocalDate monday = week.getAnyDateInWeek().with(DayOfWeek.MONDAY);
             Instant start = monday.atStartOfDay(zone).toInstant();
             Instant end = monday.plusWeeks(1).atStartOfDay(zone).toInstant();
             return fixedRange(start, end, Granularity.HOUR_1, zone);
         }
-        if (spec instanceof RangeSpec.Month month) {
+        if (spec instanceof Month month) {
             LocalDate first = month.getMonth().atDay(1);
             Instant start = first.atStartOfDay(zone).toInstant();
             Instant end = first.plusMonths(1).atStartOfDay(zone).toInstant();
             return fixedRange(start, end, Granularity.DAY_1, zone);
         }
-        if (spec instanceof RangeSpec.QuickRange quick) {
+        if (spec instanceof QuickRange quick) {
             return quickRange(quick, zone);
         }
-        if (spec instanceof RangeSpec.Explicit explicit) {
+        if (spec instanceof Explicit explicit) {
             return explicitRange(explicit, zone);
         }
         throw new IllegalArgumentException("不支持的 RangeSpec: " + spec);
@@ -94,7 +101,7 @@ public class DefaultTimeBucketResolver implements TimeBucketResolver {
         return buckets;
     }
     /** 快捷范围：从对齐后的起点滚动到 now，首尾桶标记部分覆盖。 */
-    private List<Bucket> quickRange(RangeSpec.QuickRange quick, ZoneId zone) {
+    private List<Bucket> quickRange(QuickRange quick, ZoneId zone) {
         Instant now = quick.getNow();
         Granularity granularity = quick.getQuick().granularity();
         long stepSeconds = granularity.seconds();
@@ -129,7 +136,7 @@ public class DefaultTimeBucketResolver implements TimeBucketResolver {
         };
     }
     /** 显式范围：粒度由调用方给定；首尾桶按 from/to 计算覆盖秒数。 */
-    private List<Bucket> explicitRange(RangeSpec.Explicit explicit, ZoneId zone) {
+    private List<Bucket> explicitRange(Explicit explicit, ZoneId zone) {
         Instant from = explicit.getFrom();
         Instant to = explicit.getTo();
         long stepSeconds = explicit.getGranularity().seconds();

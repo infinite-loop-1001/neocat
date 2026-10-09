@@ -9,7 +9,6 @@ import com.neocat.analysis.domain.bucket.SeriesKey;
 import com.neocat.common.time.bucket.Bucket;
 import com.neocat.common.time.bucket.Granularity;
 import com.neocat.common.time.bucket.TimeBucketResolver;
-import com.neocat.common.time.range.RangeSpec;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -23,6 +22,7 @@ import com.neocat.analysis.domain.bucket.SeriesKind;
 import com.neocat.analysis.domain.metric.MetricLabelMetadata;
 import java.time.Duration;
 import java.util.function.Supplier;
+import com.neocat.common.time.range.Explicit;
 
 /**
  * 基于进程内当前小时报表的读取实现（技术方案 01-architecture.md §6.5）。
@@ -72,7 +72,7 @@ public class HourlyReportDataPort implements ReportDataPort {
 
         // 以 resolve 得到的桶序列为准，保证与查询层的时间对齐一致
         List<Bucket> bucketList = buckets.resolve(
-                new RangeSpec.Explicit(from, to, granularity), zone.get());
+                new Explicit(from, to, granularity), zone.get());
 
         List<AggregatedRow> rows = new ArrayList<>();
         for (SeriesKey key : store.seriesKeys()) {

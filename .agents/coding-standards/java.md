@@ -39,6 +39,14 @@ Collectors.toMap(Item::getId, Function.identity(), (left, right) -> {
 
 ## 类型与依赖
 
+### 一种类型一个文件（强制）
+
+- 适用于 backend、client-java 的手写生产 Java 代码，不限于 HTTP 请求或响应：DTO、领域事件、值对象、内部接口结果与持久化模型等具名 class / interface / enum 应为独立顶层类型，文件名与类型名一致；禁止用 `XxxDtos` 等容器类集中声明多个类型，也不在同一文件并列声明多个顶层类型。
+- 例外：私有辅助类（private 嵌套类及其内部实现类型、仅在方法内部使用的局部辅助类）、SDK 的 `com.neocat.client.NeoCat.Builder`、生成代码、匿名类和测试夹具。不得将原本对外使用的类型改为 private 来规避规则。
+- 拆分保持所属业务模块和包边界，按需保留 public 或包级可见性；更新调用方、MapStruct、Groovy 测试、反射类名与持久化类型映射的引用。sealed 类型拆分后显式声明 permits，保持原有允许的子类型集合。
+- 字段、构造器、行为、Jackson / Lombok / SpringDoc 注解与 JSON / Protobuf 契约不变，尤其保留显式 `@Schema(name=…)`。具名接口导出基线只能按实际类型迁移更新，不借拆分增加模块依赖或扩大接口职责。
+- 迁移必须编译并运行序列化、映射、模块边界及相关动态测试；不能仅靠文本引用替换判定正确。
+
 ### 类型引用与 import（强制）
 
 - 手写 Java / Groovy 源码（backend、client-java、测试与 scripts）使用显式 `import` 与简单类名，不在注解、字段、参数、泛型、构造调用、class 字面量、方法引用或静态成员访问中重复书写包路径。

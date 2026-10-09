@@ -1,7 +1,7 @@
 package com.neocat.query.api.http;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.neocat.query.api.http.dto.ReportDtos.*;
+import com.neocat.query.api.http.dto.*;
 import com.neocat.query.api.http.convert.ReportConvert;
 import com.neocat.query.infra.service.MetricCountQueryService;
 import com.neocat.query.infra.port.ReportDataPort;
@@ -17,6 +17,9 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.neocat.query.api.http.dto.MetricCount;
+import com.neocat.query.api.http.dto.MetricLabel;
+import com.neocat.query.api.http.dto.MetricName;
 
 @Tag(name = "Metric count", description = "Metric 指标目录、标签候选与上报次数曲线")
 @RestController

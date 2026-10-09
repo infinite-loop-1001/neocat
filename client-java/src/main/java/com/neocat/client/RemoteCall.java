@@ -1,8 +1,5 @@
 package com.neocat.client;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * 跨服务调用记录（对应协议 REMOTE_CALL 节点）。对应 PRD 02 §2。
  */
@@ -62,6 +59,3 @@ public class RemoteCall {
         return duration;
     }
 }
-
-
-

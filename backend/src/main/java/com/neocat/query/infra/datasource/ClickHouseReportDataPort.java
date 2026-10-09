@@ -11,8 +11,6 @@ import com.neocat.analysis.domain.bucket.SeriesKind;
 import com.neocat.common.time.bucket.Bucket;
 import com.neocat.common.time.bucket.Granularity;
 import com.neocat.common.time.bucket.TimeBucketResolver;
-import com.neocat.common.time.range.RangeSpec;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -27,6 +25,7 @@ import java.util.function.Supplier;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import com.neocat.common.time.range.Explicit;
 
 /**
  * 基于 ClickHouse 的报表读取实现（技术方案 06 §10）。
@@ -39,7 +38,7 @@ import lombok.ToString;
  *   <li>**把源桶卷到调用方要的桶**：分钟桶表只有分钟粒度的行，
  *       请求 5/10/20 分钟时必须在读侧合并，否则调用方按桶起点取数只能命中
  *       正好落在边界上的少数分钟，趋势图会大面积缺失；</li>
- *   <li>把 {@link ClickHouseReportQuery.BucketRow} 转成 {@link AggregatedRow}，
+ *   <li>把 {@link com.neocat.query.infra.datasource.BucketRow} 转成 {@link AggregatedRow}，
  *       并用 {@link DurationDistribution#fromSegments} 还原分布；</li>
  *   <li>**无数据的桶不产生行**（与内存实现同一约定），
  *       缺口由查询层判定，不靠伪造 count=0 的行。</li>
@@ -82,10 +81,10 @@ public class ClickHouseReportDataPort implements ReportDataPort {
         List<AggregatedRow> rows = new ArrayList<>();
 
         for (String instance : targets) {
-            List<ClickHouseReportQuery.BucketRow> bucketRows =
+            List<BucketRow> bucketRows =
                     queryFor(granularity, service, kind, type, name, instance, from, to);
 
-            for (ClickHouseReportQuery.BucketRow bucket : bucketRows) {
+            for (BucketRow bucket : bucketRows) {
                 if (bucket.getCount() == 0 && bucket.getValueCount() == 0) {
                     // 空桶不产生行：缺数据不能被伪造成 count=0 的「确认无调用」
                     continue;
@@ -98,7 +97,7 @@ public class ClickHouseReportDataPort implements ReportDataPort {
         return foldToTarget(rows, from, to, granularity);
     }
     /** 按请求粒度选源表：日及以上查日桶，小时查小时桶，其余查分钟桶。 */
-    private List<ClickHouseReportQuery.BucketRow> queryFor(Granularity granularity,
+    private List<BucketRow> queryFor(Granularity granularity,
                                                            String service, String kind, String type,
                                                            String name, String instance,
                                                            Instant from, Instant to) {
@@ -128,7 +127,7 @@ public class ClickHouseReportDataPort implements ReportDataPort {
      */
     private List<AggregatedRow> foldToTarget(List<AggregatedRow> rows, Instant from, Instant to,
                                              Granularity granularity) {
-        List<Bucket> targetBuckets = buckets.resolve(new RangeSpec.Explicit(from, to, granularity), zone.get());
+        List<Bucket> targetBuckets = buckets.resolve(new Explicit(from, to, granularity), zone.get());
         @Getter
         @EqualsAndHashCode
         @ToString
@@ -213,7 +212,7 @@ public class ClickHouseReportDataPort implements ReportDataPort {
      * <p>分布用 {@code fromSegments} 还原为分箱模式，因此它仍然参与
      * 「合并后重算分位」的不变式，而不是带着已算好的分位四处传递。
      */
-    static AggregatedRow toAggregatedRow(ClickHouseReportQuery.BucketRow bucket) {
+    static AggregatedRow toAggregatedRow(BucketRow bucket) {
         SeriesKey key = new SeriesKey(
                 bucket.getService(),
                 parseKind(bucket.getKind()),

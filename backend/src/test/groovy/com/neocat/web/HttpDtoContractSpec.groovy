@@ -2,12 +2,7 @@ package com.neocat.web
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
-import com.neocat.identity.api.http.dto.IdentityDtos
-import com.neocat.organization.api.http.dto.OrgDtos
-import com.neocat.platform.api.http.dto.PlatformDtos
-import com.neocat.dashboard.api.http.dto.DashboardDtos
-import com.neocat.alert.api.http.dto.AlertDtos
-import com.neocat.query.api.http.dto.ReportDtos
+
 import com.neocat.query.api.http.convert.ReportConvert
 import com.neocat.dashboard.api.http.convert.DashboardConvert
 import com.neocat.dashboard.domain.card.*
@@ -29,7 +24,6 @@ import com.neocat.identity.api.http.UserAdminController
 import com.neocat.identity.domain.session.Session
 import com.neocat.ingest.api.http.IngestController
 import com.neocat.ingest.api.http.convert.IngestConvert
-import com.neocat.ingest.domain.receive.IngestService
 import com.neocat.organization.api.http.OrgAdminController
 import com.neocat.organization.api.http.convert.OrgConvert
 import com.neocat.organization.domain.tree.OrgNode
@@ -41,12 +35,28 @@ import com.neocat.query.api.http.ReportController
 import com.neocat.trace.api.http.TraceController
 import com.neocat.trace.api.http.convert.TraceConvert
 import com.neocat.trace.domain.tree.NodeAvailability
-import com.neocat.trace.domain.tree.TraceAssembler
 import com.neocat.trace.domain.tree.TraceTreeNode
 import java.time.Instant
 import org.mapstruct.factory.Mappers
 import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.web.bind.annotation.RequestMapping
+import com.neocat.alert.api.http.dto.AlertDraft
+import com.neocat.alert.domain.engine.PointEvaluation
+import com.neocat.dashboard.api.http.dto.CardDraft
+import com.neocat.dashboard.api.http.dto.DashboardDraft
+import com.neocat.identity.api.http.dto.ChangePasswordRequest
+import com.neocat.identity.api.http.dto.LoginRequest
+import com.neocat.identity.api.http.dto.PasswordDraft
+import com.neocat.identity.api.http.dto.RoleDraft
+import com.neocat.identity.api.http.dto.UserDraft
+import com.neocat.ingest.domain.receive.QueueStats
+import com.neocat.organization.api.http.dto.MemberDraft
+import com.neocat.organization.api.http.dto.OrgDraft
+import com.neocat.platform.api.http.dto.ChannelsRequest
+import com.neocat.platform.api.http.dto.InitRequest
+import com.neocat.platform.api.http.dto.SlowThresholdsRequest
+import com.neocat.query.api.http.dto.Series
+import com.neocat.trace.domain.tree.AssemblyResult
 
 /** 实际执行 Jackson 绑定/输出，覆盖 Lombok 构造器及保留 null 的契约。 */
 class HttpDtoContractSpec extends Specification {
@@ -62,26 +72,26 @@ class HttpDtoContractSpec extends Specification {
 
         where:
         type | input
-        IdentityDtos.LoginRequest | [username:'alice', password:'password']
-        IdentityDtos.ChangePasswordRequest | [oldPassword:'old-password', newPassword:'new-password']
-        IdentityDtos.UserDraft | [username:'bob', password:'password']
-        IdentityDtos.PasswordDraft | [password:'reset-password']
-        IdentityDtos.RoleDraft | [role:'ADMIN']
-        OrgDtos.OrgDraft | [name:'研发', parentId:7L]
-        OrgDtos.MemberDraft | [userId:9L]
-        PlatformDtos.InitRequest | [timezone:'Asia/Shanghai', adminUsername:'root', adminPassword:'password']
-        PlatformDtos.SlowThresholdsRequest | [url:1000, sql:100, call:1000, cache:50]
-        PlatformDtos.ChannelsRequest | [email:true, dingtalk:false, feishu:true]
-        DashboardDtos.DashboardDraft | [orgId:7L, name:'大盘']
+        LoginRequest | [username:'alice', password:'password']
+        ChangePasswordRequest | [oldPassword:'old-password', newPassword:'new-password']
+        UserDraft | [username:'bob', password:'password']
+        PasswordDraft | [password:'reset-password']
+        RoleDraft | [role:'ADMIN']
+        OrgDraft | [name:'研发', parentId:7L]
+        MemberDraft | [userId:9L]
+        InitRequest | [timezone:'Asia/Shanghai', adminUsername:'root', adminPassword:'password']
+        SlowThresholdsRequest | [url:1000, sql:100, call:1000, cache:50]
+        ChannelsRequest | [email:true, dingtalk:false, feishu:true]
+        DashboardDraft | [orgId:7L, name:'大盘']
     }
 
     def "告警和卡片嵌套请求字段实际绑定"() {
         when:
         def alert = json.readValue('''{"scope":"SERVICE","name":"rule","windowPoints":2,
             "target":{"kind":"RAW_METRIC","service":"s","reportKind":"TRANSACTION","type":"URL","name":"n"},
-            "conditions":[{"stat":"hits","comparator":"GT","threshold":10}],"recipients":[7],"channels":["EMAIL"]}''', AlertDtos.AlertDraft)
+            "conditions":[{"stat":"hits","comparator":"GT","threshold":10}],"recipients":[7],"channels":["EMAIL"]}''', AlertDraft)
         def card = json.readValue('''{"service":"s","targetKind":"TRANSACTION","targetType":"URL","targetName":"n",
-            "formula":"hits","timeRange":"RECENT_24H","thresholdLines":[{"direction":"ABOVE","value":10}]}''', DashboardDtos.CardDraft)
+            "formula":"hits","timeRange":"RECENT_24H","thresholdLines":[{"direction":"ABOVE","value":10}]}''', CardDraft)
 
         then:
         alert.target.service == 's'
@@ -100,7 +110,7 @@ class HttpDtoContractSpec extends Specification {
                      points:[[bucketStart:1L,bucketEnd:2L,value:null,quality:'NO_DATA',coveredSeconds:0L,realtime:false,partial:false]]]
 
         when:
-        def dto = new ReportConvert(json).response(model, ReportDtos.Series)
+        def dto = new ReportConvert(json).response(model, Series)
 
         then:
         json.readTree(json.writeValueAsString(dto)) == json.readTree(json.writeValueAsString(model))
@@ -195,14 +205,14 @@ class HttpDtoContractSpec extends Specification {
         json.readTree(json.writeValueAsString(CatalogConvert.service('s', ['i']))) ==
                 json.readTree('''{"name":"s","instances":["i"]}''')
         json.readTree(json.writeValueAsString(IngestConvert.stats(
-                new IngestService.QueueStats(2, 10, 3, 0.2)))) ==
+                new QueueStats(2, 10, 3, 0.2)))) ==
                 json.readTree('''{"size":2,"capacity":10,"droppedTotal":3,"watermark":0.2}''')
     }
 
     def "告警预览缺数字段与卡片缺口、除零保持原结构"() {
         given:
         def preview = PreviewResult.insufficient([
-                new PreviewResult.PointEvaluation(1, false, false, 'HITS')])
+                new PointEvaluation(1, false, false, 'HITS')])
         def card = Card.withoutThresholds(1, 7, 's', 'TRANSACTION', 'URL', 'n', null, [], 'hits', 'RECENT_24H', 0)
         def model = [cardId:1L, formula:'hits', unit:'COUNT', thresholdLines:[],
                      points:[[bucketStart:1L,bucketEnd:2L,value:null,outcome:'GAP']],
@@ -221,7 +231,7 @@ class HttpDtoContractSpec extends Specification {
         given:
         def root = new TraceTreeNode('m', 's', 'i', 123,
                 NodeAvailability.PRESENT, null)
-        def assembly = new TraceAssembler.AssemblyResult(root, false, false)
+        def assembly = new AssemblyResult(root, false, false)
 
         expect:
         json.readTree(json.writeValueAsString(TraceConvert.response('m', assembly))) ==

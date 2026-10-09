@@ -42,7 +42,6 @@ class SessionInterceptorSpec extends Specification {
         TimeProvider.clock = Clock.systemUTC()
     }
 
-
     static final Instant NOW = Instant.parse("2026-09-24T04:00:00Z")
 
     AccountRepository accounts

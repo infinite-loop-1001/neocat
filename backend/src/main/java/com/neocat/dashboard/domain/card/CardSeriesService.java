@@ -18,6 +18,7 @@ import java.util.Map;
 import org.apache.commons.collections4.ListUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+import com.neocat.dashboard.domain.formula.ParseOutcome;
 
 /**
  * 卡片序列组装（PRD 05 §5，技术方案 02 §9.2）。
@@ -55,7 +56,7 @@ public class CardSeriesService {
      * @return 逐桶结果，按时间升序
      */
     public List<CardPoint> series(Card card, Instant from, Instant to, long bucketSeconds) {
-        FormulaParser.ParseOutcome parsed = parser.parse(card.getFormula());
+        ParseOutcome parsed = parser.parse(card.getFormula());
         if (!parsed.valid()) {
             return Lists.newArrayList();
         }

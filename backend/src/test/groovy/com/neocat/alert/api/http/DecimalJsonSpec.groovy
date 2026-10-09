@@ -1,42 +1,34 @@
 package com.neocat.alert.api.http
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
 import com.neocat.alert.api.http.convert.AlertConvert
-import com.neocat.alert.api.http.dto.AlertDtos
-import com.neocat.alert.domain.rule.AlertScope
-import com.neocat.alert.domain.rule.AlertRuleRepository
-import com.neocat.alert.domain.rule.AlertRuleService
-import com.neocat.alert.domain.rule.AlertLifecycleService
-import com.neocat.alert.domain.engine.PreviewService
+import com.neocat.alert.api.http.dto.AlertDraft
 import com.neocat.alert.domain.engine.MinutePointSource
 import com.neocat.alert.domain.engine.NotificationDispatcher
-import com.neocat.alert.domain.recipient.RecipientService
+import com.neocat.alert.domain.engine.PreviewService
 import com.neocat.alert.domain.recipient.RecipientGateway
+import com.neocat.alert.domain.recipient.RecipientService
+import com.neocat.alert.domain.rule.AlertLifecycleService
+import com.neocat.alert.domain.rule.AlertRuleRepository
+import com.neocat.alert.domain.rule.AlertRuleService
+import com.neocat.alert.domain.rule.AlertScope
 import com.neocat.common.error.exception.ValidationException
 import com.neocat.common.http.error.ApiExceptionHandler
 import com.neocat.dashboard.api.http.convert.DashboardConvert
-import com.neocat.dashboard.domain.card.Card
-import com.neocat.dashboard.domain.card.CardPoint
-import com.neocat.dashboard.domain.card.CardPointOutcome
-import com.neocat.dashboard.domain.card.AlertableTarget
-import com.neocat.dashboard.domain.card.AlertableTargetKind
-import com.neocat.dashboard.domain.card.ThresholdDirection
-import com.neocat.dashboard.domain.card.ThresholdLine
-import com.neocat.query.domain.stat.Stat
-import com.neocat.dashboard.domain.card.CardSeriesService
 import com.neocat.dashboard.domain.access.CardInputSource
-import com.neocat.query.api.http.dto.ReportDtos
+import com.neocat.dashboard.domain.card.*
+import com.neocat.query.api.http.dto.Point
+import com.neocat.query.domain.stat.Stat
 import org.mapstruct.factory.Mappers
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
-import java.math.BigDecimal
+import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import spock.lang.Specification
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 class DecimalJsonSpec extends Specification {
     def json = new ObjectMapper().registerModule(new ParameterNamesModule())
@@ -79,7 +71,7 @@ class DecimalJsonSpec extends Specification {
         given:
         String body = '''{"scope":"SERVICE","windowPoints":1,
             "conditions":[{"stat":"HITS","comparator":"EQ","threshold":99999999999999.999999}]}'''
-        def draft = json.readValue(body, AlertDtos.AlertDraft)
+        def draft = json.readValue(body, AlertDraft)
         def rule = convert.rule(draft, AlertScope.SERVICE)
         def output = json.writeValueAsString(convert.response(rule))
         def preciseJson = json.copy().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
@@ -94,7 +86,7 @@ class DecimalJsonSpec extends Specification {
     def '请求中省略或明确 null 的阈值在转换边界拒绝而不是默认零'() {
         given:
         def draft = json.readValue('''{"conditions":[{"stat":"HITS","comparator":"EQ"''' + field + '}] }',
-                AlertDtos.AlertDraft)
+                AlertDraft)
         when:
         convert.rule(draft, AlertScope.SERVICE)
         then:
@@ -105,13 +97,13 @@ class DecimalJsonSpec extends Specification {
 
     def '报表 DTO 十进制结果序列化仍是数字并保留缺数 null'() {
         given:
-        def point = new ReportDtos.Point()
+        def point = new Point()
         point.setValue(new BigDecimal('9007199254740993.123456'))
         String body = json.writeValueAsString(point)
         expect:
         body.contains('"value":9007199254740993.123456')
-        json.readValue(body, ReportDtos.Point).getValue().toPlainString() == '9007199254740993.123456'
-        json.writeValueAsString(new ReportDtos.Point()).contains('"value":null')
+        json.readValue(body, Point).getValue().toPlainString() == '9007199254740993.123456'
+        json.writeValueAsString(new Point()).contains('"value":null')
     }
 
     def '卡片 JSON 保持数字、gaps 和 isUndefined 数组契约'() {

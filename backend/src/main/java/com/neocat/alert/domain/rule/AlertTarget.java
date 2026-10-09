@@ -81,7 +81,3 @@ public class AlertTarget {
                 + "|" + (Objects.isNull(metricLabels) ? "" : metricLabels);
     }
 }
-
-
-
-

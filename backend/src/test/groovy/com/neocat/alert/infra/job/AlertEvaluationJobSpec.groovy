@@ -12,6 +12,7 @@ import com.neocat.query.domain.stat.Stat
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import com.neocat.alert.domain.engine.EvaluationResult
 
 class AlertEvaluationJobSpec extends Specification {
     def cleanup() {
@@ -54,7 +55,7 @@ class AlertEvaluationJobSpec extends Specification {
         then:
         1 * repository.enabledRules() >> [active]
         1 * engine.onMinute(active, AlertWindowState.empty(1L, T), T) >>
-                new AlertEngine.EvaluationResult(false, [], progressed)
+                new EvaluationResult(false, [], progressed)
         job.trackedWindows() == 1
 
         when:
@@ -63,7 +64,7 @@ class AlertEvaluationJobSpec extends Specification {
         then:
         1 * repository.enabledRules() >> [active]
         1 * engine.onMinute(active, progressed, T + MINUTE) >>
-                new AlertEngine.EvaluationResult(false, [], progressed)
+                new EvaluationResult(false, [], progressed)
     }
 
     def 'one broken rule does not prevent a subsequent rule from being evaluated'() {
@@ -78,7 +79,7 @@ class AlertEvaluationJobSpec extends Specification {
         1 * repository.enabledRules() >> [broken, healthy]
         1 * engine.onMinute(broken, _, T) >> { throw new IllegalStateException('malformed rule') }
         1 * engine.onMinute(healthy, _, T) >>
-                new AlertEngine.EvaluationResult(false, [], AlertWindowState.empty(2L, T))
+                new EvaluationResult(false, [], AlertWindowState.empty(2L, T))
         job.trackedWindows() == 2
     }
 
@@ -122,9 +123,9 @@ class AlertEvaluationJobSpec extends Specification {
         1 * repository.enabledRules() >> [old]
         1 * repository.enabledRules() >> [newRule]
         1 * engine.onMinute(old, AlertWindowState.empty(1L, T), T) >>
-                new AlertEngine.EvaluationResult(false, [], new AlertWindowState(1L, T, [T]))
+                new EvaluationResult(false, [], new AlertWindowState(1L, T, [T]))
         1 * engine.onMinute(newRule, AlertWindowState.empty(1L, T + MINUTE), T + MINUTE) >>
-                new AlertEngine.EvaluationResult(false, [], AlertWindowState.empty(1L, T + MINUTE))
+                new EvaluationResult(false, [], AlertWindowState.empty(1L, T + MINUTE))
     }
 
     def 'a delay longer than one minute still schedules completed points'() {

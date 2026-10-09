@@ -27,7 +27,7 @@ class DecimalMappingSpec extends Specification {
         def draft = AlertRule.draft(AlertScope.SERVICE, null, 'precise', '',
                 AlertTarget.rawMetric('order', 'TRANSACTION', 'URL', '/a'), Combinator.AND, 1,
                 [new Condition(Stat.HITS, Comparator.EQ, threshold)], [], [AlertChannel.EMAIL])
-        def conditionRow = new AlertRuleRepositoryAdapter.AlertConditionRow()
+        def conditionRow = new AlertConditionRow()
         conditionRow.setStat('HITS')
         conditionRow.setComparator('EQ')
         conditionRow.setThreshold(threshold)

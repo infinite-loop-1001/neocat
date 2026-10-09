@@ -2,10 +2,10 @@ package com.neocat.dashboard.infra.adapter
 
 import com.neocat.dashboard.infra.listener.SpringCardEventPublisher
 
-import com.neocat.dashboard.domain.event.CardEvent
 import com.neocat.organization.api.internal.OrganizationAccess
 import org.springframework.context.ApplicationEventPublisher
 import spock.lang.Specification
+import com.neocat.dashboard.domain.event.CardDeleted
 
 class DashboardPortsSpec extends Specification {
     def 'organization permission is delegated to current effective-leaf projection'() {
@@ -28,7 +28,7 @@ class DashboardPortsSpec extends Specification {
     def 'card events are actually published for the alert listener'() {
         given:
         def publisher = Mock(ApplicationEventPublisher)
-        def event = new CardEvent.CardDeleted(10L, 2L, 7L, 'order|TRANSACTION|URL|/a|', [])
+        def event = new CardDeleted(10L, 2L, 7L, 'order|TRANSACTION|URL|/a|', [])
 
         when:
         new SpringCardEventPublisher(publisher).publish(event)

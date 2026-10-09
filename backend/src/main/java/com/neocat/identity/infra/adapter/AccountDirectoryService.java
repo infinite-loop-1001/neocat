@@ -9,13 +9,11 @@ import com.neocat.identity.domain.account.Role;
 import org.springframework.stereotype.Component;
 import java.util.Objects;
 
-
 @Component
 public class AccountDirectoryService implements AccountDirectory {
     private final AccountRepository accounts;
 
     private final PasswordHasher passwords;
-
 
     public AccountDirectoryService(AccountRepository accounts, PasswordHasher passwords) {
         this.accounts = accounts;

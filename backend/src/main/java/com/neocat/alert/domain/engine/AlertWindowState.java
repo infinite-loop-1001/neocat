@@ -50,7 +50,6 @@ public class AlertWindowState {
         return points.size() >= windowPoints;
     }
 
-
     public static AlertWindowState empty(long ruleId, long baselineAt) {
         return new AlertWindowState(ruleId, baselineAt, Lists.newArrayList());
     }

@@ -2,6 +2,7 @@ package com.neocat.dashboard.domain.card;
 
 import java.util.List;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -19,9 +20,9 @@ import org.springframework.modulith.NamedInterface;
  *   <li>阈值线只作用于聚合结果，下钻不产生逐机器阈值线。</li>
  * </ul>
  *
- * @param aggregated 聚合结果序列
- * @param byInstance 各机器结果；仅在下钻模式填充
- * @param drilled    当前是否为下钻模式
+ * @param aggregated     聚合结果序列
+ * @param byInstance     各机器结果；仅在下钻模式填充
+ * @param drilled        当前是否为下钻模式
  * @param thresholdLines 阈值线（始终作用于聚合结果）
  */
 @NamedInterface("dashboard")
@@ -45,24 +46,8 @@ public class CardDimensionView {
     }
 
     /**
-     * 某台机器在卡片公式下的序列。
+     * 聚合结果中越过阈值线的点位数（仅用于展示，不驱动告警）。
      */
-    @NamedInterface("dashboard")
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    public static class MachineSeries {
-        private final String instance;
-
-        private final List<CardPoint> points;
-
-        public MachineSeries(String instance, List<CardPoint> points) {
-            this.instance = instance;
-            this.points = points;
-        }
-
-    }
-    /** 聚合结果中越过阈值线的点位数（仅用于展示，不驱动告警）。 */
     public long breaches() {
         if (CollectionUtils.isEmpty(thresholdLines)) {
             return 0;

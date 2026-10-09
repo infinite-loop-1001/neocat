@@ -18,21 +18,21 @@ import java.util.List;
 @Mapper
 public interface AlertMapper {
 
-    AlertRuleRepositoryAdapter.AlertRuleRow selectRule(@Param("id") long id);
+    AlertRuleRow selectRule(@Param("id") long id);
 
-    List<AlertRuleRepositoryAdapter.AlertRuleRow> selectAllRules();
+    List<AlertRuleRow> selectAllRules();
 
-    List<AlertRuleRepositoryAdapter.AlertRuleRow> selectEnabledRules();
+    List<AlertRuleRow> selectEnabledRules();
 
-    List<AlertRuleRepositoryAdapter.AlertRuleRow> selectRulesByOrg(@Param("orgId") long orgId);
+    List<AlertRuleRow> selectRulesByOrg(@Param("orgId") long orgId);
 
-    int insertRule(AlertRuleRepositoryAdapter.AlertRuleRow row);
+    int insertRule(AlertRuleRow row);
 
-    int updateRule(AlertRuleRepositoryAdapter.AlertRuleRow row);
+    int updateRule(AlertRuleRow row);
 
     void deleteRule(@Param("id") long id);
 
-    List<AlertRuleRepositoryAdapter.AlertConditionRow> selectConditions(@Param("ruleId") long ruleId);
+    List<AlertConditionRow> selectConditions(@Param("ruleId") long ruleId);
 
     int insertCondition(@Param("ruleId") long ruleId,
                         @Param("stat") String stat,
@@ -41,7 +41,7 @@ public interface AlertMapper {
 
     void deleteConditions(@Param("ruleId") long ruleId);
 
-    List<AlertRuleRepositoryAdapter.AlertRecipientRow> selectRecipients(@Param("ruleId") long ruleId);
+    List<AlertRecipientRow> selectRecipients(@Param("ruleId") long ruleId);
 
     int insertRecipient(@Param("ruleId") long ruleId,
                         @Param("accountId") long accountId,
@@ -49,9 +49,9 @@ public interface AlertMapper {
 
     void deleteRecipients(@Param("ruleId") long ruleId);
 
-    List<AlertRuleRepositoryAdapter.AlertWindowPointRow> selectWindowPoints(@Param("ruleId") long ruleId);
+    List<AlertWindowPointRow> selectWindowPoints(@Param("ruleId") long ruleId);
 
-    int insertWindowPoint(@Param("ruleId") long ruleId, @Param("pointMinute") Timestamp pointMinute);
+    void insertWindowPoint(@Param("ruleId") long ruleId, @Param("pointMinute") Timestamp pointMinute);
 
     // fixme: 这里没有进行 MySQL 实现
     void deleteWindowPoints(@Param("ruleId") long ruleId);

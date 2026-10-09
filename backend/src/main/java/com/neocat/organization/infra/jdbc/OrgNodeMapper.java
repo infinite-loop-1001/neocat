@@ -11,15 +11,15 @@ import java.util.List;
 @Mapper
 public interface OrgNodeMapper {
 
-    OrgNodeRepositoryAdapter.OrgNodeRow selectById(@Param("id") long id);
+    OrgNodeRow selectById(@Param("id") long id);
 
-    List<OrgNodeRepositoryAdapter.OrgNodeRow> selectAll();
+    List<OrgNodeRow> selectAll();
 
-    List<OrgNodeRepositoryAdapter.OrgNodeRow> selectChildren(@Param("parentId") long parentId);
+    List<OrgNodeRow> selectChildren(@Param("parentId") long parentId);
 
-    int insert(OrgNodeRepositoryAdapter.OrgNodeRow row);
+    int insert(OrgNodeRow row);
 
-    int update(OrgNodeRepositoryAdapter.OrgNodeRow row);
+    int update(OrgNodeRow row);
 
     void delete(@Param("id") long id);
 }

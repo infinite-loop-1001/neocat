@@ -13,14 +13,14 @@ import java.util.List;
 @Mapper
 public interface AccountMapper {
 
-    AccountRepositoryAdapter.AccountRow selectById(@Param("id") long id);
+    AccountRow selectById(@Param("id") long id);
 
-    AccountRepositoryAdapter.AccountRow selectByUsername(@Param("username") String username);
+    AccountRow selectByUsername(@Param("username") String username);
 
-    List<AccountRepositoryAdapter.AccountRow> selectAll();
+    List<AccountRow> selectAll();
 
     /** 插入并回填自增主键。 */
-    int insert(AccountRepositoryAdapter.AccountRow row);
+    int insert(AccountRow row);
 
-    int update(AccountRepositoryAdapter.AccountRow row);
+    int update(AccountRow row);
 }

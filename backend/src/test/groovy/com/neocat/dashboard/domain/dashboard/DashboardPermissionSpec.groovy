@@ -2,13 +2,13 @@ package com.neocat.dashboard.domain.dashboard
 
 import com.neocat.dashboard.domain.access.OrgAccessGateway
 import com.neocat.dashboard.domain.card.Card
-import com.neocat.dashboard.domain.event.CardEvent
 import com.neocat.dashboard.domain.event.CardEventPublisher
 
 import com.neocat.common.error.NeocatException
 import spock.lang.Specification
 
 import static com.neocat.common.error.ErrorCode.*
+import com.neocat.dashboard.domain.event.CardDeleted
 
 class DashboardPermissionSpec extends Specification {
     DashboardRepository repository = Mock()
@@ -160,7 +160,7 @@ class DashboardPermissionSpec extends Specification {
         1 * access.isEffectiveMember(100L, 7L) >> true
         1 * repository.cardsOf(12L) >> [card]
         1 * repository.delete(12L)
-        1 * events.publish({ it instanceof CardEvent.CardDeleted && it.getOrgId() == 7L
+        1 * events.publish({ it instanceof CardDeleted && it.getOrgId() == 7L
                 && it.getCardId() == 22L && it.getAffectedStats() as Set == ['FAILURES', 'HITS'] as Set })
     }
 

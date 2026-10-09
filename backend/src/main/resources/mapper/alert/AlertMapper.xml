@@ -7,7 +7,7 @@
 -->
 <mapper namespace="com.neocat.alert.infra.jdbc.AlertMapper">
 
-    <resultMap id="ruleRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertRuleRow">
+    <resultMap id="ruleRow" type="com.neocat.alert.infra.jdbc.AlertRuleRow">
         <id property="id" column="id"/>
         <result property="scope" column="scope"/>
         <result property="orgId" column="org_id"/>
@@ -30,18 +30,18 @@
         <result property="stateSince" column="state_since"/>
     </resultMap>
 
-    <resultMap id="conditionRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertConditionRow">
+    <resultMap id="conditionRow" type="com.neocat.alert.infra.jdbc.AlertConditionRow">
         <result property="stat" column="stat"/>
         <result property="comparator" column="comparator"/>
         <result property="threshold" column="threshold" javaType="java.math.BigDecimal" jdbcType="DECIMAL"/>
     </resultMap>
 
-    <resultMap id="recipientRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertRecipientRow">
+    <resultMap id="recipientRow" type="com.neocat.alert.infra.jdbc.AlertRecipientRow">
         <result property="accountId" column="account_id"/>
         <result property="channel" column="channel"/>
     </resultMap>
 
-    <resultMap id="windowPointRow" type="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertWindowPointRow">
+    <resultMap id="windowPointRow" type="com.neocat.alert.infra.jdbc.AlertWindowPointRow">
         <result property="pointMinute" column="point_minute"/>
         <result property="satisfied" column="satisfied"/>
     </resultMap>
@@ -69,7 +69,7 @@
         SELECT <include refid="ruleColumns"/> FROM nc_alert_rule WHERE org_id = #{orgId} ORDER BY id
     </select>
 
-    <insert id="insertRule" parameterType="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertRuleRow"
+    <insert id="insertRule" parameterType="com.neocat.alert.infra.jdbc.AlertRuleRow"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO nc_alert_rule (scope, org_id, name, description, target_kind, report_kind, target_service, target_type,
                                    target_name, target_metric_labels, formula_stats, target_stat, channels, target_card_id, combinator, window_points,
@@ -79,7 +79,7 @@
                 #{enabled}, #{invalid}, #{stateSince}, NOW(3))
     </insert>
 
-    <update id="updateRule" parameterType="com.neocat.alert.infra.jdbc.AlertRuleRepositoryAdapter$AlertRuleRow">
+    <update id="updateRule" parameterType="com.neocat.alert.infra.jdbc.AlertRuleRow">
         UPDATE nc_alert_rule
         SET scope           = #{scope},
             org_id          = #{orgId},

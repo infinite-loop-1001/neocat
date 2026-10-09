@@ -1,17 +1,19 @@
 package com.neocat.trace.api.http.convert;
 
 import com.google.common.collect.Lists;
-import com.neocat.trace.api.http.dto.TraceDtos.*;
-import com.neocat.trace.domain.tree.TraceAssembler;
+import com.neocat.trace.api.http.dto.*;
 import com.neocat.trace.domain.tree.TraceTreeNode;
 import com.neocat.trace.domain.tree.TraceNode;
-import java.util.List;
+import com.neocat.trace.api.http.dto.Node;
+import com.neocat.trace.api.http.dto.Span;
+import com.neocat.trace.api.http.dto.TraceResponse;
+import com.neocat.trace.domain.tree.AssemblyResult;
 
 public final class TraceConvert {
     private TraceConvert() {
     }
 
-    public static TraceResponse response(String messageId, TraceAssembler.AssemblyResult result) {
+    public static TraceResponse response(String messageId, AssemblyResult result) {
         return new TraceResponse(messageId, false, result.usable() ?
                 Lists.newArrayList(node(result.getRoot())) : Lists.newArrayList(),
                 result.usable() ? result.getRoot().countMissing() : 0,

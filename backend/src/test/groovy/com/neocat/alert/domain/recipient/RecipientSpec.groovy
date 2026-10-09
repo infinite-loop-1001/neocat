@@ -65,7 +65,7 @@ class RecipientSpec extends Specification {
         def unrelated = rule(2L, AlertScope.ORGANIZATION, 7L, [3L])
 
         when:
-        def changed = service.onEvent(new RecipientEvent.UserDisabled(1L))
+        def changed = service.onEvent(new UserDisabled(1L))
 
         then:
         1 * repository.findAll() >> [matching, unrelated]
@@ -76,7 +76,7 @@ class RecipientSpec extends Specification {
 
     def 'enabling a user does not silently restore any recipient relation'() {
         when:
-        def changed = service.onEvent(new RecipientEvent.UserEnabled(1L))
+        def changed = service.onEvent(new UserEnabled(1L))
 
         then:
         changed.isEmpty()
@@ -88,7 +88,7 @@ class RecipientSpec extends Specification {
         def matching = rule(1L, AlertScope.ORGANIZATION, 7L, [1L, 2L])
 
         when:
-        def changed = service.onEvent(new RecipientEvent.OrgMembershipChanged(1L, 7L, false))
+        def changed = service.onEvent(new OrgMembershipChanged(1L, 7L, false))
 
         then:
         1 * repository.byOrg(7L) >> [matching]
@@ -99,7 +99,7 @@ class RecipientSpec extends Specification {
 
     def 'gaining membership does not opt an account into notifications'() {
         when:
-        def changed = service.onEvent(new RecipientEvent.OrgMembershipChanged(1L, 7L, true))
+        def changed = service.onEvent(new OrgMembershipChanged(1L, 7L, true))
 
         then:
         changed.isEmpty()
@@ -143,7 +143,7 @@ class RecipientSpec extends Specification {
         def original = rule(4L, AlertScope.ORGANIZATION, 7L, [1L])
 
         when:
-        def changed = service.onEvent(new RecipientEvent.OrgDeleted(7L))
+        def changed = service.onEvent(new OrgDeleted(7L))
 
         then:
         1 * repository.byOrg(7L) >> [original]
@@ -154,7 +154,7 @@ class RecipientSpec extends Specification {
 
     def 'all recipient event types remain representable'() {
         expect:
-        RecipientEvent.declaredClasses*.simpleName as Set ==
+        RecipientEvent.permittedSubclasses*.simpleName as Set ==
                 ['UserDisabled', 'UserEnabled', 'OrgMembershipChanged', 'OrgDeleted'] as Set
     }
 }

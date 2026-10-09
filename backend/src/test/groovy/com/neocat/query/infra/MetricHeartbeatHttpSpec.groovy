@@ -37,6 +37,7 @@ import java.time.temporal.ChronoUnit
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import com.neocat.query.infra.datasource.BucketRow
 
 class MetricHeartbeatHttpSpec extends Specification {
     def cleanup() {
@@ -109,8 +110,8 @@ class MetricHeartbeatHttpSpec extends Specification {
         given:
         def query = Stub(ClickHouseReportQuery) {
             minuteRows(_,_,_,_,_,_,_) >> [
-                new ClickHouseReportQuery.BucketRow('order','METRIC','m','','all','','x=1;',time.plusSeconds(60),AggregationLevel.MINUTE,0,0,0,0,0,4d,2,new long[16],60,null,null),
-                new ClickHouseReportQuery.BucketRow('order','METRIC','m','','all','','x=2;',time.plusSeconds(120),AggregationLevel.MINUTE,0,0,0,0,0,8d,3,new long[16],60,null,null)
+                new BucketRow('order','METRIC','m','','all','','x=1;',time.plusSeconds(60),AggregationLevel.MINUTE,0,0,0,0,0,4d,2,new long[16],60,null,null),
+                new BucketRow('order','METRIC','m','','all','','x=2;',time.plusSeconds(120),AggregationLevel.MINUTE,0,0,0,0,0,8d,3,new long[16],60,null,null)
             ]
         }
         def port = new ClickHouseReportDataPort(query,new DefaultTimeBucketResolver(),{ZoneOffset.UTC})
@@ -127,8 +128,8 @@ class MetricHeartbeatHttpSpec extends Specification {
         given:
         def today = time.truncatedTo(ChronoUnit.DAYS)
         def key = SeriesKey.of('order',SeriesKind.HEARTBEAT,'jvm','heap-used','one')
-        def yesterday = new ClickHouseReportQuery.BucketRow('order','HEARTBEAT','jvm','heap-used','one','','',today.minusSeconds(86400),AggregationLevel.DAY,0,0,0,0,0,5d,1,new long[16],86400,5d,today.minusSeconds(5))
-        def earlier = new ClickHouseReportQuery.BucketRow('order','HEARTBEAT','jvm','heap-used','one','','',today,AggregationLevel.HOUR,0,0,0,0,0,10d,1,new long[16],3600,10d,today.plusSeconds(30))
+        def yesterday = new BucketRow('order','HEARTBEAT','jvm','heap-used','one','','',today.minusSeconds(86400),AggregationLevel.DAY,0,0,0,0,0,5d,1,new long[16],86400,5d,today.minusSeconds(5))
+        def earlier = new BucketRow('order','HEARTBEAT','jvm','heap-used','one','','',today,AggregationLevel.HOUR,0,0,0,0,0,10d,1,new long[16],3600,10d,today.plusSeconds(30))
         def query = Mock(ClickHouseReportQuery)
         def buckets = new DefaultTimeBucketResolver()
         def clock = Clock.fixed(time.plusSeconds(30),ZoneOffset.UTC)
@@ -151,7 +152,7 @@ class MetricHeartbeatHttpSpec extends Specification {
         def today = time.truncatedTo(ChronoUnit.DAYS)
         def query = Stub(ClickHouseReportQuery) {
             hourRows(_,_,_,_,_,_,_) >> [
-                new ClickHouseReportQuery.BucketRow('order','METRIC','m','','all','','city=上海;',time.minusSeconds(3600),AggregationLevel.HOUR,0,0,0,0,0,6d,2,new long[16],3600,null,null)
+                new BucketRow('order','METRIC','m','','all','','city=上海;',time.minusSeconds(3600),AggregationLevel.HOUR,0,0,0,0,0,6d,2,new long[16],3600,null,null)
             ]
         }
         TimeProvider.clock = Clock.fixed(time,ZoneOffset.UTC)

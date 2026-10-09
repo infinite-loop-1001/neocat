@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.sql.SQLException;
 import java.time.temporal.ChronoUnit;
 import javax.sql.DataSource;
+import com.neocat.analysis.domain.metric.Entry;
 
 /** Versioned snapshots: merge flags are monotone; never sum a re-written metadata snapshot. */
 public  class JdbcMetricMetadataPort implements MetricMetadataPort {
@@ -28,8 +29,8 @@ public  class JdbcMetricMetadataPort implements MetricMetadataPort {
         this.jdbc = new JdbcTemplate(source); this.json = json; this.memory = memory;
     }
     @Override
-    public List<MetricLabelMetadata.Entry> entries(String service, String metric, Instant from, Instant to) {
-        List<MetricLabelMetadata.Entry> result = new ArrayList<>(jdbc.query("""
+    public List<Entry> entries(String service, String metric, Instant from, Instant to) {
+        List<Entry> result = new ArrayList<>(jdbc.query("""
                 SELECT service, metric_name, hour, labels, source, any(labels_json) AS decoded_labels,
                        max(merged) AS is_merged, max(version) AS report_count
                 FROM neocat.nc_metric_label_metadata
@@ -39,7 +40,7 @@ public  class JdbcMetricMetadataPort implements MetricMetadataPort {
             Map<String, String> labels;
             try { labels = json.readValue(rs.getString("decoded_labels"), new TypeReference<Map<String, String>>() {}); }
             catch (Exception e) { throw new SQLException("Invalid persisted Metric label metadata", e); }
-            return new MetricLabelMetadata.Entry(rs.getString("service"), rs.getString("metric_name"),
+            return new Entry(rs.getString("service"), rs.getString("metric_name"),
                     rs.getTimestamp("hour").toInstant(), rs.getString("labels"), labels,
                     rs.getBoolean("is_merged"), rs.getLong("report_count"), rs.getString("source"));
         }, service, metric, Timestamp.from(to), Timestamp.from(from.truncatedTo(ChronoUnit.HOURS))));
@@ -61,13 +62,12 @@ public  class JdbcMetricMetadataPort implements MetricMetadataPort {
                 this.source = source;
             }
         }
-        Map<Key, MetricLabelMetadata.Entry> deduplicated = new LinkedHashMap<>();
+        Map<Key, Entry> deduplicated = new LinkedHashMap<>();
         for (var entry : result) {
             deduplicated.merge(new Key(entry.getHour(), entry.getCanonicalLabels(), entry.getSource()), entry, (a, b) ->
-                    new MetricLabelMetadata.Entry(a.getService(), a.getMetric(), a.getHour(), a.getCanonicalLabels(), a.getLabels(),
+                    new Entry(a.getService(), a.getMetric(), a.getHour(), a.getCanonicalLabels(), a.getLabels(),
                             a.isMerged() || b.isMerged(), Math.max(a.getVersion(), b.getVersion()), a.getSource()));
         }
         return List.copyOf(deduplicated.values());
     }
 }
-

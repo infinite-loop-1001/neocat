@@ -34,7 +34,7 @@ class AlertRuleRepositoryAdapterSpec extends Specification {
         given:
         def mapper = Mock(AlertMapper)
         def adapter = new AlertRuleRepositoryAdapter(mapper)
-        def row = new AlertRuleRepositoryAdapter.AlertRuleRow()
+        def row = new AlertRuleRow()
         row.id = 10L
         row.scope = 'SERVICE'
         row.name = 'threshold'
@@ -65,7 +65,7 @@ class AlertRuleRepositoryAdapterSpec extends Specification {
         given:
         def mapper = Mock(AlertMapper)
         def adapter = new AlertRuleRepositoryAdapter(mapper)
-        def row = new AlertRuleRepositoryAdapter.AlertRuleRow()
+        def row = new AlertRuleRow()
         row.id = 42L
         row.scope = 'ORGANIZATION'
         row.orgId = 7L
@@ -92,7 +92,7 @@ class AlertRuleRepositoryAdapterSpec extends Specification {
         given:
         def mapper = Mock(AlertMapper)
         def adapter = new AlertRuleRepositoryAdapter(mapper)
-        def row = new AlertRuleRepositoryAdapter.AlertRuleRow()
+        def row = new AlertRuleRow()
         row.id = 5L
         row.scope = 'SERVICE'
         row.name = 'threshold'
@@ -136,7 +136,7 @@ class AlertRuleRepositoryAdapterSpec extends Specification {
         given:
         def mapper = Mock(AlertMapper)
         def adapter = new AlertRuleRepositoryAdapter(mapper)
-        def row = new AlertRuleRepositoryAdapter.AlertRuleRow()
+        def row = new AlertRuleRow()
         row.id = 9L
         row.scope = 'ORGANIZATION'
         row.orgId = 7L

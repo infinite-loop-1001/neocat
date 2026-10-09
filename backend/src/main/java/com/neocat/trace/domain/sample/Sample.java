@@ -43,6 +43,3 @@ public class Sample {
         return !Objects.equals("0", status);
     }
 }
-
-
-

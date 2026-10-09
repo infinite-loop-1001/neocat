@@ -1,7 +1,5 @@
 package com.neocat.alert.infra.jdbc;
 
-import java.math.BigDecimal;
-
 import com.google.common.collect.Lists;
 import com.neocat.alert.domain.rule.AlertChannel;
 import com.neocat.alert.domain.rule.AlertRule;
@@ -15,7 +13,6 @@ import com.neocat.alert.domain.rule.Comparator;
 import com.neocat.alert.domain.rule.Condition;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.organization.api.internal.OrgResourceIndex;
-import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -210,95 +207,6 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
                 Objects.isNull(row.getStateSince()) ? null : row.getStateSince().toInstant().toEpochMilli());
     }
 
-    /**
-     * 规则行。
-     */
-    @Data
-    public static class AlertRuleRow {
-
-        private Long id;
-
-        private String scope;
-
-        private Long orgId;
-
-        private String name;
-
-        private String description;
-
-        private String targetKind;
-
-        private String reportKind;
-
-        private String targetService;
-
-        private String targetType;
-
-        private String targetName;
-
-        private String targetMetricLabels;
-
-        private String formulaStats;
-
-        private String targetStat;
-
-        private String channels;
-
-        private Long targetCardId;
-
-        private String combinator;
-
-        private int windowPoints;
-
-        private boolean enabled;
-
-        private boolean invalid;
-
-        private Timestamp stateSince;
-    }
-
-    /**
-     * 条件行。
-     */
-    @Data
-    public static class AlertConditionRow {
-
-        private String stat;
-
-        private String comparator;
-
-        private BigDecimal threshold;
-    }
-
-    /**
-     * 收件人行。
-     */
-    @Data
-
-    public static class AlertRecipientRow {
-
-        private long accountId;
-
-        private String channel;
-
-    }
-
-    /**
-     * 窗口点行。
-     */
-    @Data
-    public static class AlertWindowPointRow {
-
-        private Timestamp pointMinute;
-
-        private boolean satisfied;
-
-    }
 }
-
-
-
-
-
 
 

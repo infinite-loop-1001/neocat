@@ -11,11 +11,11 @@ import java.util.List;
 public interface PlatformMapper {
 
     /** 单行表（id = 1）。 */
-    PlatformRepositoryAdapter.PlatformRow selectProfile();
+    PlatformRow selectProfile();
 
-    int updateProfile(PlatformRepositoryAdapter.PlatformRow row);
+    void updateProfile(PlatformRow row);
 
-    List<PlatformRepositoryAdapter.ChannelRow> selectChannels();
+    List<ChannelRow> selectChannels();
 
-    int upsertChannel(PlatformRepositoryAdapter.ChannelRow row);
+    void upsertChannel(ChannelRow row);
 }

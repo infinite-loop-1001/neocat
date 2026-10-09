@@ -33,6 +33,13 @@ class NeoCatSdkSpec extends Specification {
 
     // ── 记录 API ─────────────────────────────────────────────
 
+    def "RemoteCallHandle 使用独立文件且旧嵌套类型不残留"() {
+        expect:
+        RemoteCallHandle.enclosingClass == null
+        RemoteCallHandle.classLoader.getResource('com/neocat/client/NeoCat$RemoteCallHandle.class') == null
+        NeoCat.getMethod('newRemoteCall', String, String, String).returnType == RemoteCallHandle
+    }
+
     def "newTransaction 完成时产生一棵含 TRANSACTION 节点的树"() {
         when:
         def tx = cat.newTransaction("URL", "POST /orders")

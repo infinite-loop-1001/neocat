@@ -21,7 +21,7 @@ class ClickHouseReportDataPortGranularitySpec extends Specification {
     static final Instant FROM = Instant.parse('2026-09-24T00:00:00Z')
 
     ClickHouseReportQuery query
-    List<ClickHouseReportQuery.BucketRow> minuteRows
+    List<BucketRow> minuteRows
     ClickHouseReportDataPort port
 
     def setup() {
@@ -40,9 +40,9 @@ class ClickHouseReportDataPortGranularitySpec extends Specification {
         return result
     }
 
-    static ClickHouseReportQuery.BucketRow minuteRow(long count, long durationSum, long[] distribution,
+    static BucketRow minuteRow(long count, long durationSum, long[] distribution,
                                                     Instant start) {
-        return new ClickHouseReportQuery.BucketRow(
+        return new BucketRow(
                 'order', 'TRANSACTION', 'URL', '/a', SeriesKey.ALL, '', '',
                 start, AggregationLevel.MINUTE,
                 count, 0L, durationSum, 100L, 100L, 0d, 0L, distribution, 60L)

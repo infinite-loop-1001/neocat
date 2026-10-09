@@ -1,7 +1,6 @@
 package com.neocat.organization.infra.projection;
 
 import com.neocat.organization.api.internal.OrgResourceIndex;
-import com.neocat.organization.domain.tree.DeletionPreview;
 import com.neocat.organization.domain.lifecycle.OrgDeletionRequested;
 import com.neocat.organization.domain.lifecycle.OrgResourceGateway;
 import org.springframework.context.ApplicationEventPublisher;
@@ -9,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import com.neocat.organization.domain.tree.DashboardSummary;
 
 /** Synchronous projection: reads never guess zero when persistence is unavailable. */
 @Component
@@ -100,14 +100,14 @@ public class OrgResourceProjection implements OrgResourceGateway, OrgResourceInd
     public boolean hasAlertRules(long orgId) { return count(orgId, "ALERT_RULE") > 0; }
 
     @Override
-    public List<DeletionPreview.DashboardSummary> dashboardsOf(long orgId) {
+    public List<DashboardSummary> dashboardsOf(long orgId) {
         long expected = count(orgId, "DASHBOARD");
         var dashboards = jdbc.query("""
                 SELECT r.resource_id, r.name, r.card_count
                 FROM nc_org_resource r
                 WHERE r.org_id = ? AND r.resource_kind = 'DASHBOARD'
                 ORDER BY r.resource_id
-                """, (rs, index) -> new DeletionPreview.DashboardSummary(
+                """, (rs, index) -> new DashboardSummary(
                 rs.getLong("resource_id"), rs.getString("name"), rs.getLong("card_count")), orgId);
         if (dashboards.size() != expected) {
             throw new IllegalStateException("Dashboard projection changed during preview: " + orgId);

@@ -2,7 +2,7 @@ package com.neocat.identity.api.http;
 
 import com.neocat.common.time.clock.TimeProvider;
 
-import com.neocat.identity.api.http.dto.IdentityDtos.*;
+import com.neocat.identity.api.http.dto.*;
 import com.neocat.identity.api.http.convert.IdentityConvert;
 
 import com.neocat.identity.domain.account.Account;
@@ -26,6 +26,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.neocat.identity.api.http.dto.ChangePasswordRequest;
+import com.neocat.identity.api.http.dto.CurrentUser;
+import com.neocat.identity.api.http.dto.LoginRequest;
+import com.neocat.identity.api.http.dto.LoginResponse;
+import com.neocat.identity.api.http.dto.Success;
 
 /**
  * 身份与会话接口（技术方案 03-api-contract.md §2）。
@@ -48,7 +53,6 @@ public class IdentityController {
     private final AccountService accounts;
 
     private final ServiceAvailability availability;
-
 
     public IdentityController(AuthenticationService authentication, AccountService accounts,
                               ServiceAvailability availability) {

@@ -2,7 +2,7 @@ package com.neocat.trace.api.http;
 
 import com.neocat.common.time.clock.TimeProvider;
 
-import com.neocat.trace.api.http.dto.TraceDtos.TraceResponse;
+import com.neocat.trace.api.http.dto.TraceResponse;
 import com.neocat.trace.api.http.convert.TraceConvert;
 
 import com.neocat.common.error.ErrorCode;
@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Duration;
 
 import org.springframework.context.annotation.DependsOn;
+import com.neocat.trace.domain.tree.AssemblyResult;
 
 /**
  * Trace 接口（技术方案 03-api-contract.md §4.9、02 §7）。
@@ -42,7 +43,6 @@ public class TraceController {
 
     private final TraceAssembler assembler;
 
-
     public TraceController(TraceAssembler assembler) {
         this.assembler = assembler;
     }
@@ -55,7 +55,7 @@ public class TraceController {
     @GetMapping("/{messageId}")
     public ResponseEntity<TraceResponse> trace(
             @Parameter(description = "上报消息 ID", required = true) @PathVariable String messageId) {
-        TraceAssembler.AssemblyResult result = assembler.assemble(
+        AssemblyResult result = assembler.assemble(
                 messageId, TimeProvider.now(), Duration.ofDays(TraceConfig.RETENTION_DAYS));
 
         if (result.isExpired()) {

@@ -2,7 +2,7 @@ package com.neocat.alert.api.http;
 
 import com.neocat.common.time.clock.TimeProvider;
 
-import com.neocat.alert.api.http.dto.AlertDtos.*;
+import com.neocat.alert.api.http.dto.*;
 import com.neocat.alert.api.http.convert.AlertConvert;
 import com.neocat.alert.domain.rule.*;
 import com.neocat.alert.domain.engine.NotificationDispatcher;
@@ -26,6 +26,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.collections4.ListUtils;
+import com.neocat.alert.api.http.dto.AlertDraft;
+import com.neocat.alert.api.http.dto.ChannelResponse;
+import com.neocat.alert.api.http.dto.PreviewResponse;
+import com.neocat.alert.api.http.dto.RuleResponse;
+import com.neocat.alert.api.http.dto.Success;
 
 /** 告警 HTTP 入口：保存自动关闭，预览不发送、不落历史、不改变窗口。 */
 @Tag(name = "告警规则", description = "告警规则维护、预览与启停用；一期无触发历史与确认")

@@ -14,6 +14,7 @@ import java.util.Objects;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
+import com.neocat.query.domain.stat.Merged;
 
 /**
  * 机器维度视图构建（PRD 03 §7.3、§10；技术方案 03 §4.3）。
@@ -31,6 +32,8 @@ import org.springframework.modulith.NamedInterface;
  */
 @NamedInterface("query")
 public class MachineViewBuilder {
+
+    static final String ALL = "all";
 
     public MachineView build(List<AggregatedRow> rows, Stat stat, int topN,
                              boolean mergeOther, List<String> selected, long coveredSeconds) {
@@ -87,7 +90,7 @@ public class MachineViewBuilder {
         List<AggregatedRow> machines = new ArrayList<>();
         for (AggregatedRow row : rows) {
             String instance = row.key().getInstance();
-            if (Objects.isNull(instance) || Objects.equals(SeriesKeyHelper.ALL, instance)) {
+            if (Objects.isNull(instance) || Objects.equals(ALL, instance)) {
                 continue;
             }
             machines.add(row);
@@ -96,7 +99,7 @@ public class MachineViewBuilder {
     }
 
     private MachineRow toMachineRow(AggregatedRow row, StatCalculator calculator, Stat stat, long coveredSeconds) {
-        StatCalculator.Merged merged = calculator.merge(List.of(row));
+        Merged merged = calculator.merge(List.of(row));
         return new MachineRow(
                 row.key().getInstance(),
                 merged.getCount(),
@@ -115,7 +118,7 @@ public class MachineViewBuilder {
      */
     private MachineRow toMergedRow(List<AggregatedRow> rest, StatCalculator calculator,
                                    Stat stat, long coveredSeconds) {
-        StatCalculator.Merged merged = calculator.merge(rest);
+        Merged merged = calculator.merge(rest);
         return new MachineRow(
                 MachineRow.OTHER,
                 merged.getCount(),
@@ -130,14 +133,7 @@ public class MachineViewBuilder {
         return calculator.compute(List.of(row), stat, coveredSeconds);
     }
 
-    private BigDecimal contributionOf(StatCalculator.Merged merged, Stat stat, long coveredSeconds) {
+    private BigDecimal contributionOf(Merged merged, Stat stat, long coveredSeconds) {
         return new StatCalculator().computeFrom(merged, stat, coveredSeconds);
-    }
-
-    /**
-     * 内部小工具：避免直接依赖 analysis 模块的常量名。
-     */
-    private static class SeriesKeyHelper {
-        static final String ALL = "all";
     }
 }

@@ -3,7 +3,6 @@ package com.neocat.query.domain.report
 import com.neocat.common.time.bucket.DefaultTimeBucketResolver
 import com.neocat.common.time.bucket.Granularity
 import com.neocat.common.time.range.RangeQuick
-import com.neocat.common.time.range.RangeSpec
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -12,6 +11,12 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import com.neocat.common.time.range.Day
+import com.neocat.common.time.range.Explicit
+import com.neocat.common.time.range.Hour
+import com.neocat.common.time.range.Month
+import com.neocat.common.time.range.QuickRange
+import com.neocat.common.time.range.Week
 
 /**
  * G8 任务47（红）：查询时间范围解析。
@@ -29,7 +34,7 @@ class TimeRangeSpec extends Specification {
         def hour = Instant.parse("2026-09-24T02:00:00Z")
 
         when:
-        def resolved = resolver.resolve(new RangeSpec.Hour(hour), SH)
+        def resolved = resolver.resolve(new Hour(hour), SH)
 
         then:
         resolved.getFrom() == hour
@@ -40,7 +45,7 @@ class TimeRangeSpec extends Specification {
 
     def "自然日范围解析出 144 个 10 分钟桶"() {
         when:
-        def resolved = resolver.resolve(new RangeSpec.Day(LocalDate.of(2026, 9, 24)), SH)
+        def resolved = resolver.resolve(new Day(LocalDate.of(2026, 9, 24)), SH)
 
         then:
         resolved.pointCount() == 144
@@ -49,7 +54,7 @@ class TimeRangeSpec extends Specification {
 
     def "自然周范围解析出 168 个 1 小时桶"() {
         when:
-        def resolved = resolver.resolve(new RangeSpec.Week(LocalDate.of(2026, 9, 24)), SH)
+        def resolved = resolver.resolve(new Week(LocalDate.of(2026, 9, 24)), SH)
 
         then:
         resolved.pointCount() == 168
@@ -58,7 +63,7 @@ class TimeRangeSpec extends Specification {
 
     def "自然月范围解析出当月天数的日桶"() {
         when:
-        def resolved = resolver.resolve(new RangeSpec.Month(YearMonth.of(2026, 9)), SH)
+        def resolved = resolver.resolve(new Month(YearMonth.of(2026, 9)), SH)
 
         then:
         resolved.pointCount() == 30
@@ -78,7 +83,7 @@ class TimeRangeSpec extends Specification {
         }
 
         when:
-        def resolved = resolver.resolve(new RangeSpec.QuickRange(quick, now), SH)
+        def resolved = resolver.resolve(new QuickRange(quick, now), SH)
 
         then:
         resolved.bucketSeconds() == granularity.seconds()
@@ -97,7 +102,7 @@ class TimeRangeSpec extends Specification {
         def now = Instant.parse("2026-09-24T04:23:41Z")
 
         when:
-        def resolved = resolver.resolve(new RangeSpec.QuickRange(RangeQuick.TODAY, now), SH)
+        def resolved = resolver.resolve(new QuickRange(RangeQuick.TODAY, now), SH)
 
         then:
         resolved.bucketSeconds() == 600
@@ -108,7 +113,7 @@ class TimeRangeSpec extends Specification {
         def now = Instant.parse("2026-09-24T04:23:41Z")
 
         when:
-        def resolved = resolver.resolve(new RangeSpec.QuickRange(RangeQuick.THIS_WEEK, now), SH)
+        def resolved = resolver.resolve(new QuickRange(RangeQuick.THIS_WEEK, now), SH)
 
         then:
         resolved.bucketSeconds() == 3600
@@ -119,7 +124,7 @@ class TimeRangeSpec extends Specification {
         def now = Instant.parse("2026-09-24T04:23:41Z")
 
         when:
-        def resolved = resolver.resolve(new RangeSpec.QuickRange(RangeQuick.RECENT_12H, now), SH)
+        def resolved = resolver.resolve(new QuickRange(RangeQuick.RECENT_12H, now), SH)
 
         then:
         resolved.bucketSeconds() == 20 * 60
@@ -131,7 +136,7 @@ class TimeRangeSpec extends Specification {
 
     def "周趋势为 1 小时/点（V2 修订项，而非 CAT 的 1 天/点）"() {
         when:
-        def resolved = resolver.resolve(new RangeSpec.Week(LocalDate.of(2026, 9, 24)), SH)
+        def resolved = resolver.resolve(new Week(LocalDate.of(2026, 9, 24)), SH)
 
         then:
         resolved.bucketSeconds() == 3600
@@ -143,7 +148,7 @@ class TimeRangeSpec extends Specification {
         def now = Instant.parse("2026-09-24T04:23:41Z")
 
         when:
-        def resolved = resolver.resolve(new RangeSpec.QuickRange(RangeQuick.RECENT_1H, now), SH)
+        def resolved = resolver.resolve(new QuickRange(RangeQuick.RECENT_1H, now), SH)
 
         then:
         resolved.getBuckets()[0].isPartial()
@@ -153,7 +158,7 @@ class TimeRangeSpec extends Specification {
 
     def "固定周期的桶全部为完整桶"() {
         when:
-        def resolved = resolver.resolve(new RangeSpec.Hour(Instant.parse("2026-09-24T02:00:00Z")), SH)
+        def resolved = resolver.resolve(new Hour(Instant.parse("2026-09-24T02:00:00Z")), SH)
 
         then:
         resolved.getBuckets().every { !it.isPartial() }
@@ -178,7 +183,7 @@ class TimeRangeSpec extends Specification {
     def "空范围返回空结果而不报错"() {
         when:
         def resolved = resolver.resolve(
-                new RangeSpec.Explicit(Instant.parse("2026-09-24T04:00:00Z"),
+                new Explicit(Instant.parse("2026-09-24T04:00:00Z"),
                         Instant.parse("2026-09-24T04:00:00Z"), Granularity.MINUTE_1), SH)
 
         then:
@@ -191,7 +196,7 @@ class TimeRangeSpec extends Specification {
         def hour = Instant.parse("2026-09-24T02:00:00Z")
 
         when:
-        def bucket = resolver.resolve(new RangeSpec.Hour(hour), SH).getBuckets()[0]
+        def bucket = resolver.resolve(new Hour(hour), SH).getBuckets()[0]
 
         then:
         bucket.contains(hour)

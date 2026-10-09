@@ -21,6 +21,11 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.springframework.modulith.NamedInterface;
+import com.neocat.dashboard.domain.formula.Aggregate;
+import com.neocat.dashboard.domain.formula.Binary;
+import com.neocat.dashboard.domain.formula.Constant;
+import com.neocat.dashboard.domain.formula.ParseOutcome;
+import com.neocat.dashboard.domain.formula.Ref;
 
 /**
  * 卡片求值器（PRD 05 §4、§5，技术方案 02 §9.2）。
@@ -89,7 +94,7 @@ public class CardEvaluator {
         if (!hasObject) {
             return INVALID_TARGET;
         }
-        FormulaParser.ParseOutcome parsed = new FormulaParser().parse(card.getFormula());
+        ParseOutcome parsed = new FormulaParser().parse(card.getFormula());
         if (!parsed.valid()) {
             return parsed.getError();
         }
@@ -99,17 +104,17 @@ public class CardEvaluator {
     // ── 内部求值 ─────────────────────────────────────────────
 
     private EvalResult eval(Formula formula, Map<Stat, BigDecimal> inputs) {
-        if (formula instanceof Formula.Constant constant) {
+        if (formula instanceof Constant constant) {
             return EvalResult.of(constant.getValue());
         }
-        if (formula instanceof Formula.Ref ref) {
+        if (formula instanceof Ref ref) {
             return EvalResult.of(inputs.get(ref.getStat()));
         }
-        if (formula instanceof Formula.Aggregate aggregate) {
+        if (formula instanceof Aggregate aggregate) {
             // 单桶内聚合退化为取值本身：卡片以桶为单位，聚合已由查询层完成
             return EvalResult.of(inputs.get(aggregate.getStat()));
         }
-        Formula.Binary binary = (Formula.Binary) formula;
+        Binary binary = (Binary) formula;
         EvalResult left = eval(binary.getLeft(), inputs);
         EvalResult right = eval(binary.getRight(), inputs);
 
@@ -157,7 +162,6 @@ public class CardEvaluator {
             this.computed = computed;
             this.divideByZero = divideByZero;
         }
-
 
         static EvalResult of(BigDecimal computed) {
             return new EvalResult(Objects.requireNonNull(computed, "computed"), false);

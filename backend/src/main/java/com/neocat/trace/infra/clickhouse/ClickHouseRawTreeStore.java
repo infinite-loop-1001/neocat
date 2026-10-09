@@ -27,15 +27,15 @@ public class ClickHouseRawTreeStore implements RawTreeStore {
 
     private final RawTreeQuery query;
 
-    private final RawTreeQuery.TreePayloadCodec codec;
+    private final TreePayloadCodec codec;
 
-    public ClickHouseRawTreeStore(RawTreeQuery query, RawTreeQuery.TreePayloadCodec codec) {
+    public ClickHouseRawTreeStore(RawTreeQuery query, TreePayloadCodec codec) {
         this.query = query;
         this.codec = codec;
     }
     @Override
     public void save(TraceTree tree) {
-        query.insertTree(new RawTreeQuery.TraceTreeRow(
+        query.insertTree(new TraceTreeRow(
                 tree.getServiceName(),
                 tree.getInstanceId(),
                 tree.getMessageId(),
@@ -45,7 +45,7 @@ public class ClickHouseRawTreeStore implements RawTreeStore {
                 tree.getFingerprint(),
                 codec.encode(tree.getNodes())));
 
-        query.insertRelation(new RawTreeQuery.TraceRelationRow(
+        query.insertRelation(new TraceRelationRow(
                 tree.getMessageId(),
                 tree.getRootMessageId(),
                 Objects.isNull(tree.getParentMessageId()) ? "" : tree.getParentMessageId(),
@@ -94,7 +94,7 @@ public class ClickHouseRawTreeStore implements RawTreeStore {
         // 只删树本体：关系索引保留，使「曾收到但过期」仍可被识别
         return new ArrayList<>(query.deleteTreesOlderThan(threshold));
     }
-    private TraceTree toDomain(RawTreeQuery.TraceTreeRow row) {
+    private TraceTree toDomain(TraceTreeRow row) {
         return new TraceTree(
                 row.getMessageId(),
                 row.getRootMessageId(),

@@ -39,7 +39,6 @@ public class CatalogController {
 
     private final CatalogService catalog;
 
-
     public CatalogController(CatalogService catalog) {
         this.catalog = catalog;
     }

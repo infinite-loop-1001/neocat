@@ -15,7 +15,7 @@ class DashboardRepositoryAdapterSpec extends Specification {
         def card = new Card(0L, 3L, 'order', 'METRIC', 'order.amount', '',
                 'city=上海;', ['10.0.0.8'], 'hits / hits', 'RECENT_1H', 0,
                 [new ThresholdLine(ThresholdDirection.ABOVE, 1.25d)])
-        def dash = new DashboardRepositoryAdapter.DashboardRow()
+        def dash = new DashboardRow()
         dash.id = 3L
         dash.orgId = 7L
 
@@ -39,7 +39,7 @@ class DashboardRepositoryAdapterSpec extends Specification {
         given:
         def mapper = Mock(DashboardMapper)
         def repository = new DashboardRepositoryAdapter(mapper)
-        def row = new DashboardRepositoryAdapter.CardRow()
+        def row = new CardRow()
         row.id = 12L
         row.dashboardId = 3L
         row.service = 'order'
@@ -55,7 +55,7 @@ class DashboardRepositoryAdapterSpec extends Specification {
 
         then:
         1 * mapper.selectCard(12L) >> row
-        1 * mapper.selectThresholdLines(12L) >> [new DashboardMapper.ThresholdLineRow('ABOVE', 1.25d)]
+        1 * mapper.selectThresholdLines(12L) >> [new ThresholdLineRow('ABOVE', 1.25d)]
         restored.getMetricLabels() == 'city=上海;'
         restored.getInstanceScope() == ['10.0.0.8']
         restored.getThresholdLines() == [new ThresholdLine(ThresholdDirection.ABOVE, 1.25d)]
@@ -66,10 +66,10 @@ class DashboardRepositoryAdapterSpec extends Specification {
         def mapper = Mock(DashboardMapper)
         def projection = Mock(OrgResourceIndex)
         def repository = new DashboardRepositoryAdapter(mapper, projection)
-        def dash = new DashboardRepositoryAdapter.DashboardRow()
+        def dash = new DashboardRow()
         dash.id = 3L
         dash.orgId = 7L
-        def card = new DashboardRepositoryAdapter.CardRow()
+        def card = new CardRow()
         card.id = 12L
 
         when:
@@ -88,7 +88,7 @@ class DashboardRepositoryAdapterSpec extends Specification {
         given:
         def mapper = Mock(DashboardMapper)
         def repository = new DashboardRepositoryAdapter(mapper)
-        def row = new DashboardRepositoryAdapter.CardRow()
+        def row = new CardRow()
         row.id = 12L
         row.dashboardId = 3L
         row.service = 'order'

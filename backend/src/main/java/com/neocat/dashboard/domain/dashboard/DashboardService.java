@@ -3,7 +3,6 @@ package com.neocat.dashboard.domain.dashboard;
 import com.google.common.collect.Lists;
 import com.neocat.dashboard.domain.access.OrgAccessGateway;
 import com.neocat.dashboard.domain.card.Card;
-import com.neocat.dashboard.domain.event.CardEvent;
 import com.neocat.dashboard.domain.event.CardEventPublisher;
 import com.neocat.dashboard.domain.formula.FormulaParser;
 
@@ -24,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.neocat.dashboard.domain.event.CardDeleted;
 
 /**
  * 大盘生命周期与权限用例（PRD 05 §1、§2、§10）。
@@ -120,7 +120,7 @@ public class DashboardService {
                 var parsed = parser.parse(card.getFormula());
                 List<String> stats = parsed.valid() ? parsed.getFormula().referencedStats().stream()
                         .map(Enum::name).distinct().toList() : Lists.newArrayList();
-                cardEvents.publish(new CardEvent.CardDeleted(card.getId(), dashboard.getId(), dashboard.getOrgId(),
+                cardEvents.publish(new CardDeleted(card.getId(), dashboard.getId(), dashboard.getOrgId(),
                         card.targetIdentity(), stats));
             }
         }

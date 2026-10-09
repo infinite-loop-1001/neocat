@@ -2,7 +2,6 @@ package com.neocat.query.infra.service;
 
 import com.neocat.common.time.clock.TimeProvider;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.neocat.common.error.*;
@@ -15,8 +14,9 @@ import com.neocat.query.infra.port.*;
 import java.time.*;
 import java.util.*;
 import java.util.function.Supplier;
-import com.neocat.analysis.domain.metric.MetricLabelMetadata;
 import org.springframework.stereotype.Service;
+import com.neocat.analysis.domain.metric.Entry;
+import com.neocat.query.domain.report.ResolvedRange;
 
 @Service
 public class MetricCountQueryService {
@@ -28,7 +28,6 @@ public class MetricCountQueryService {
 
     private final Supplier<ZoneId> zone;
 
-
     private final ObjectMapper json;
 
     public MetricCountQueryService(ReportDataPort data, MetricMetadataPort metadata, TimeBucketResolver buckets,
@@ -39,7 +38,7 @@ public class MetricCountQueryService {
         this.zone = zone;
         this.json = json;
     }
-    private RangeResolver.ResolvedRange range(String raw) {
+    private ResolvedRange range(String raw) {
         return ranges.resolve(RangeParams.parse(raw, TimeProvider.now()), zone.get());
     }
     public List<Map<String, String>> metrics(String service, String range) {
@@ -68,7 +67,7 @@ public class MetricCountQueryService {
         // One level per source interval; preserves label identity and never sums multiple rollup levels.
         var rows = data.metricSourceRows(service, metric, window.getFrom(), window.getTo(),
                 Granularity.fromSeconds(window.bucketSeconds()));
-        var entries = conditions.total() ? Lists.<MetricLabelMetadata.Entry>newArrayList()
+        var entries = conditions.total() ? Lists.<Entry>newArrayList()
                 : metadata.entries(service, metric, window.getFrom(), window.getTo());
         Instant now = TimeProvider.now();
         var points = new MetricCountService().points(rows, entries, window.getBuckets(), conditions, now,
@@ -76,7 +75,7 @@ public class MetricCountQueryService {
                         bucket.getEnd().isAfter(now) ? now : bucket.getEnd()));
         return Map.of("metric", metric, "bucketSeconds", window.bucketSeconds(), "points", points);
     }
-    private void requireMetric(String service, String metric, RangeResolver.ResolvedRange window) {
+    private void requireMetric(String service, String metric, ResolvedRange window) {
         if (!data.typesOf("METRIC", service, window.getFrom(), window.getTo()).contains(metric))
             throw new ResourceNotFoundException(ErrorCode.NOT_FOUND, "Metric " + metric);
     }

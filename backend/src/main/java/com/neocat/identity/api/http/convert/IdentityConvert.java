@@ -1,9 +1,14 @@
 package com.neocat.identity.api.http.convert;
 
-import com.neocat.identity.api.http.dto.IdentityDtos.*;
+import com.neocat.identity.api.http.dto.*;
 import com.neocat.identity.domain.account.Account;
 import com.neocat.identity.domain.auth.LoginResult;
 import com.neocat.identity.domain.auth.LoginTarget;
+import com.neocat.identity.api.http.dto.CurrentUser;
+import com.neocat.identity.api.http.dto.Entry;
+import com.neocat.identity.api.http.dto.LoginResponse;
+import com.neocat.identity.api.http.dto.UserResponse;
+import com.neocat.identity.api.http.dto.UserSummary;
 
 public final class IdentityConvert {
     private IdentityConvert() {

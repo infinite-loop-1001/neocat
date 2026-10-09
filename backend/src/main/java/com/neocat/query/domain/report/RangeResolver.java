@@ -5,14 +5,15 @@ import com.neocat.common.time.bucket.Bucket;
 import com.neocat.common.time.bucket.Granularity;
 import com.neocat.common.time.range.RangeSpec;
 import com.neocat.common.time.bucket.TimeBucketResolver;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+
 import org.apache.commons.collections4.CollectionUtils;
+
 import java.time.Duration;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
+
 import org.springframework.modulith.NamedInterface;
 
 /**
@@ -30,39 +31,7 @@ public class RangeResolver {
     public RangeResolver(TimeBucketResolver buckets) {
         this.buckets = buckets;
     }
-    /**
-     * 解析结果。
-     *
-     * @param from    查询起点（含）
-     * @param to      查询终点（不含）
-     * @param buckets 桶序列
-     */
-    @NamedInterface("query")
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    public static class ResolvedRange {
-        private final Instant from;
 
-        private final Instant to;
-
-        private final List<Bucket> buckets;
-
-        public ResolvedRange(Instant from, Instant to, List<Bucket> buckets) {
-            this.from = from;
-            this.to = to;
-            this.buckets = buckets;
-        }
-
-
-        public long bucketSeconds() {
-            return CollectionUtils.isEmpty(buckets) ? 0 : buckets.get(0).totalSeconds();
-        }
-
-        public int pointCount() {
-            return buckets.size();
-        }
-    }
     public ResolvedRange resolve(RangeSpec spec, ZoneId zone) {
         List<Bucket> parsed = buckets.resolve(spec, zone);
         if (CollectionUtils.isEmpty(parsed)) {
@@ -72,6 +41,7 @@ public class RangeResolver {
         Instant to = parsed.get(parsed.size() - 1).getEnd();
         return new ResolvedRange(from, to, parsed);
     }
+
     /**
      * 按范围长度推导默认粒度（用于显式 from/to 且未指定粒度的情况）。
      *

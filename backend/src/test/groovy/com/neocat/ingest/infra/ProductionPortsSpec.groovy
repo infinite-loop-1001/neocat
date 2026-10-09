@@ -1,6 +1,5 @@
 package com.neocat.ingest.infra
 
-
 import com.neocat.ingest.domain.receive.QualityType
 import com.neocat.trace.api.internal.StoredFingerprint
 import com.neocat.trace.domain.tree.RawTreeStore

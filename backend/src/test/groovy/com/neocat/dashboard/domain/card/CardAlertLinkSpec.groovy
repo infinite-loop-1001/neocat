@@ -3,7 +3,6 @@ package com.neocat.dashboard.domain.card
 import com.neocat.dashboard.domain.access.OrgAccessGateway
 import com.neocat.dashboard.domain.dashboard.Dashboard
 import com.neocat.dashboard.domain.dashboard.DashboardRepository
-import com.neocat.dashboard.domain.event.CardEvent
 import com.neocat.dashboard.domain.event.CardEventPublisher
 
 import com.neocat.common.error.NeocatException
@@ -11,6 +10,8 @@ import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 
 import static com.neocat.common.error.ErrorCode.*
+import com.neocat.dashboard.domain.event.CardDeleted
+import com.neocat.dashboard.domain.event.CardTargetChanged
 
 class CardAlertLinkSpec extends Specification {
     DashboardRepository repository = Mock()
@@ -69,7 +70,7 @@ class CardAlertLinkSpec extends Specification {
         2 * repository.findById(3L) >> dashboard()
         1 * access.isEffectiveMember(100L, 7L) >> true
         1 * repository.saveCard({ it.getFormula() == 'tp99 - avgDuration' }) >> card(12L, 'tp99 - avgDuration')
-        1 * events.publish({ it instanceof CardEvent.CardTargetChanged && it.getCardId() == 12L
+        1 * events.publish({ it instanceof CardTargetChanged && it.getCardId() == 12L
                 && it.getAffectedStats() as Set == ['TP99', 'AVG'] as Set })
         updated.getFormula() == 'tp99 - avgDuration'
     }
@@ -99,7 +100,7 @@ class CardAlertLinkSpec extends Specification {
         2 * repository.findById(3L) >> dashboard()
         1 * access.isEffectiveMember(100L, 7L) >> true
         1 * repository.deleteCard(12L)
-        1 * events.publish({ it instanceof CardEvent.CardDeleted && it.getOrgId() == 7L
+        1 * events.publish({ it instanceof CardDeleted && it.getOrgId() == 7L
                 && it.getRemovedTargetIdentity() == card().targetIdentity()
                 && it.getAffectedStats() as Set == ['FAILURES', 'HITS'] as Set })
     }

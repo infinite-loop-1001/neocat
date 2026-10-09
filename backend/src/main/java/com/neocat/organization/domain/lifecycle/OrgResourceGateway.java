@@ -1,9 +1,8 @@
 package com.neocat.organization.domain.lifecycle;
 
-import com.neocat.organization.domain.tree.DeletionPreview;
-
 import java.util.List;
 import org.springframework.modulith.NamedInterface;
+import com.neocat.organization.domain.tree.DashboardSummary;
 
 /**
  * 组织资源归属查询（大盘、组织告警）。
@@ -31,7 +30,7 @@ public interface OrgResourceGateway {
      *
      * <p>按创建顺序返回，使预览展示稳定。
      */
-    List<DeletionPreview.DashboardSummary> dashboardsOf(long orgId);
+    List<DashboardSummary> dashboardsOf(long orgId);
 
     /** 该叶子的组织告警规则数。 */
     long alertRuleCount(long orgId);

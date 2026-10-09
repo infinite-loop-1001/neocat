@@ -7,7 +7,7 @@ import java.sql.Timestamp;
 
 @Mapper
 public interface SessionMapper {
-    SessionRepositoryAdapter.SessionRow selectById(@Param("id") String id);
+    SessionRow selectById(@Param("id") String id);
 
     int insert(@Param("id") String id, @Param("accountId") long accountId,
                @Param("at") Timestamp at, @Param("expiresAt") Timestamp expiresAt);

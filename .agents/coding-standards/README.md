@@ -20,6 +20,8 @@
 
 13. 对外 HTTP 接口必须用 SpringDoc + OpenAPI 3 注解声明文档：Controller 有 `@Tag`、每个端点有 `@Operation`、DTO 有 `@Schema`；只生成 `/v3/api-docs`，不引入 Swagger UI。详见 [http-api.md](http-api.md)。
 
+14. 手写生产代码的具名类型按「一种类型一个文件」组织，类、接口、枚举均使用与类型同名的独立文件，不以容器类集中声明 DTO、领域事件、值对象或持久化模型。私有辅助类、`NeoCat.Builder`、生成代码、匿名类和测试夹具除外。详见 [java.md](java.md)。
+
 ## 建议
 
 1. Spring Bean 使用构造函数注入；实例运行时字段初始化放进构造函数。自有组件优先 `@Service` / `@Component`，不为简单构造专设 Wiring。
@@ -32,7 +34,7 @@
 ## 自动回归
 
 仓库根运行 `node scripts/check-coding-standards.mjs`（需要 JDK 17+）：源码禁用项、
-JDK 语法树解析成员间距/重复 key/Optional 返回声明/null 比较/容器判空组合与 `size()` 比较、空 JDK 容器工厂、`subList()`、生产时间入口、分钟点毫秒取整和领域配置归属、接口文档注解（`@Tag`/`@Operation`/`@Schema`）、两个 POM 的 `-parameters`。
+JDK 语法树解析成员间距/重复 key/Optional 返回声明/null 比较/容器判空组合与 `size()` 比较、空 JDK 容器工厂、`subList()`、生产时间入口、分钟点毫秒取整和领域配置归属、接口文档注解（`@Tag`/`@Operation`/`@Schema`）、一种类型一个文件（含约定例外）、两个 POM 的 `-parameters`。
 扫描 backend、client-java 的 src 与 scripts 中的手写 Java，不扫描 `target` 生成代码。
 类型引用规则额外覆盖手写 Groovy；可单独运行 `node scripts/check-type-imports.mjs`。
 脚本自身规格：`node --test scripts/check-coding-standards.test.mjs scripts/type-imports.test.mjs`。

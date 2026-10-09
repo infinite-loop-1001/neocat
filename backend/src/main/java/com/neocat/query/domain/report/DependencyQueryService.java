@@ -17,10 +17,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.commons.collections4.CollectionUtils;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
 import org.springframework.modulith.NamedInterface;
+import com.neocat.query.domain.stat.Merged;
 
 /**
  * 依赖查询（PRD 04 §6、§8，链路 22）。
@@ -34,40 +32,6 @@ import org.springframework.modulith.NamedInterface;
  */
 @NamedInterface("query")
 public class DependencyQueryService {
-
-    /**
-     * 依赖列表行。
-     */
-    @NamedInterface("query")
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    public static class DependencyRow {
-        private final String peerService;
-
-        private final long calls;
-
-        private final long failures;
-
-        private final BigDecimal failureRate;
-
-        private final BigDecimal avgDuration;
-
-        private final BigDecimal tp99;
-
-        private final String sampleMessageId;
-
-        public DependencyRow(String peerService, long calls, long failures, BigDecimal failureRate, BigDecimal avgDuration, BigDecimal tp99, String sampleMessageId) {
-            this.peerService = peerService;
-            this.calls = calls;
-            this.failures = failures;
-            this.failureRate = failureRate;
-            this.avgDuration = avgDuration;
-            this.tp99 = tp99;
-            this.sampleMessageId = sampleMessageId;
-        }
-
-    }
 
     private final PercentileMerger percentiles;
 
@@ -99,7 +63,7 @@ public class DependencyQueryService {
         StatCalculator calculator = new StatCalculator();
         List<DependencyRow> result = new ArrayList<>();
         grouped.forEach((peer, group) -> {
-            StatCalculator.Merged merged = calculator.merge(group);
+            Merged merged = calculator.merge(group);
             BigDecimal avg = calculator.computeFrom(merged, Stat.AVG, coveredSeconds);
             BigDecimal rate = calculator.computeFrom(merged, Stat.FAILURE_RATE, coveredSeconds);
             BigDecimal tp99 = percentiles.percentile(group, Stat.TP99.percentileFraction());

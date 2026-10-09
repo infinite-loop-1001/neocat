@@ -11,14 +11,13 @@ import com.neocat.ingest.domain.validation.TreeValidator;
 import com.neocat.ingest.domain.validation.ValidationOutcome;
 import com.neocat.common.queue.BoundedDropQueue;
 import com.neocat.common.error.ErrorCode;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.function.Supplier;
 import java.util.Objects;
+
 import org.apache.commons.collections4.CollectionUtils;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
@@ -63,7 +62,6 @@ public class IngestService {
 
     private final QualityEventSink quality;
 
-
     private final Supplier<ZoneId> zone;
 
     public IngestService(TreeValidator validator,
@@ -83,6 +81,7 @@ public class IngestService {
         this.quality = quality;
         this.zone = zone;
     }
+
     /**
      * 接收一个上报批次。
      *
@@ -169,31 +168,8 @@ public class IngestService {
         }
         return IngestResult.duplicate(duplicate);
     }
+
     public QueueStats queueStats() {
         return new QueueStats(queue.size(), queue.capacity(), queue.droppedCount(), queue.watermark());
-    }
-    /**
-     * 队列观测数据（技术方案 01 §6）。
-     */
-    @NamedInterface("tree")
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    public static class QueueStats {
-        private final int size;
-
-        private final int capacity;
-
-        private final long droppedTotal;
-
-        private final double watermark;
-
-        public QueueStats(int size, int capacity, long droppedTotal, double watermark) {
-            this.size = size;
-            this.capacity = capacity;
-            this.droppedTotal = droppedTotal;
-            this.watermark = watermark;
-        }
-
     }
 }

@@ -27,26 +27,31 @@ public class AccountRepositoryAdapter implements AccountRepository {
     public AccountRepositoryAdapter(AccountMapper mapper) {
         this.mapper = mapper;
     }
+
     @Override
     public Account findById(long id) {
         var row = mapper.selectById(id);
         return Objects.isNull(row) ? null : toDomain(row);
     }
+
     @Override
     public Account findByUsername(String username) {
         var row = mapper.selectByUsername(username);
         return Objects.isNull(row) ? null : toDomain(row);
     }
+
     @Override
     public List<Account> findAll() {
-        return mapper.selectAll().stream().map(AccountRepositoryAdapter::toDomain).toList();
+        return mapper.selectAll().stream().map(this::toDomain).toList();
     }
+
     @Override
     public Account save(Account account) {
         AccountRow row = toRow(account);
         mapper.update(row);
         return account;
     }
+
     @Override
     public Account create(String username, String passwordHash, Role role,
                           boolean mustChangePassword, Instant at) {
@@ -62,89 +67,7 @@ public class AccountRepositoryAdapter implements AccountRepository {
 
     // ── 行记录 ───────────────────────────────────────────────
 
-    /** 数据库行映射（字段名与 nc_account 列一致）。 */
-    public static class AccountRow {
-        private Long id;
-
-        private String username;
-
-        private String passwordHash;
-
-        private String role;
-
-        private String status;
-
-        private boolean mustChangePassword;
-
-        private Instant createdAt;
-
-        private Instant updatedAt;
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPasswordHash() {
-            return passwordHash;
-        }
-
-        public void setPasswordHash(String passwordHash) {
-            this.passwordHash = passwordHash;
-        }
-
-        public String getRole() {
-            return role;
-        }
-
-        public void setRole(String role) {
-            this.role = role;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public boolean isMustChangePassword() {
-            return mustChangePassword;
-        }
-
-        public void setMustChangePassword(boolean mustChangePassword) {
-            this.mustChangePassword = mustChangePassword;
-        }
-
-        public Instant getCreatedAt() {
-            return createdAt;
-        }
-
-        public void setCreatedAt(Instant createdAt) {
-            this.createdAt = createdAt;
-        }
-
-        public Instant getUpdatedAt() {
-            return updatedAt;
-        }
-
-        public void setUpdatedAt(Instant updatedAt) {
-            this.updatedAt = updatedAt;
-        }
-    }
-    private static Account toDomain(AccountRow row) {
+    private Account toDomain(AccountRow row) {
         return new Account(
                 row.getId(),
                 row.getUsername(),
@@ -154,7 +77,8 @@ public class AccountRepositoryAdapter implements AccountRepository {
                 row.isMustChangePassword(),
                 Objects.isNull(row.getCreatedAt()) ? Instant.EPOCH : row.getCreatedAt());
     }
-    private static AccountRow toRow(Account account) {
+
+    private AccountRow toRow(Account account) {
         AccountRow row = new AccountRow();
         row.setId(account.getId());
         row.setUsername(account.getUsername());

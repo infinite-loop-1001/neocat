@@ -18,6 +18,8 @@ import com.neocat.trace.domain.tree.NodeAvailability
 import spock.lang.Specification
 
 import java.time.Instant
+import com.neocat.alert.domain.engine.PointEvaluation
+import com.neocat.organization.domain.tree.DashboardSummary
 
 /**
  * 字段级契约规格（成功标准 2 的支撑）。
@@ -87,8 +89,8 @@ class FieldLevelContractSpec extends Specification {
         given: "技术方案 03-api-contract.md §3 的契约：{ orgName, dashboards:[{id,name,cardCount}], alertRuleCount, memberCount }"
         def nodes = Stub(OrgNodeRepository) { findById(7L) >> new OrgNode(7L, '支付组', null) }
         def resources = Stub(OrgResourceGateway) {
-            dashboardsOf(7L) >> [new DeletionPreview.DashboardSummary(1L, '大盘 A', 3L),
-                                 new DeletionPreview.DashboardSummary(2L, '大盘 B', 3L)]
+            dashboardsOf(7L) >> [new DashboardSummary(1L, '大盘 A', 3L),
+                                 new DashboardSummary(2L, '大盘 B', 3L)]
             alertRuleCount(7L) >> 1L
         }
         def effectiveLeaves = Stub(EffectiveLeafRepository) { membersOf(7L) >> ([] as Set) }
@@ -117,7 +119,7 @@ class FieldLevelContractSpec extends Specification {
         def memberships = Stub(MembershipRepository)
         def effectiveLeaves = Stub(EffectiveLeafRepository) { membersOf(7L) >> ([] as Set) }
         def resources = Stub(OrgResourceGateway) {
-            dashboardsOf(7L) >> (1L..3L).collect { new DeletionPreview.DashboardSummary(it, "大盘 $it", 4L) }
+            dashboardsOf(7L) >> (1L..3L).collect { new DashboardSummary(it, "大盘 $it", 4L) }
         }
         def orgId = 7L
         def service = new OrgLifecycleService(nodes, resources, memberships, effectiveLeaves)
@@ -206,7 +208,7 @@ class FieldLevelContractSpec extends Specification {
     def "预告警返回三态结果与逐点明细"() {
         given: "前端提示「数据不足（缺数不当 0）」依赖 known=false"
         def result = PreviewResult.insufficient([
-                new PreviewResult.PointEvaluation(1_000L, false, false, "hits")])
+                new PointEvaluation(1_000L, false, false, "hits")])
 
         expect:
         result.getResult() == PreviewResultType.INSUFFICIENT_DATA

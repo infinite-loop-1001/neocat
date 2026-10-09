@@ -35,7 +35,7 @@ class SessionRepositoryAdapterSpec extends Specification {
 
     def '会话在过期边界不可用'() {
         given:
-        def row = new SessionRepositoryAdapter.SessionRow()
+        def row = new SessionRow()
         row.id = 'sid'
         row.accountId = 1L
         row.expiresAt = Timestamp.from(NOW)

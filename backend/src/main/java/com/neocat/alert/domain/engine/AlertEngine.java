@@ -9,9 +9,6 @@ import com.neocat.alert.domain.rule.AlertRule;
 import com.neocat.alert.domain.rule.Combinator;
 import com.neocat.alert.domain.rule.Condition;
 import com.neocat.query.domain.stat.Stat;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
@@ -198,26 +195,4 @@ public class AlertEngine {
         return List.copyOf(sent);
     }
 
-    /**
-     * 一次分钟判定的结果。
-     */
-    // fixme: 单独抽成一个值对象
-    @NamedInterface("alert")
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    public static class EvaluationResult {
-        private final boolean triggered;
-
-        private final List<AlertNotification> notifications;
-
-        private final AlertWindowState state;
-
-        public EvaluationResult(boolean triggered, List<AlertNotification> notifications, AlertWindowState state) {
-            this.triggered = triggered;
-            this.notifications = notifications;
-            this.state = state;
-        }
-
-    }
 }

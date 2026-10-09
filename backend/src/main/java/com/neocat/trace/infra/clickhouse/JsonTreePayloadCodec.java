@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  * 不应让整个 Trace 组装失败（PRD 02 §10）。
  */
 @Component
-public class JsonTreePayloadCodec implements RawTreeQuery.TreePayloadCodec {
+public class JsonTreePayloadCodec implements TreePayloadCodec {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

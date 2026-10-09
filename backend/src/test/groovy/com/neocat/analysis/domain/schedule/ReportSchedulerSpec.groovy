@@ -161,7 +161,7 @@ class ReportSchedulerSpec extends Specification {
         1 * sink.evictMinuteBucketsBefore(sh(2026, 8, 25, 2, 0)) >> 3L
         1 * sink.evictHourBucketsBefore(sh(2026, 8, 25, 2, 0)) >> 2L
         1 * sink.evictLongTermBucketsBefore(sh(2025, 8, 24, 2, 0)) >> 1L
-        result == new ReportScheduler.EvictionResult(3L, 2L, 1L)
+        result == new EvictionResult(3L, 2L, 1L)
     }
 
     def 'retention policy can be changed without rebuilding scheduler'() {

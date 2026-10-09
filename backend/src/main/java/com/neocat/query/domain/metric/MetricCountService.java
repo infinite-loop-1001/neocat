@@ -14,11 +14,12 @@ import java.util.Objects;
 import java.time.temporal.ChronoUnit;
 import java.util.function.Predicate;
 import org.springframework.modulith.NamedInterface;
+import com.neocat.analysis.domain.metric.Entry;
 
 /** Exact counts from observation rows, preserving identity and uncertainty across source hours. */
 @NamedInterface("query")
 public class MetricCountService {
-    public List<Map<String, Object>> points(List<AggregatedRow> rows, List<MetricLabelMetadata.Entry> metadata,
+    public List<Map<String, Object>> points(List<AggregatedRow> rows, List<Entry> metadata,
                                           List<Bucket> buckets, MetricFilters filters, Instant now,
                                           Predicate<Bucket> dropped) {
         List<Map<String, Object>> result = new ArrayList<>();
@@ -40,7 +41,7 @@ public class MetricCountService {
                 if (Objects.equals(SeriesKey.OTHER_LABELS, row.key().getMetricLabels())) {
                     // A metadata flush can lag behind the bucket flush. Do not interpret
                     // an incomplete list of merged combinations as exhaustive ownership.
-                    long recordedMerged = entries.stream().filter(MetricLabelMetadata.Entry::isMerged).mapToLong(MetricLabelMetadata.Entry::getVersion).sum();
+                    long recordedMerged = entries.stream().filter(Entry::isMerged).mapToLong(Entry::getVersion).sum();
                     if (recordedMerged < row.valueCount()
                             || entries.stream().anyMatch(e -> e.isMerged() && filters.matches(e.getLabels()))) unknown = true;
                 } else {

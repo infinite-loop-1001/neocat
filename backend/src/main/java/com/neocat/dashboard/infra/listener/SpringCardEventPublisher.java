@@ -5,6 +5,8 @@ import com.neocat.dashboard.domain.event.CardEventPublisher;
 import com.neocat.dashboard.api.internal.CardChange;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import com.neocat.dashboard.domain.event.CardDeleted;
+import com.neocat.dashboard.domain.event.CardTargetChanged;
 
 @Component
 public class SpringCardEventPublisher implements CardEventPublisher {
@@ -16,11 +18,11 @@ public class SpringCardEventPublisher implements CardEventPublisher {
     @Override
     public void publish(CardEvent event) {
         publisher.publishEvent(event);
-        if (event instanceof CardEvent.CardTargetChanged changed) {
+        if (event instanceof CardTargetChanged changed) {
             publisher.publishEvent(new CardChange(changed.getCardId(), changed.getOrgId(), changed.getService(),
                     changed.getTargetKind(), changed.getTargetType(), changed.getTargetName(), changed.getMetricLabels(),
                     changed.getNewFormula(), changed.getAffectedStats(), false));
-        } else if (event instanceof CardEvent.CardDeleted deleted) {
+        } else if (event instanceof CardDeleted deleted) {
             // The removed target identity is the same five-part identity used by Card.targetIdentity().
             String[] parts = deleted.getRemovedTargetIdentity().split("\\|", -1);
             if (parts.length != 5) {

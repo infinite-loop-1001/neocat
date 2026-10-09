@@ -15,7 +15,7 @@
 | 全部对外端点 | `@Operation(summary, description, operationId)` |
 | 匿名端点 | `@SecurityRequirements`（登录、初始化状态、初始化） |
 | 路径/查询参数 | `@Parameter` |
-| 10 个 HTTP DTO 文件 | 类级 `@Schema(description)` + 关键字段 `@Schema`（可空、枚举、单位、精度） |
+| HTTP DTO（本次文档落地时 10 个文件；后续独立类型迁移后 67 个文件） | 类级 `@Schema(description)` + 关键字段 `@Schema`（可空、枚举、单位、精度） |
 | 错误响应 | `@ApiResponse`，只标注该端点真实适用的状态码 |
 
 `@RequestBody` 等仍是 Spring 绑定注解；Protobuf 端点用 `@Content(mediaType = "application/x-protobuf")` 声明二进制请求与响应，媒体类型与报文体不变。
@@ -44,3 +44,5 @@
 | `git diff --check` | 通过 |
 
 后端 10 个既有失败未顺带修复；真实 MySQL / ClickHouse / Apollo 装配与文档入口的部署访问控制在现场未验收。
+
+后续「一种类型一个文件」迁移保持全部 64 个拆出 DTO 的显式 schema 名不变；最新验证见 [standalone-types-verification.md](standalone-types-verification.md)。上表测试数量为本轮接口文档落地时的历史证据。

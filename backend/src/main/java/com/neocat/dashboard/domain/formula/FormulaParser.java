@@ -9,9 +9,6 @@ import java.util.Objects;
 import java.math.BigDecimal;
 
 import com.neocat.common.error.ErrorCode;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
 import org.springframework.modulith.NamedInterface;
 
 /**
@@ -37,37 +34,6 @@ public class FormulaParser {
     public static final String FORMULA_INVALID = ErrorCode.FORMULA_INVALID.name();
 
     public static final String UNIT_MISMATCH = ErrorCode.UNIT_MISMATCH.name();
-
-    /**
-     * 解析结果。
-     */
-    @NamedInterface("dashboard")
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    public static class ParseOutcome {
-        private final Formula formula;
-
-        private final String error;
-
-        public ParseOutcome(Formula formula, String error) {
-            this.formula = formula;
-            this.error = error;
-        }
-
-
-        public boolean valid() {
-            return Objects.nonNull(formula) && Objects.isNull(error);
-        }
-
-        public static ParseOutcome ok(Formula formula) {
-            return new ParseOutcome(formula, null);
-        }
-
-        public static ParseOutcome fail(String error) {
-            return new ParseOutcome(null, error);
-        }
-    }
 
     public ParseOutcome parse(String expression) {
         if (Objects.isNull(expression) || expression.isBlank()) {
@@ -110,7 +76,7 @@ public class FormulaParser {
         while (cursor.accept("+") || cursor.accept("-")) {
             String op = cursor.previous();
             Formula right = parseTerm(cursor);
-            Formula.Binary binary = new Formula.Binary(
+            Binary binary = new Binary(
                     Objects.equals("+", op) ? FormulaOperator.ADD : FormulaOperator.SUBTRACT, left, right);
             requireAdditiveCompatibility(binary);
             left = binary;
@@ -123,7 +89,7 @@ public class FormulaParser {
         while (cursor.accept("*") || cursor.accept("/")) {
             String op = cursor.previous();
             Formula right = parseFactor(cursor);
-            left = new Formula.Binary(
+            left = new Binary(
                     Objects.equals("*", op) ? FormulaOperator.MULTIPLY : FormulaOperator.DIVIDE, left, right);
         }
         return left;
@@ -155,24 +121,24 @@ public class FormulaParser {
                 // 多参数或未闭合都被拒绝，避免跨 Name / 跨服务公式
                 throw new InvalidFormulaException();
             }
-            return new Formula.Aggregate(aggregateOf(token), stat);
+            return new Aggregate(aggregateOf(token), stat);
         }
         if (isNumber(token)) {
             cursor.next();
-            return new Formula.Constant(new BigDecimal(token));
+            return new Constant(new BigDecimal(token));
         }
         Stat stat = tryParseStat(token);
         if (Objects.isNull(stat)) {
             throw new InvalidFormulaException();
         }
         cursor.next();
-        return new Formula.Ref(stat);
+        return new Ref(stat);
     }
 
     // ── 单位校验 ─────────────────────────────────────────────
 
     private void validate(Formula formula) {
-        if (formula instanceof Formula.Binary binary) {
+        if (formula instanceof Binary binary) {
             validate(binary.getLeft());
             validate(binary.getRight());
             if (Objects.equals(binary.getOp(), FormulaOperator.ADD) || Objects.equals(binary.getOp(), FormulaOperator.SUBTRACT)) {
@@ -184,7 +150,7 @@ public class FormulaParser {
     /**
      * 加减要求单位兼容，否则保存被拒。
      */
-    private void requireAdditiveCompatibility(Formula.Binary binary) {
+    private void requireAdditiveCompatibility(Binary binary) {
         Unit left = binary.getLeft().unit();
         Unit right = binary.getRight().unit();
         if (!left.compatibleWith(right)) {

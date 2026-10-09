@@ -43,13 +43,13 @@ public class RangeParams {
             try {
                 switch (head) {
                     case "HOUR":
-                        return new RangeSpec.Hour(Instant.ofEpochMilli(Long.parseLong(tail)));
+                        return new Hour(Instant.ofEpochMilli(Long.parseLong(tail)));
                     case "DAY":
-                        return new RangeSpec.Day(LocalDate.parse(tail));
+                        return new Day(LocalDate.parse(tail));
                     case "WEEK":
-                        return new RangeSpec.Week(LocalDate.parse(tail));
+                        return new Week(LocalDate.parse(tail));
                     case "MONTH":
-                        return new RangeSpec.Month(YearMonth.parse(tail));
+                        return new Month(YearMonth.parse(tail));
                     default:
                         break;
                 }
@@ -71,6 +71,6 @@ public class RangeParams {
             case "THIS_WEEK" -> RangeQuick.THIS_WEEK;
             default -> RangeQuick.RECENT_1H;
         };
-        return new RangeSpec.QuickRange(target, now);
+        return new QuickRange(target, now);
     }
 }

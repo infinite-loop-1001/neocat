@@ -1,21 +1,18 @@
 package com.neocat.client;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.Maps;
 import com.neocat.protocol.ingest.v1.ExceptionInfo;
-import com.neocat.protocol.ingest.v1.Heartbeat;
 import com.neocat.protocol.ingest.v1.IngestRequest;
 import com.neocat.protocol.ingest.v1.Kind;
 import com.neocat.protocol.ingest.v1.MessageTree;
@@ -355,46 +352,7 @@ public final class NeoCat {
         return sb.toString();
     }
 
-    /** 供 Transaction 使用的返回句柄。 */
-    public static final class RemoteCallHandle {
-
-        private final NeoCat cat;
-
-        private final com.neocat.client.RemoteCall delegate;
-
-        private final String downstreamService;
-
-        private final String callType;
-
-        private final String name;
-
-        RemoteCallHandle(NeoCat cat, String downstreamService, String callType, String name) {
-            this.cat = cat;
-            this.downstreamService = downstreamService;
-            this.callType = callType;
-            this.name = name;
-            this.delegate = new com.neocat.client.RemoteCall(downstreamService, callType, name);
-        }
-
-        public void setStatus(String status) {
-            delegate.setStatus(status);
-        }
-
-        public void complete() {
-            delegate.complete();
-            cat.enqueueRemoteCall(downstreamService, callType, name,
-                    delegate.getStatus(), delegate.getDuration());
-        }
-
-        public long getDuration() {
-            return delegate.getDuration();
-        }
-    }
 }
-
-
-
-
 
 
 

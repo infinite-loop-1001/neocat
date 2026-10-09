@@ -11,7 +11,7 @@ class ClickHouseRawTreeStoreSpec extends Specification {
     static final Instant NOW = Instant.parse('2026-09-24T04:00:00Z')
 
     RawTreeQuery query = Mock()
-    RawTreeQuery.TreePayloadCodec codec = Mock()
+    TreePayloadCodec codec = Mock()
     ClickHouseRawTreeStore store = new ClickHouseRawTreeStore(query, codec)
 
     static TraceTree tree(String id, String root, String parent) {
@@ -20,8 +20,8 @@ class ClickHouseRawTreeStoreSpec extends Specification {
                         NOW.toEpochMilli(), 12L, null, [:])])
     }
 
-    static RawTreeQuery.TraceTreeRow row(String id, String root, String parent) {
-        new RawTreeQuery.TraceTreeRow('order', 'order-ip', id, root, parent, NOW, 'fp-' + id, 'encoded')
+    static TraceTreeRow row(String id, String root, String parent) {
+        new TraceTreeRow('order', 'order-ip', id, root, parent, NOW, 'fp-' + id, 'encoded')
     }
 
     def 'saving a tree writes its payload and relation, normalizing a missing parent'() {

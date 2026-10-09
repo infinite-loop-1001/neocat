@@ -1,7 +1,7 @@
 package com.neocat.dashboard.api.http.convert;
 
 import com.google.common.collect.Lists;
-import com.neocat.dashboard.api.http.dto.DashboardDtos.*;
+import com.neocat.dashboard.api.http.dto.*;
 import com.neocat.dashboard.domain.card.*;
 import com.neocat.dashboard.domain.dashboard.Dashboard;
 import com.neocat.dashboard.domain.formula.FormulaParser;
@@ -16,10 +16,18 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.IterableMapping;
 import org.mapstruct.NullValueMappingStrategy;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 import java.math.BigDecimal;
+
+import com.neocat.dashboard.api.http.dto.CardDraft;
+import com.neocat.dashboard.api.http.dto.CardResponse;
+import com.neocat.dashboard.api.http.dto.DashboardResponse;
+import com.neocat.dashboard.api.http.dto.Gap;
+import com.neocat.dashboard.api.http.dto.SeriesPoint;
+import com.neocat.dashboard.api.http.dto.SeriesResponse;
+import com.neocat.dashboard.api.http.dto.TargetResponse;
+import com.neocat.dashboard.api.http.dto.Threshold;
+import com.neocat.dashboard.api.http.dto.Undefined;
 
 @Mapper(componentModel = "spring")
 public interface DashboardConvert {
@@ -98,24 +106,4 @@ public interface DashboardConvert {
         return (List<String>) value;
     }
 
-    /**
-     * 只在 Map 边界做类型收窄，普通字段与集合映射由 MapStruct 生成。
-     */
-    @Getter
-    @AllArgsConstructor
-    class SeriesModel {
-        private final long cardId;
-
-        private final String formula;
-
-        private final String unit;
-
-        private final List<ThresholdLine> thresholdLines;
-
-        private final List<Map<String, Object>> points;
-
-        private final List<Map<String, Object>> gaps;
-
-        private final List<Map<String, Object>> isUndefined;
-    }
 }

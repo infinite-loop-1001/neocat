@@ -17,16 +17,16 @@ public interface CatalogMapper {
 
     int upsertService(@Param("name") String name, @Param("at") Instant at);
 
-    CatalogRepositoryAdapter.ServiceRow selectService(@Param("name") String name);
+    ServiceRow selectService(@Param("name") String name);
 
-    List<CatalogRepositoryAdapter.ServiceRow> selectAllServices();
+    List<ServiceRow> selectAllServices();
 
-    int upsertInstance(@Param("serviceName") String serviceName,
-                       @Param("instanceId") String instanceId,
-                       @Param("at") Instant at);
+    void upsertInstance(@Param("serviceName") String serviceName,
+                        @Param("instanceId") String instanceId,
+                        @Param("at") Instant at);
 
-    CatalogRepositoryAdapter.InstanceRow selectInstance(@Param("serviceName") String serviceName,
+    InstanceRow selectInstance(@Param("serviceName") String serviceName,
                                                        @Param("instanceId") String instanceId);
 
-    List<CatalogRepositoryAdapter.InstanceRow> selectInstances(@Param("serviceName") String serviceName);
+    List<InstanceRow> selectInstances(@Param("serviceName") String serviceName);
 }

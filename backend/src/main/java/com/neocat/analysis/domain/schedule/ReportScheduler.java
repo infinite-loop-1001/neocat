@@ -4,6 +4,7 @@ import com.neocat.analysis.domain.bucket.AggregatedRow;
 import com.neocat.analysis.domain.bucket.AggregationLevel;
 import com.neocat.analysis.domain.bucket.MinuteBucketSource;
 import com.neocat.analysis.domain.bucket.ReportBucketSinkPort;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -11,8 +12,11 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.function.Supplier;
+
 import org.apache.commons.collections4.CollectionUtils;
+
 import java.time.DayOfWeek;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -36,9 +40,9 @@ import org.springframework.stereotype.Component;
  * 当前分钟/小时仍在写入，所有入口以 {@code now} 为界取「已结束」的时间片；
  * 允许迟到窗口中的桶保留内存并刷新版本，窗口关闭后才释放。
  *
- * @param reader  当前小时报表读取
- * @param sink    桶写入
- * @param zone    平台时区（决定自然日/周/月边界）
+ * @param reader 当前小时报表读取
+ * @param sink   桶写入
+ * @param zone   平台时区（决定自然日/周/月边界）
  */
 @NamedInterface("analysis")
 @Getter
@@ -73,6 +77,7 @@ public class ReportScheduler {
         sink.writeMinuteBuckets(rows);
         return rows.size();
     }
+
     /**
      * 整点后执行：把刚结束的小时聚合为小时桶，并释放该小时的内存。
      *
@@ -82,6 +87,7 @@ public class ReportScheduler {
     public int rollupCompletedHour(Instant now) {
         return rollupCompletedHour(now, true);
     }
+
     public int rollupCompletedHour(Instant now, boolean releaseMemory) {
         Instant completedHour = now.atZone(zone.get()).truncatedTo(ChronoUnit.HOURS)
                 .minusHours(1).toInstant();
@@ -98,7 +104,9 @@ public class ReportScheduler {
         if (releaseMemory) reader.clearHour(completedHour);
         return hourRows.size();
     }
-    /** Refresh still-accepted historical hours, then finalize the oldest now-closed hour.
+
+    /**
+     * Refresh still-accepted historical hours, then finalize the oldest now-closed hour.
      * Retaining buckets until ingest's late window closes prevents late snapshots replacing
      * earlier observations with a smaller post-clear delta under the same writer identity.
      */
@@ -115,6 +123,7 @@ public class ReportScheduler {
             if (offset == hours) reader.clearHour(hour);
         }
     }
+
     /**
      * 每日执行：把刚结束的日的已完成小时聚合为日桶。
      *
@@ -132,6 +141,7 @@ public class ReportScheduler {
         sink.writeDayBuckets(dayRows);
         return dayRows.size();
     }
+
     /**
      * 每周执行（平台时区周一 00:00 之后）：把刚结束的自然周聚合为周桶。
      */
@@ -148,6 +158,7 @@ public class ReportScheduler {
         sink.writeWeekBuckets(weekRows);
         return weekRows.size();
     }
+
     /**
      * 每月执行（平台时区月初之后）：把刚结束的自然月聚合为月桶。
      */
@@ -164,6 +175,7 @@ public class ReportScheduler {
         sink.writeMonthBuckets(monthRows);
         return monthRows.size();
     }
+
     /**
      * 每日清理超期桶（PRD 00 §10）。
      *
@@ -186,6 +198,7 @@ public class ReportScheduler {
                 local.minusMonths(longTermMonths).toInstant());
         return new EvictionResult(minuteEvicted, hourEvicted, longTermEvicted);
     }
+
     /**
      * 分钟落库延迟（观测用）：完成分钟点与当前时刻的差距应在容差内。
      */
@@ -193,24 +206,4 @@ public class ReportScheduler {
         Instant completedMinute = now.truncatedTo(ChronoUnit.MINUTES).minusSeconds(60);
         return Duration.between(completedMinute, now);
     }
-    /** 清理结果。 */
-    @NamedInterface("analysis")
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    public static class EvictionResult {
-        private final long minuteBuckets;
-
-        private final long hourBuckets;
-
-        private final long longTermBuckets;
-
-        public EvictionResult(long minuteBuckets, long hourBuckets, long longTermBuckets) {
-            this.minuteBuckets = minuteBuckets;
-            this.hourBuckets = hourBuckets;
-            this.longTermBuckets = longTermBuckets;
-        }
-
-    }
 }
-

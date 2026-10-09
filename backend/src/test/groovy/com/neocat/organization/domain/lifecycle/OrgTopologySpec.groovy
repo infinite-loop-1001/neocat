@@ -2,7 +2,6 @@ package com.neocat.organization.domain.lifecycle
 
 import com.neocat.organization.domain.membership.EffectiveLeafRepository
 import com.neocat.organization.domain.membership.MembershipRepository
-import com.neocat.organization.domain.tree.DeletionPreview
 import com.neocat.organization.domain.tree.OrgNode
 import com.neocat.organization.domain.tree.OrgNodeRepository
 
@@ -10,6 +9,7 @@ import com.neocat.common.error.NeocatException
 import spock.lang.Specification
 
 import static com.neocat.common.error.ErrorCode.*
+import com.neocat.organization.domain.tree.DashboardSummary
 
 class OrgTopologySpec extends Specification {
     OrgNodeRepository nodes = Mock()
@@ -90,7 +90,7 @@ class OrgTopologySpec extends Specification {
 
         then:
         1 * nodes.findById(7L) >> leaf()
-        1 * resources.dashboardsOf(7L) >> [new DeletionPreview.DashboardSummary(12L, '订单', 3L)]
+        1 * resources.dashboardsOf(7L) >> [new DashboardSummary(12L, '订单', 3L)]
         1 * resources.alertRuleCount(7L) >> 2L
         1 * leaves.membersOf(7L) >> ([100L, 200L] as Set)
         preview.dashboardCount() == 1L

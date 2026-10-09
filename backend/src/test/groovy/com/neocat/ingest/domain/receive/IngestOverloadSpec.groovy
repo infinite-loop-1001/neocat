@@ -36,7 +36,6 @@ class IngestOverloadSpec extends Specification {
         TimeProvider.clock = Clock.systemUTC()
     }
 
-
     static final ZoneId SH = ZoneId.of("Asia/Shanghai")
     static final Instant NOW = ZonedDateTime.of(2026, 9, 24, 12, 23, 41, 0, SH).toInstant()
     static final long NOW_MS = NOW.toEpochMilli()

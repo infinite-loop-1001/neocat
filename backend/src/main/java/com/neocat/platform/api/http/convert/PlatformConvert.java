@@ -1,6 +1,6 @@
 package com.neocat.platform.api.http.convert;
 
-import com.neocat.platform.api.http.dto.PlatformDtos.*;
+import com.neocat.platform.api.http.dto.*;
 import com.neocat.platform.domain.channel.ChannelConfig;
 import com.neocat.platform.domain.channel.ChannelType;
 import com.neocat.platform.domain.profile.PlatformProfile;
@@ -8,13 +8,17 @@ import com.neocat.platform.domain.profile.SlowThresholds;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import com.neocat.platform.api.http.dto.ChannelsRequest;
+import com.neocat.platform.api.http.dto.ProfileResponse;
+import com.neocat.platform.api.http.dto.SlowThresholdsRequest;
+import com.neocat.platform.domain.init.InitRequest;
 
 public final class PlatformConvert {
     private PlatformConvert() {
     }
 
-    public static com.neocat.platform.domain.init.InitRequest init(InitRequest request) {
-        return new com.neocat.platform.domain.init.InitRequest(ZoneId.of(request.getTimezone()),
+    public static InitRequest init(com.neocat.platform.api.http.dto.InitRequest request) {
+        return new InitRequest(ZoneId.of(request.getTimezone()),
                 request.getAdminUsername(), request.getAdminPassword());
     }
 

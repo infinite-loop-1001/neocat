@@ -3,6 +3,7 @@
 采用兼容方案：`ResponseEntity<专用 DTO>`，不增加 `{code,message,data}` 包装。
 
 - DTO 与 Convert 位于各业务模块 `api/http/dto`、`api/http/convert`，不跨模块复用 HTTP DTO。
+- DTO 按 [Java 通用规则](java.md#一种类型一个文件强制) 使用同名独立文件，不再集中声明于 `XxxDtos` 容器；该规则同样适用于非 HTTP 的生产类型。
 - 请求 DTO 仅承载接口数据，不包含 `toRule()`、`toCard()` 等领域转换行为。
 - Convert 完成请求到领域参数、领域结果到响应 DTO 的转换；**必须使用 MapStruct**，禁止手写静态转换工具类。
 - Spring 管理的 Convert 使用 `@Mapper(componentModel = "spring")`，Controller 等调用方通过构造函数注入，禁止在生产调用方使用 `Mappers.getMapper` 或静态单例替代注入。无 Spring 上下文的离线单测可使用 `Mappers.getMapper` 获取生成实现。

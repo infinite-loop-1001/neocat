@@ -249,7 +249,7 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
     /**
      * 桶行映射：把分布数组还原为 long[]，其余列直接读出。
      */
-    private static class BucketRowMapper implements RowMapper<ClickHouseReportQuery.BucketRow> {
+    private static class BucketRowMapper implements RowMapper<BucketRow> {
 
         private final AggregationLevel level;
 
@@ -261,8 +261,8 @@ public class JdbcClickHouseReportQuery implements ClickHouseReportQuery {
         }
 
         @Override
-        public ClickHouseReportQuery.BucketRow mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new ClickHouseReportQuery.BucketRow(
+        public BucketRow mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new BucketRow(
                     rs.getString("service"),
                     rs.getString("kind"),
                     rs.getString("type"),

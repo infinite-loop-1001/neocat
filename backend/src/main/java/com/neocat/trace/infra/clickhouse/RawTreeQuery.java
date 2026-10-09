@@ -1,14 +1,10 @@
 package com.neocat.trace.infra.clickhouse;
 
-import com.neocat.trace.domain.tree.TraceNode;
 import com.neocat.trace.domain.tree.TraceRelation;
 
 import java.time.Instant;
 import java.util.List;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
 import org.springframework.lang.Nullable;
 
 /**
@@ -37,7 +33,9 @@ public interface RawTreeQuery {
 
     List<TraceTreeRow> selectTreesByServiceAndRange(String service, Instant from, Instant to);
 
-    /** 关系索引查询：不受树清理影响。 */
+    /**
+     * 关系索引查询：不受树清理影响。
+     */
     boolean existsRelation(String messageId);
 
     @Nullable
@@ -45,90 +43,17 @@ public interface RawTreeQuery {
 
     List<TraceRelationRow> selectRelationsByRoot(String rootMessageId);
 
-    /** 删除超过阈值的树本体，返回被删除的 messageId。 */
+    /**
+     * 删除超过阈值的树本体，返回被删除的 messageId。
+     */
     List<String> deleteTreesOlderThan(Instant threshold);
 
     /**
-     * 原始树行（{@code nc_raw_tree}）。
-     *
-     * @param payload 序列化后的树内容；由 {@link TreePayloadCodec} 编解码
+     * 便捷转换：关系行 → 领域对象。
      */
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    class TraceTreeRow {
-        private final String service;
-
-        private final String instance;
-
-        private final String messageId;
-
-        private final String rootMessageId;
-
-        private final String parentMessageId;
-
-        private final Instant treeTimestamp;
-
-        private final String fingerprint;
-
-        private final String payload;
-
-        public TraceTreeRow(String service, String instance, String messageId, String rootMessageId, String parentMessageId, Instant treeTimestamp, String fingerprint, String payload) {
-            this.service = service;
-            this.instance = instance;
-            this.messageId = messageId;
-            this.rootMessageId = rootMessageId;
-            this.parentMessageId = parentMessageId;
-            this.treeTimestamp = treeTimestamp;
-            this.fingerprint = fingerprint;
-            this.payload = payload;
-        }
-
-    }
-    /**
-     * Trace 关系行（{@code nc_trace_relation}）。
-     */
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    class TraceRelationRow {
-        private final String messageId;
-
-        private final String rootMessageId;
-
-        private final String parentMessageId;
-
-        private final String service;
-
-        private final String instance;
-
-        private final Instant treeTimestamp;
-
-        public TraceRelationRow(String messageId, String rootMessageId, String parentMessageId, String service, String instance, Instant treeTimestamp) {
-            this.messageId = messageId;
-            this.rootMessageId = rootMessageId;
-            this.parentMessageId = parentMessageId;
-            this.service = service;
-            this.instance = instance;
-            this.treeTimestamp = treeTimestamp;
-        }
-
-    }
-    /** 便捷转换：关系行 → 领域对象。 */
     static TraceRelation toDomain(TraceRelationRow row) {
         return new TraceRelation(row.getMessageId(), row.getRootMessageId(), row.getParentMessageId(),
                 row.getService(), row.getInstance(), row.getTreeTimestamp().toEpochMilli());
     }
-    /**
-     * 树内容编解码（技术方案 06 §5：{@code payload} 列）。
-     *
-     * <p>实现可用 JSON 或 Protobuf；选择 Protobuf 可复用上报协议中的节点结构，
-     * 避免为存储再定义一套模型。
-     */
-    interface TreePayloadCodec {
 
-        String encode(List<TraceNode> nodes);
-
-        List<TraceNode> decode(String payload);
-    }
 }

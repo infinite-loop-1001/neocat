@@ -1,11 +1,12 @@
 package com.neocat.dashboard.domain.card
 
 import com.neocat.dashboard.domain.formula.FormulaParser
-import com.neocat.dashboard.domain.formula.Formula
 import com.neocat.dashboard.domain.formula.FormulaOperator
 import com.neocat.query.domain.stat.Stat
-import java.math.BigDecimal
+
 import spock.lang.Specification
+import com.neocat.dashboard.domain.formula.Binary
+import com.neocat.dashboard.domain.formula.Constant
 
 class DecimalCardSpec extends Specification {
     def parser = new FormulaParser()
@@ -32,8 +33,8 @@ class DecimalCardSpec extends Specification {
         expect:
         evaluate('(1 / 0) + 1').isUndefined()
         evaluate('1 / (1 / 0)').isUndefined()
-        evaluator.evaluate(new Formula.Binary(FormulaOperator.DIVIDE,
-                new Formula.Constant(1.0), new Formula.Constant(0.00000001)), [:], 0L, 60000L)
+        evaluator.evaluate(new Binary(FormulaOperator.DIVIDE,
+                new Constant(1.0), new Constant(0.00000001)), [:], 0L, 60000L)
                 .getValue().toPlainString() == '100000000.000000'
         evaluator.evaluate(parser.parse('failures / hits').getFormula(),
                 [(Stat.HITS): 0.000000, (Stat.FAILURES): null], 0L, 60000L).isGap()

@@ -24,7 +24,6 @@ public  class ReportDataPortRouter implements ReportDataPort {
 
     private final ReportDataPort current;
 
-
     private final Supplier<ZoneId> zone;
 
     public ReportDataPortRouter(ReportDataPort history, ReportDataPort current,

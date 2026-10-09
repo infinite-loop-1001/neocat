@@ -24,7 +24,6 @@ import com.neocat.common.locking.MySqlLocked;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-
 /**
  * 组织生命周期用例（PRD 01 §5.2 / §5.3）。
  */

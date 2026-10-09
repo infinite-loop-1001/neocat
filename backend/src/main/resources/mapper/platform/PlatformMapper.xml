@@ -4,7 +4,7 @@
 <!-- 平台档案与通道配置 SQL（对应 05-mysql-schema.sql §0） -->
 <mapper namespace="com.neocat.platform.infra.PlatformMapper">
 
-    <resultMap id="platformRow" type="com.neocat.platform.infra.PlatformRepositoryAdapter$PlatformRow">
+    <resultMap id="platformRow" type="com.neocat.platform.infra.PlatformRow">
         <result property="initialized" column="initialized"/>
         <result property="timezone" column="timezone"/>
         <result property="slowUrlMs" column="slow_url_ms"/>
@@ -14,7 +14,7 @@
         <result property="initializedAt" column="initialized_at"/>
     </resultMap>
 
-    <resultMap id="channelRow" type="com.neocat.platform.infra.PlatformRepositoryAdapter$ChannelRow">
+    <resultMap id="channelRow" type="com.neocat.platform.infra.ChannelRow">
         <id property="channel" column="channel"/>
         <result property="enabled" column="enabled"/>
         <result property="configJson" column="config_json"/>
@@ -27,7 +27,7 @@
         WHERE id = 1
     </select>
 
-    <update id="updateProfile" parameterType="com.neocat.platform.infra.PlatformRepositoryAdapter$PlatformRow">
+    <update id="updateProfile" parameterType="com.neocat.platform.infra.PlatformRow">
         UPDATE nc_platform_profile
         SET initialized   = #{initialized},
             timezone      = #{timezone},
@@ -43,7 +43,7 @@
         SELECT channel, enabled, config_json FROM nc_channel_config ORDER BY channel
     </select>
 
-    <insert id="upsertChannel" parameterType="com.neocat.platform.infra.PlatformRepositoryAdapter$ChannelRow">
+    <insert id="upsertChannel" parameterType="com.neocat.platform.infra.ChannelRow">
         INSERT INTO nc_channel_config (channel, enabled, config_json)
         VALUES (#{channel}, #{enabled}, #{configJson})
         ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), config_json = VALUES(config_json)

@@ -1,6 +1,7 @@
 package com.neocat.organization.domain.tree;
 
 import java.util.List;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -39,30 +40,16 @@ public class DeletionPreview {
         this.memberCount = memberCount;
     }
 
-    /** 受影响的大盘概况。 */
-    @NamedInterface("isOrganization")
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    public static class DashboardSummary {
-        private final long id;
-
-        private final String name;
-
-        private final long cardCount;
-
-        public DashboardSummary(long id, String name, long cardCount) {
-            this.id = id;
-            this.name = name;
-            this.cardCount = cardCount;
-        }
-
-    }
-    /** 大盘总数。 */
+    /**
+     * 大盘总数。
+     */
     public long dashboardCount() {
         return dashboards.size();
     }
-    /** 卡片总数。 */
+
+    /**
+     * 卡片总数。
+     */
     public long cardCount() {
         return dashboards.stream().mapToLong(DashboardSummary::getCardCount).sum();
     }

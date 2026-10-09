@@ -7,10 +7,6 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
-
 /**
  * 大盘与卡片 Mapper（表 {@code nc_dashboard} / {@code nc_card}）。
  *
@@ -29,37 +25,23 @@ public interface DashboardMapper {
                              @Param("direction") String direction,
                              @Param("value") BigDecimal value);
 
-    @Getter
-    @EqualsAndHashCode
-    @ToString
-    class ThresholdLineRow {
-        private final String direction;
+    DashboardRow selectDashboard(@Param("id") long id);
 
-        private final BigDecimal value;
+    List<DashboardRow> selectDashboardsByOrg(@Param("orgId") long orgId);
 
-        public ThresholdLineRow(String direction, BigDecimal value) {
-            this.direction = direction;
-            this.value = value;
-        }
-    }
+    int insertDashboard(DashboardRow row);
 
-    DashboardRepositoryAdapter.DashboardRow selectDashboard(@Param("id") long id);
-
-    List<DashboardRepositoryAdapter.DashboardRow> selectDashboardsByOrg(@Param("orgId") long orgId);
-
-    int insertDashboard(DashboardRepositoryAdapter.DashboardRow row);
-
-    int updateDashboard(DashboardRepositoryAdapter.DashboardRow row);
+    int updateDashboard(DashboardRow row);
 
     void deleteDashboard(@Param("id") long id);
 
-    DashboardRepositoryAdapter.CardRow selectCard(@Param("id") long id);
+    CardRow selectCard(@Param("id") long id);
 
-    List<DashboardRepositoryAdapter.CardRow> selectCardsByDashboard(@Param("dashboardId") long dashboardId);
+    List<CardRow> selectCardsByDashboard(@Param("dashboardId") long dashboardId);
 
-    int insertCard(DashboardRepositoryAdapter.CardRow row);
+    int insertCard(CardRow row);
 
-    int updateCard(DashboardRepositoryAdapter.CardRow row);
+    int updateCard(CardRow row);
 
     void deleteCard(@Param("id") long id);
 }

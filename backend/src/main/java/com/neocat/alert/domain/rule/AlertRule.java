@@ -130,13 +130,3 @@ public class AlertRule {
                 conditions, List.copyOf(newRecipients), channels, enabled, invalid, stateSince);
     }
 }
-
-
-
-
-
-
-
-
-
-

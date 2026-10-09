@@ -376,7 +376,7 @@ class WindowSpec extends Specification {
         then:
         res.isTriggered()
         and: "EvaluationResult 不含历史记录字段"
-        !AlertEngine.EvaluationResult.declaredFields*.name.any {
+        !EvaluationResult.declaredFields*.name.any {
             it.toLowerCase().contains("history") || it.toLowerCase().contains("record")
         }
     }

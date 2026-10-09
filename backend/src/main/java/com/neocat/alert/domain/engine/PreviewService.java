@@ -52,7 +52,7 @@ public class PreviewService {
     public PreviewResult preview(AlertRule rule, long latestMinute) {
         int window = Math.max(1, rule.getWindowPoints());
         List<Stat> requiredStats = requiredStats(rule);
-        List<PreviewResult.PointEvaluation> evaluations = new ArrayList<>(window);
+        List<PointEvaluation> evaluations = new ArrayList<>(window);
         boolean anyUnknown = false;
 
         // fixme: 这里 MinutePointSource 需要提供批量接口, 不能循环调用每分钟的指标值
@@ -63,16 +63,16 @@ public class PreviewService {
             String missing = firstMissing(requiredStats, values);
             if (Objects.nonNull(missing)) {
                 anyUnknown = true;
-                evaluations.add(new PreviewResult.PointEvaluation(minute, false, false, missing));
+                evaluations.add(new PointEvaluation(minute, false, false, missing));
                 continue;
             }
-            evaluations.add(new PreviewResult.PointEvaluation(minute, true, combine(rule, values), null));
+            evaluations.add(new PointEvaluation(minute, true, combine(rule, values), null));
         }
 
         if (anyUnknown) {
             return PreviewResult.insufficient(evaluations);
         }
-        boolean allSatisfied = evaluations.stream().allMatch(PreviewResult.PointEvaluation::isSatisfied);
+        boolean allSatisfied = evaluations.stream().allMatch(PointEvaluation::isSatisfied);
         return new PreviewResult(allSatisfied
                 ? PreviewResultType.TRIGGER
                 : PreviewResultType.NO_TRIGGER, List.copyOf(evaluations));

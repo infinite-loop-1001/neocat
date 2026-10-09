@@ -55,17 +55,17 @@ public class RecipientService {
         if (Objects.isNull(event)) {
             return Lists.newArrayList();
         }
-        if (event instanceof RecipientEvent.UserDisabled disabled) {
+        if (event instanceof UserDisabled disabled) {
             return removeFromAll(disabled.getAccountId());
         }
-        if (event instanceof RecipientEvent.UserEnabled) {
+        if (event instanceof UserEnabled) {
             // 不恢复任何收件关系
             return Lists.newArrayList();
         }
-        if (event instanceof RecipientEvent.OrgMembershipChanged changed) {
+        if (event instanceof OrgMembershipChanged changed) {
             return changed.isGranted() ? Lists.newArrayList() : removeFromOrg(changed.getOrgId(), changed.getAccountId());
         }
-        if (event instanceof RecipientEvent.OrgDeleted deleted) {
+        if (event instanceof OrgDeleted deleted) {
             return invalidateOrg(deleted.getOrgId());
         }
         return Lists.newArrayList();

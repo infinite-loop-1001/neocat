@@ -1,8 +1,6 @@
 package com.neocat.common.time.bucket
 
 import com.neocat.common.time.range.RangeQuick
-import com.neocat.common.time.range.RangeSpec
-
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -11,6 +9,12 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.Duration
+import com.neocat.common.time.range.Day
+import com.neocat.common.time.range.Explicit
+import com.neocat.common.time.range.Hour
+import com.neocat.common.time.range.Month
+import com.neocat.common.time.range.QuickRange
+import com.neocat.common.time.range.Week
 
 /**
  * G0 任务1（红）+ G8 任务47：时间范围与桶解析契约。
@@ -26,7 +30,7 @@ class TimeBucketResolverSpec extends Specification {
         def hourStart = Instant.parse("2026-09-24T02:00:00Z")   // 平台时区 10:00
 
         when:
-        def buckets = resolver.resolve(new RangeSpec.Hour(hourStart), SH)
+        def buckets = resolver.resolve(new Hour(hourStart), SH)
 
         then:
         buckets.size() == 60
@@ -40,7 +44,7 @@ class TimeBucketResolverSpec extends Specification {
 
     def "自然日范围：10 分钟/点，共 144 个桶"() {
         when:
-        def buckets = resolver.resolve(new RangeSpec.Day(LocalDate.of(2026, 9, 24)), SH)
+        def buckets = resolver.resolve(new Day(LocalDate.of(2026, 9, 24)), SH)
 
         then:
         buckets.size() == 144
@@ -53,7 +57,7 @@ class TimeBucketResolverSpec extends Specification {
     def "自然周范围：1 小时/点，从平台时区周一 00:00 起共 168 个桶"() {
         when:
         // 2026-09-24 是周四，所在周周一为 2026-09-21
-        def buckets = resolver.resolve(new RangeSpec.Week(LocalDate.of(2026, 9, 24)), SH)
+        def buckets = resolver.resolve(new Week(LocalDate.of(2026, 9, 24)), SH)
 
         then:
         buckets.size() == 168
@@ -65,7 +69,7 @@ class TimeBucketResolverSpec extends Specification {
 
     def "自然月范围：1 自然日/点，9 月共 30 个桶"() {
         when:
-        def buckets = resolver.resolve(new RangeSpec.Month(YearMonth.of(2026, 9)), SH)
+        def buckets = resolver.resolve(new Month(YearMonth.of(2026, 9)), SH)
 
         then:
         buckets.size() == 30
@@ -80,7 +84,7 @@ class TimeBucketResolverSpec extends Specification {
         def now = Instant.parse("2026-09-24T04:23:41Z")   // 平台时区 12:23:41
 
         when:
-        def buckets = resolver.resolve(new RangeSpec.QuickRange(quick, now), SH)
+        def buckets = resolver.resolve(new QuickRange(quick, now), SH)
         def expectedCount = Math.ceil(
                 Duration.between(buckets[0].getStart(), now).getSeconds()
                         / (double) granularity.seconds()) as int
@@ -105,7 +109,7 @@ class TimeBucketResolverSpec extends Specification {
         def now = Instant.parse("2026-09-24T04:23:41Z")   // 平台时区 12:23:41
 
         when:
-        def buckets = resolver.resolve(new RangeSpec.QuickRange(RangeQuick.TODAY, now), SH)
+        def buckets = resolver.resolve(new QuickRange(RangeQuick.TODAY, now), SH)
 
         then:
         buckets[0].getStart() == Instant.parse("2026-09-23T16:00:00Z")
@@ -122,7 +126,7 @@ class TimeBucketResolverSpec extends Specification {
         def now = Instant.parse("2026-09-24T04:23:41Z")   // 平台时区 12:23:41
 
         when:
-        def buckets = resolver.resolve(new RangeSpec.QuickRange(RangeQuick.RECENT_1H, now), SH)
+        def buckets = resolver.resolve(new QuickRange(RangeQuick.RECENT_1H, now), SH)
 
         then:
         // 1 分钟粒度边界天然对齐；末桶起点为 12:23:00
@@ -135,7 +139,7 @@ class TimeBucketResolverSpec extends Specification {
         def now = Instant.parse("2026-09-24T04:23:41Z")   // 平台时区 12:23:41
 
         when:
-        def buckets = resolver.resolve(new RangeSpec.QuickRange(RangeQuick.RECENT_12H, now), SH)
+        def buckets = resolver.resolve(new QuickRange(RangeQuick.RECENT_12H, now), SH)
 
         then:
         buckets[-1].getStart() == Instant.parse("2026-09-24T04:20:00Z")
@@ -148,7 +152,7 @@ class TimeBucketResolverSpec extends Specification {
         def to = Instant.parse("2026-09-24T04:25:10Z")     // 12:25:10
 
         when:
-        def buckets = resolver.resolve(new RangeSpec.Explicit(from, to, Granularity.MINUTE_10), SH)
+        def buckets = resolver.resolve(new Explicit(from, to, Granularity.MINUTE_10), SH)
 
         then:
         buckets[0].getStart() == Instant.parse("2026-09-24T04:00:00Z")

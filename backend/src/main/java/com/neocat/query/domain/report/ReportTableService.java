@@ -17,6 +17,7 @@ import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
+import com.neocat.query.domain.stat.Merged;
 
 /**
  * Type / Name 表查询（PRD 03 §7.1、§7.2、§8、§9）。
@@ -99,7 +100,7 @@ public class ReportTableService {
 
     private ReportRow toRow(String kind, String type, String name, List<AggregatedRow> group,
                             StatCalculator calculator, long coveredSeconds) {
-        StatCalculator.Merged merged = calculator.merge(group);
+        Merged merged = calculator.merge(group);
         boolean durationVisible = durationVisible(kind, type);
         boolean percentileVisible = percentileVisible(kind, type);
 

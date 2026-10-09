@@ -27,8 +27,8 @@ class RangeParamsSpec extends Specification {
         def spec = RangeParams.parse("HOUR:${start}", NOW)
 
         then:
-        spec instanceof RangeSpec.Hour
-        (spec as RangeSpec.Hour).getHourStart() == Instant.ofEpochMilli(start)
+        spec instanceof Hour
+        (spec as Hour).getHourStart() == Instant.ofEpochMilli(start)
     }
 
     def "WEEK:<yyyy-MM-dd> 解析为自然周（取该日期所在周）"() {
@@ -36,8 +36,8 @@ class RangeParamsSpec extends Specification {
         def spec = RangeParams.parse("WEEK:2026-09-24", NOW)
 
         then:
-        spec instanceof RangeSpec.Week
-        (spec as RangeSpec.Week).getAnyDateInWeek() == LocalDate.of(2026, 9, 24)
+        spec instanceof Week
+        (spec as Week).getAnyDateInWeek() == LocalDate.of(2026, 9, 24)
     }
 
     def "MONTH:<yyyy-MM> 解析为自然月"() {
@@ -45,8 +45,8 @@ class RangeParamsSpec extends Specification {
         def spec = RangeParams.parse("MONTH:2026-09", NOW)
 
         then:
-        spec instanceof RangeSpec.Month
-        (spec as RangeSpec.Month).getMonth() == YearMonth.of(2026, 9)
+        spec instanceof Month
+        (spec as Month).getMonth() == YearMonth.of(2026, 9)
     }
 
     def "DAY:<yyyy-MM-dd> 解析为自然日"() {
@@ -54,8 +54,8 @@ class RangeParamsSpec extends Specification {
         def spec = RangeParams.parse("DAY:2026-09-24", NOW)
 
         then:
-        spec instanceof RangeSpec.Day
-        (spec as RangeSpec.Day).getDate() == LocalDate.of(2026, 9, 24)
+        spec instanceof Day
+        (spec as Day).getDate() == LocalDate.of(2026, 9, 24)
     }
 
     // ── 快捷范围 ────────────────────────────────────────────
@@ -66,9 +66,9 @@ class RangeParamsSpec extends Specification {
         def spec = RangeParams.parse(raw, NOW)
 
         then:
-        spec instanceof RangeSpec.QuickRange
-        (spec as RangeSpec.QuickRange).getQuick() == expected
-        (spec as RangeSpec.QuickRange).getNow() == NOW
+        spec instanceof QuickRange
+        (spec as QuickRange).getQuick() == expected
+        (spec as QuickRange).getNow() == NOW
 
         where:
         raw            | expected
@@ -83,7 +83,7 @@ class RangeParamsSpec extends Specification {
 
     def "小写与前后空白同样被接受"() {
         expect:
-        (RangeParams.parse("  recent_24h ", NOW) as RangeSpec.QuickRange).getQuick() == RangeQuick.RECENT_24H
+        (RangeParams.parse("  recent_24h ", NOW) as QuickRange).getQuick() == RangeQuick.RECENT_24H
     }
 
     // ── 容错：坏输入不能把报表页打挂 ────────────────────────
@@ -95,8 +95,8 @@ class RangeParamsSpec extends Specification {
 
         then:
         noExceptionThrown()
-        spec instanceof RangeSpec.QuickRange
-        (spec as RangeSpec.QuickRange).getQuick() == RangeQuick.RECENT_1H
+        spec instanceof QuickRange
+        (spec as QuickRange).getQuick() == RangeQuick.RECENT_1H
 
         where:
         raw << [

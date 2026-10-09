@@ -52,6 +52,9 @@ import java.util.Locale;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
+import com.neocat.common.time.range.Explicit;
+import com.neocat.common.time.range.Hour;
+import com.neocat.query.domain.report.ResolvedRange;
 
 /**
  * 报表查询应用服务（技术方案 03-api-contract.md §4）。
@@ -184,7 +187,7 @@ public class ReportQueryService {
                 granularity = requested;
             }
         }
-        var resolved = ranges.resolve(new RangeSpec.Explicit(base.getFrom(), base.getTo(), granularity), zone.get());
+        var resolved = ranges.resolve(new Explicit(base.getFrom(), base.getTo(), granularity), zone.get());
 
         List<String> instanceList = Objects.isNull(instances) || instances.isBlank()
                 ? Lists.newArrayList()
@@ -342,7 +345,7 @@ public class ReportQueryService {
     public List<Map<String, Object>> metricList(String service, Long hour) {
         var resolved = Objects.isNull(hour)
                 ? ranges.resolve(parseRange("RECENT_1H"), zone.get())
-                : ranges.resolve(new RangeSpec.Hour(Instant.ofEpochMilli(hour)), zone.get());
+                : ranges.resolve(new Hour(Instant.ofEpochMilli(hour)), zone.get());
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (String name : data.namesOf("METRIC", service, null, resolved.getFrom(), resolved.getTo())) {
@@ -406,7 +409,7 @@ public class ReportQueryService {
      * 后在后续取值处抛 NPE —— 时间范围写错不该让接口 500。
      */
     private Map<String, Object> emptySeries(String service, String kind, String type, String name,
-                                            Stat target, RangeResolver.ResolvedRange base) {
+                                            Stat target, ResolvedRange base) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("service", service);
         result.put("kind", kind);
@@ -440,7 +443,7 @@ public class ReportQueryService {
     }
 
     private List<AggregatedRow> fetchRows(String kind, String service, String type, String name,
-                                          RangeResolver.ResolvedRange resolved) {
+                                          ResolvedRange resolved) {
         return data.rows(kind, service, type, name, resolved.getFrom(), resolved.getTo(),
                 Granularity.fromSeconds(resolved.bucketSeconds()), Lists.newArrayList());
     }
@@ -489,7 +492,7 @@ public class ReportQueryService {
      * 环比：按整日偏移、桶序号对齐（PRD 03 §6）；不支持的类型返回 null。
      */
     private Map<String, Object> momInfo(String mom, String service, String kind, String type, String name,
-                                        Stat stat, RangeResolver.ResolvedRange resolved,
+                                        Stat stat, ResolvedRange resolved,
                                         List<String> instances) {
         if (Objects.isNull(mom) || mom.isBlank() || !momAligner.supported(kind)) {
             return null;

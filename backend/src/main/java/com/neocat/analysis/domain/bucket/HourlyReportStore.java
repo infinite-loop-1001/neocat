@@ -2,7 +2,6 @@ package com.neocat.analysis.domain.bucket;
 
 import java.math.BigDecimal;
 
-
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;

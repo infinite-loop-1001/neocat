@@ -12,9 +12,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neocat.organization.api.internal.OrgResourceIndex;
 import org.springframework.stereotype.Repository;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Objects;
+
 import org.apache.commons.collections4.ListUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
     public DashboardRepositoryAdapter(DashboardMapper mapper) {
         this(mapper, null);
     }
+
     @Autowired
     public DashboardRepositoryAdapter(DashboardMapper mapper, OrgResourceIndex resources) {
         this.mapper = mapper;
@@ -63,17 +66,20 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         }
         return saved;
     }
+
     @Override
     public Dashboard findById(long id) {
         var row = mapper.selectDashboard(id);
         return Objects.isNull(row) ? null : toDashboard(row);
     }
+
     @Override
     public List<Dashboard> byOrg(long orgId) {
         return mapper.selectDashboardsByOrg(orgId).stream()
                 .map(DashboardRepositoryAdapter::toDashboard)
                 .toList();
     }
+
     @Override
     @Transactional
     public void delete(long dashboardId) {
@@ -130,17 +136,20 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         updateCardCount(card.getDashboardId());
         return saved;
     }
+
     @Override
     public Card findCard(long cardId) {
         var row = mapper.selectCard(cardId);
         return Objects.isNull(row) ? null : toCard(row);
     }
+
     @Override
     public List<Card> cardsOf(long dashboardId) {
         return mapper.selectCardsByDashboard(dashboardId).stream()
                 .map(this::toCard)
                 .toList();
     }
+
     @Override
     @Transactional
     public void deleteCard(long cardId) {
@@ -150,6 +159,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         mapper.deleteCard(cardId);
         updateCardCount(existing.getDashboardId());
     }
+
     private void updateCardCount(long dashboardId) {
         if (Objects.nonNull(resources)) {
             Dashboard dashboard = Optional.ofNullable(findById(dashboardId)).orElseThrow();
@@ -162,16 +172,19 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
     private static Dashboard toDashboard(DashboardRow row) {
         return new Dashboard(row.getId(), row.getOrgId(), row.getName(), row.getOrderNo());
     }
+
     private Card toCard(CardRow row) {
         return new Card(row.getId(), row.getDashboardId(), row.getService(), row.getTargetKind(),
                 row.getTargetType(), row.getTargetName(), fromJson(row.getMetricLabels(), String.class),
                 Objects.isNull(row.getInstanceScope()) ? Lists.newArrayList() :
-                        fromJson(row.getInstanceScope(), new TypeReference<>() {}),
+                        fromJson(row.getInstanceScope(), new TypeReference<>() {
+                        }),
                 row.getFormula(), row.getTimeRange(), row.getOrderNo(),
                 mapper.selectThresholdLines(row.getId()).stream()
                         .map(line -> new ThresholdLine(ThresholdDirection.valueOf(line.getDirection()), line.getValue()))
                         .toList());
     }
+
     private static String toJson(Object value) {
         if (Objects.isNull(value)) return null;
         try {
@@ -180,6 +193,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
             throw new IllegalArgumentException("Invalid card value", e);
         }
     }
+
     private static <T> T fromJson(String value, Class<T> type) {
         if (Objects.isNull(value)) return null;
         try {
@@ -188,6 +202,7 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
             throw new IllegalStateException("Invalid stored card value", e);
         }
     }
+
     private static <T> T fromJson(String value, TypeReference<T> type) {
         try {
             return JSON.readValue(value, type);
@@ -196,161 +211,4 @@ public class DashboardRepositoryAdapter implements DashboardRepository {
         }
     }
 
-    /** 大盘行（列名与 nc_dashboard 一致）。 */
-    public static class DashboardRow {
-        private Long id;
-
-        private long orgId;
-
-        private String name;
-
-        private int orderNo;
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public long getOrgId() {
-            return orgId;
-        }
-
-        public void setOrgId(long orgId) {
-            this.orgId = orgId;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public int getOrderNo() {
-            return orderNo;
-        }
-
-        public void setOrderNo(int orderNo) {
-            this.orderNo = orderNo;
-        }
-    }
-    /** 卡片行（列名与 nc_card 一致）。 */
-    public static class CardRow {
-        private Long id;
-
-        private long dashboardId;
-
-        private String service;
-
-        private String targetKind;
-
-        private String targetType;
-
-        private String targetName;
-
-        private String metricName;
-
-        private String metricLabels;
-
-        private String instanceScope;
-
-        private String formula;
-
-        private String formulaUnit;
-
-        private String timeRange;
-
-        private int orderNo;
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public long getDashboardId() {
-            return dashboardId;
-        }
-
-        public void setDashboardId(long dashboardId) {
-            this.dashboardId = dashboardId;
-        }
-
-        public String getService() {
-            return service;
-        }
-
-        public void setService(String service) {
-            this.service = service;
-        }
-
-        public String getTargetKind() {
-            return targetKind;
-        }
-
-        public void setTargetKind(String targetKind) {
-            this.targetKind = targetKind;
-        }
-
-        public String getTargetType() {
-            return targetType;
-        }
-
-        public void setTargetType(String targetType) {
-            this.targetType = targetType;
-        }
-
-        public String getTargetName() {
-            return targetName;
-        }
-
-        public void setTargetName(String targetName) {
-            this.targetName = targetName;
-        }
-
-        public String getMetricName() {
-            return metricName;
-        }
-
-        public void setMetricName(String metricName) {
-            this.metricName = metricName;
-        }
-
-        public String getMetricLabels() { return metricLabels; }
-        public void setMetricLabels(String metricLabels) { this.metricLabels = metricLabels; }
-        public String getInstanceScope() { return instanceScope; }
-        public void setInstanceScope(String instanceScope) { this.instanceScope = instanceScope; }
-        public String getFormulaUnit() { return formulaUnit; }
-        public void setFormulaUnit(String formulaUnit) { this.formulaUnit = formulaUnit; }
-
-        public String getFormula() {
-            return formula;
-        }
-
-        public void setFormula(String formula) {
-            this.formula = formula;
-        }
-
-        public String getTimeRange() {
-            return timeRange;
-        }
-
-        public void setTimeRange(String timeRange) {
-            this.timeRange = timeRange;
-        }
-
-        public int getOrderNo() {
-            return orderNo;
-        }
-
-        public void setOrderNo(int orderNo) {
-            this.orderNo = orderNo;
-        }
-    }
 }

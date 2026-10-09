@@ -49,7 +49,6 @@ public class ReportSchedulerJob {
 
     private final MinuteBucketReader reader;
 
-
     private volatile long lastFlushedMinute;
 
     public ReportSchedulerJob(ReportScheduler scheduler, ReportBucketSinkPort sink,
