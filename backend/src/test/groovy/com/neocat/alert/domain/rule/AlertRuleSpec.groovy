@@ -1,14 +1,18 @@
 package com.neocat.alert.domain.rule
 
-import java.math.BigDecimal
-
-import com.neocat.alert.domain.engine.Notifier
-
+import com.neocat.alert.domain.AlertRuleService
+import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.vo.rule.AlertScope
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget
+import com.neocat.alert.domain.entity.vo.rule.Combinator
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import static com.neocat.alert.domain.rule.AlertChannel.*
+import static com.neocat.alert.domain.entity.vo.rule.AlertChannel.*
 
 /**
  * G10 任务75（红）：告警规则模型。

@@ -8,15 +8,15 @@ import com.neocat.trace.domain.tree.TraceAssembler
 import com.neocat.trace.domain.sample.SampleService
 import com.neocat.query.infra.port.SamplePort
 import com.neocat.alert.infra.job.AlertEvaluationJob
-import com.neocat.alert.domain.engine.AlertEngine
-import com.neocat.alert.domain.rule.AlertRuleRepository
+import com.neocat.alert.domain.AlertEngine
+import com.neocat.alert.domain.repository.AlertRuleRepository
 import spock.lang.Specification
 import java.time.*
 import com.neocat.alert.api.http.AlertController
 import com.neocat.alert.api.http.convert.AlertConvert
 
-import com.neocat.alert.domain.engine.result.PreviewResult
-import com.neocat.alert.domain.engine.PreviewService
+import com.neocat.alert.domain.entity.vo.result.PreviewResult
+import com.neocat.alert.domain.PreviewService
 import com.neocat.common.error.exception.ResourceNotFoundException
 import com.neocat.common.time.bucket.DefaultTimeBucketResolver
 import com.neocat.common.time.clock.TimeProvider

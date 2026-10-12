@@ -1,7 +1,7 @@
 package com.neocat.alert.infra.adapter
 
-import com.neocat.alert.domain.rule.AlertChannel
-import com.neocat.alert.domain.engine.AlertNotification
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+
 import com.neocat.identity.api.internal.AccountDirectory
 import com.neocat.organization.api.internal.OrganizationAccess
 import com.neocat.platform.api.internal.PlatformReadModel

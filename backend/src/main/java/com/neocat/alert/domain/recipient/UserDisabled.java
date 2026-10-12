@@ -14,9 +14,9 @@ import org.springframework.modulith.NamedInterface;
 @ToString
 public final class UserDisabled implements RecipientEvent {
 
-    private final long accountId;
+    private final Long accountId;
 
-    public UserDisabled(long accountId) {
+    public UserDisabled(Long accountId) {
         this.accountId = accountId;
     }
 

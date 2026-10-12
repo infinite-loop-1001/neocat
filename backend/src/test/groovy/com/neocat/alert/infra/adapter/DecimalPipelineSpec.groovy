@@ -1,14 +1,14 @@
 package com.neocat.alert.infra.adapter
 
-import com.neocat.alert.domain.engine.PreviewService
-import com.neocat.alert.domain.engine.result.PreviewResultType
-import com.neocat.alert.domain.rule.AlertChannel
-import com.neocat.alert.domain.rule.AlertRule
-import com.neocat.alert.domain.rule.AlertScope
-import com.neocat.alert.domain.rule.AlertTarget
-import com.neocat.alert.domain.rule.Combinator
-import com.neocat.alert.domain.rule.Comparator
-import com.neocat.alert.domain.rule.Condition
+import com.neocat.alert.domain.PreviewService
+import com.neocat.alert.domain.entity.vo.result.PreviewResultType
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.entity.vo.rule.AlertScope
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget
+import com.neocat.alert.domain.entity.vo.rule.Combinator
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
 import com.neocat.analysis.domain.bucket.AggregatedRow
 import com.neocat.analysis.domain.bucket.AggregationLevel
 import com.neocat.analysis.domain.bucket.SeriesKey

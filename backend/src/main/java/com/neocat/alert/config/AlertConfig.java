@@ -7,11 +7,11 @@ import org.springframework.context.annotation.Configuration;
 public class AlertConfig {
 
     @ApolloStaticValue("${neocat.alert.evaluate-delay-seconds}")
-    public static volatile int EVALUATE_DELAY_SECONDS;
+    public static volatile Long EVALUATE_DELAY_SECONDS;
 
     @ApolloStaticValue("${neocat.alert.notify-timeout-ms}")
-    public static volatile int NOTIFY_TIMEOUT_MS;
+    public static volatile Long NOTIFY_TIMEOUT_MS;
 
     @ApolloStaticValue("${neocat.alert.dedup-per-minute}")
-    public static volatile boolean DEDUP_PER_MINUTE;
+    public static volatile Boolean DEDUP_PER_MINUTE;
 }

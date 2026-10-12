@@ -54,8 +54,8 @@ public final class StaticConfigFixture {
         TraceConfig.RETENTION_DAYS = 7;
         TraceConfig.SAMPLE_RATE = 1.0;
         TraceConfig.SAMPLE_ROWS = 30;
-        AlertConfig.EVALUATE_DELAY_SECONDS = 5;
-        AlertConfig.NOTIFY_TIMEOUT_MS = 3000;
+        AlertConfig.EVALUATE_DELAY_SECONDS = 5L;
+        AlertConfig.NOTIFY_TIMEOUT_MS = 3000L;
         AlertConfig.DEDUP_PER_MINUTE = true;
         QueryConfig.MAX_BUCKETS = 2000;
         QueryConfig.MAX_INSTANCES_TOP_N = 20;

@@ -1,7 +1,8 @@
 package com.neocat.alert.domain.rule
 
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
 import com.neocat.query.domain.stat.Stat
-import java.math.BigDecimal
 import spock.lang.Specification
 
 class DecimalConditionSpec extends Specification {
@@ -19,7 +20,7 @@ class DecimalConditionSpec extends Specification {
         Comparator.LT  | 0.9   | true
         Comparator.LTE | 1.0   | true
         Comparator.EQ  | 1.1   | false
-        Comparator.NEQ | 1.1   | true
+        Comparator.NEQ | 1.1 | true
     }
 
     def '正负零数值相等，大阈值仍能区别最小六位增量'() {

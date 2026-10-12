@@ -1,6 +1,6 @@
 package com.neocat.alert.infra.adapter;
 
-import com.neocat.alert.domain.recipient.RecipientGateway;
+import com.neocat.alert.domain.gateway.RecipientGateway;
 import com.neocat.identity.api.internal.AccountDirectory;
 import com.neocat.organization.api.internal.OrganizationAccess;
 import org.springframework.stereotype.Component;

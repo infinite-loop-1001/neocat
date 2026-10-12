@@ -1,6 +1,6 @@
 package com.neocat.alert.infra.adapter;
 
-import com.neocat.alert.domain.rule.AlertChannel;
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel;
 import com.neocat.alert.domain.engine.ChannelAvailability;
 import com.neocat.platform.api.internal.PlatformReadModel;
 import org.springframework.stereotype.Component;

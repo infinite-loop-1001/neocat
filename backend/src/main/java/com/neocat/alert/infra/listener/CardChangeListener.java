@@ -1,9 +1,9 @@
 package com.neocat.alert.infra.listener;
 
-import com.neocat.alert.domain.rule.AlertRule;
-import com.neocat.alert.domain.rule.AlertRuleRepository;
-import com.neocat.alert.domain.rule.AlertTarget;
-import com.neocat.alert.domain.rule.AlertTargetKind;
+import com.neocat.alert.domain.entity.AlertRule;
+import com.neocat.alert.domain.repository.AlertRuleRepository;
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget;
+import com.neocat.alert.domain.entity.vo.rule.AlertTargetKind;
 import com.neocat.dashboard.api.internal.CardChange;
 import com.neocat.dashboard.api.internal.CardReferences;
 import com.neocat.query.domain.stat.Stat;
@@ -54,7 +54,7 @@ public class CardChangeListener {
     }
     private void invalidate(AlertRule rule) {
         rules.clearWindowState(rule.getId());
-        rules.save(rule.withInvalid(true).withEnabled(false, null));
+        rules.save(rule.withInvalid(true).withEnabled(false));
     }
     private boolean sameTarget(AlertTarget target, CardChange event) {
         return Objects.equals(target.getService(), event.getService())

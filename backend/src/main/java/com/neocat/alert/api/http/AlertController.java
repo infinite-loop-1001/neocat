@@ -1,12 +1,16 @@
 package com.neocat.alert.api.http;
 
+import com.neocat.alert.domain.AlertLifecycleService;
+import com.neocat.alert.domain.AlertRuleService;
+import com.neocat.alert.domain.entity.AlertRule;
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel;
+import com.neocat.alert.domain.entity.vo.rule.AlertScope;
+import com.neocat.alert.domain.repository.AlertRuleRepository;
 import com.neocat.common.time.clock.TimeProvider;
 
 import com.neocat.alert.api.http.convert.AlertConvert;
-import com.neocat.alert.domain.rule.*;
-import com.neocat.alert.domain.engine.NotificationDispatcher;
-import com.neocat.alert.domain.engine.PreviewService;
-import com.neocat.alert.domain.recipient.RecipientGateway;
+import com.neocat.alert.domain.PreviewService;
+import com.neocat.alert.domain.gateway.RecipientGateway;
 import com.neocat.alert.domain.recipient.RecipientService;
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.error.exception.AuthorizationException;
@@ -24,7 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import org.apache.commons.collections4.ListUtils;
+
 import com.neocat.alert.api.http.dto.rule.AlertDraft;
 import com.neocat.alert.api.http.dto.channel.ChannelResponse;
 import com.neocat.alert.api.http.dto.preview.PreviewResponse;
@@ -48,23 +52,19 @@ public class AlertController {
 
     private final RecipientService recipients;
 
-    private final NotificationDispatcher dispatcher;
-
     private final RecipientGateway recipientGateway;
 
     private final AlertConvert convert;
 
     public AlertController(AlertRuleRepository repository, AlertRuleService ruleService,
                            AlertLifecycleService lifecycle, PreviewService previewService,
-                           RecipientService recipients, NotificationDispatcher dispatcher,
-                           RecipientGateway recipientGateway, AlertConvert convert) {
+                           RecipientService recipients, RecipientGateway recipientGateway, AlertConvert convert) {
         // rules: controller 不能依赖 repository
         this.repository = repository;
         this.ruleService = ruleService;
         this.lifecycle = lifecycle;
         this.previewService = previewService;
         this.recipients = recipients;
-        this.dispatcher = dispatcher;
         this.recipientGateway = recipientGateway;
         this.convert = convert;
     }
@@ -139,10 +139,8 @@ public class AlertController {
             }
             requireOrgMember(account.getId(), draft.getOrgId());
         }
-        List<AlertChannel> channels = ListUtils.emptyIfNull(draft.getChannels()).stream().map(AlertChannel::valueOf).toList();
+
         AlertRule rule = convert.rule(draft, scope);
-        // rules: 这类业务校验下沉到 service 处理逻辑
-        dispatcher.validateChannels(channels);
         recipients.validateSelection(rule, draft.getRecipients());
         return ResponseEntity.status(201).body(convert.response(ruleService.save(rule)));
     }

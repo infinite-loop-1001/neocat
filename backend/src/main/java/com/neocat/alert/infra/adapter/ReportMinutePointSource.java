@@ -2,11 +2,12 @@ package com.neocat.alert.infra.adapter;
 
 import java.math.BigDecimal;
 
+import com.neocat.alert.domain.entity.vo.source.MinutePoint;
 import com.neocat.common.DecimalMath;
 
 import com.google.common.collect.Lists;
-import com.neocat.alert.domain.rule.AlertTarget;
-import com.neocat.alert.domain.engine.MinutePointSource;
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget;
+import com.neocat.alert.domain.gateway.MinutePointSourceGateway;
 import com.neocat.dashboard.api.internal.CardResults;
 import com.neocat.query.api.internal.ReportPoints;
 import com.neocat.query.domain.stat.Stat;
@@ -21,7 +22,7 @@ import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Component
-public class ReportMinutePointSource implements MinutePointSource {
+public class ReportMinutePointSource implements MinutePointSourceGateway {
     private final ReportPoints reports;
 
     private final CardResults cards;
@@ -37,7 +38,7 @@ public class ReportMinutePointSource implements MinutePointSource {
     }
 
     @Override
-    public Map<Stat, BigDecimal> values(AlertTarget target, long minute, List<Stat> stats) {
+    public MinutePoint values(AlertTarget target, Long minute, List<Stat> stats) {
         Instant from = Instant.ofEpochMilli(minute);
         if (target.isCardResult()) {
             BigDecimal value = cards.value(target.getCardId(), from, from.plusSeconds(60));

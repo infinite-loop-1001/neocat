@@ -1,6 +1,13 @@
 package com.neocat.alert.infra.jdbc
 
-import com.neocat.alert.domain.rule.*
+import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.vo.rule.AlertScope
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget
+import com.neocat.alert.domain.entity.vo.rule.AlertTargetKind
+import com.neocat.alert.domain.entity.vo.rule.Combinator
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
 import com.neocat.alert.infra.jdbc.row.AlertRuleRow
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification

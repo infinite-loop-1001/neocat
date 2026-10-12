@@ -1,7 +1,7 @@
 package com.neocat.web
 
-import com.neocat.alert.domain.engine.result.PreviewResult
-import com.neocat.alert.domain.engine.result.PreviewResultType
+import com.neocat.alert.domain.entity.vo.result.PreviewResult
+import com.neocat.alert.domain.entity.vo.result.PreviewResultType
 import com.neocat.dashboard.domain.card.Card
 import com.neocat.dashboard.domain.formula.FormulaParser
 import com.neocat.organization.domain.lifecycle.OrgLifecycleService
@@ -18,7 +18,7 @@ import com.neocat.trace.domain.tree.NodeAvailability
 import spock.lang.Specification
 
 import java.time.Instant
-import com.neocat.alert.domain.engine.result.PointEvaluation
+import com.neocat.alert.domain.entity.vo.result.PointEvaluation
 import com.neocat.organization.domain.tree.result.DashboardSummary
 
 /**

@@ -4,14 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neocat.OpenApiConfiguration;
 import com.neocat.alert.api.http.AlertController;
 import com.neocat.alert.api.http.convert.AlertConvert;
-import com.neocat.alert.domain.engine.MinutePointSource;
-import com.neocat.alert.domain.engine.NotificationDispatcher;
-import com.neocat.alert.domain.engine.PreviewService;
-import com.neocat.alert.domain.recipient.RecipientGateway;
+import com.neocat.alert.domain.gateway.MinutePointSourceGateway;
+import com.neocat.alert.domain.PreviewService;
+import com.neocat.alert.domain.gateway.RecipientGateway;
 import com.neocat.alert.domain.recipient.RecipientService;
-import com.neocat.alert.domain.rule.AlertLifecycleService;
-import com.neocat.alert.domain.rule.AlertRuleRepository;
-import com.neocat.alert.domain.rule.AlertRuleService;
+import com.neocat.alert.domain.AlertLifecycleService;
+import com.neocat.alert.domain.repository.AlertRuleRepository;
+import com.neocat.alert.domain.AlertRuleService;
 import com.neocat.catalog.api.http.CatalogController;
 import com.neocat.catalog.domain.service.CatalogService;
 import com.neocat.dashboard.api.http.DashboardController;
@@ -105,7 +104,7 @@ public final class OpenApiHarness {
                 PlatformService.class, CatalogService.class, IngestService.class, TraceAssembler.class,
                 ReportQueryService.class, MetricCountQueryService.class, DashboardService.class, CardService.class,
                 AlertRuleRepository.class, AlertRuleService.class, AlertLifecycleService.class, PreviewService.class,
-                RecipientService.class, NotificationDispatcher.class, RecipientGateway.class, MinutePointSource.class);
+                RecipientService.class, NotificationDispatcher.class, RecipientGateway.class, MinutePointSourceGateway.class);
         return beanFactory -> {
             for (Class<?> type : types) {
                 beanFactory.registerSingleton(type.getSimpleName(), Mockito.mock(type));

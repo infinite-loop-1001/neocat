@@ -1,20 +1,20 @@
 package com.neocat.alert.domain.engine
 
-import java.math.BigDecimal
-
-import com.neocat.alert.domain.rule.AlertChannel
-import com.neocat.alert.domain.rule.AlertRule
-import com.neocat.alert.domain.rule.AlertScope
-import com.neocat.alert.domain.rule.AlertTarget
-import com.neocat.alert.domain.rule.Combinator
-import com.neocat.alert.domain.rule.Comparator
-import com.neocat.alert.domain.rule.Condition
+import com.neocat.alert.domain.PreviewService
+import com.neocat.alert.domain.gateway.MinutePointSourceGateway
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.entity.vo.rule.AlertScope
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget
+import com.neocat.alert.domain.entity.vo.rule.Combinator
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
 
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 
-import static com.neocat.alert.domain.engine.result.PreviewResultType.*
-import com.neocat.alert.domain.engine.result.PreviewResult
+import static com.neocat.alert.domain.entity.vo.result.PreviewResultType.*
+import com.neocat.alert.domain.entity.vo.result.PreviewResult
 
 /**
  * G10 任务77（红）：预告警试算。
@@ -26,13 +26,13 @@ class PreviewSpec extends Specification {
     static final long MIN_10_00 = 1_790_000_000_000L
     static final long MINUTE = 60_000L
 
-    MinutePointSource source
+    MinutePointSourceGateway source
     Map<Long, Map<Stat, BigDecimal>> pointValues
     PreviewService service
 
     def setup() {
         pointValues = [:]
-        source = Stub(MinutePointSource) {
+        source = Stub(MinutePointSourceGateway) {
             values(_, _, _) >> { AlertTarget target, long minute, List<Stat> stats ->
                 pointValues.getOrDefault(minute, [:])
             }
@@ -64,7 +64,7 @@ class PreviewSpec extends Specification {
                 Combinator.AND, 2, [hitsAbove(1G), failureRateAbove(0.05G)], [], [])
         def requestedStats = []
         def requestedMinutes = []
-        def s = new PreviewService(Stub(MinutePointSource) {
+        def s = new PreviewService(Stub(MinutePointSourceGateway) {
             values(cardTarget, _, _) >> { AlertTarget target, long minute, List<Stat> stats ->
                 requestedStats.add(stats)
                 requestedMinutes.add(minute)
@@ -106,7 +106,7 @@ class PreviewSpec extends Specification {
                 [Stat.AVG, null])
         def r = AlertRule.draft(AlertScope.SERVICE, null, "r", "", cardTarget,
                 Combinator.AND, 1, [hitsAbove(1G)], [], [])
-        def sourceWithoutNullStat = Mock(MinutePointSource)
+        def sourceWithoutNullStat = Mock(MinutePointSourceGateway)
 
         when:
         def preview = new PreviewService(sourceWithoutNullStat).preview(r, MIN_10_00)
@@ -124,7 +124,7 @@ class PreviewSpec extends Specification {
         given:
         def r = rule(Combinator.AND, 1, [hitsAbove(1G)])
         def originalConditions = new ArrayList<>(r.getConditions())
-        def mutableSource = Mock(MinutePointSource)
+        def mutableSource = Mock(MinutePointSourceGateway)
 
         when:
         def result = new PreviewService(mutableSource).preview(r, MIN_10_00)

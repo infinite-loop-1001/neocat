@@ -1,7 +1,15 @@
 package com.neocat.alert.domain.rule
 
-import com.neocat.alert.domain.engine.AlertWindowState
-
+import com.neocat.alert.domain.AlertLifecycleService
+import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor
+import com.neocat.alert.domain.entity.vo.rule.AlertScope
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget
+import com.neocat.alert.domain.entity.vo.rule.Combinator
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
+import com.neocat.alert.domain.repository.AlertRuleRepository
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 
@@ -34,7 +42,7 @@ class RuleMutationSpec extends Specification {
         then:
         1 * repository.findById(1L) >> existing
         1 * repository.clearWindowState(1L)
-        1 * repository.saveWindowState(AlertWindowState.empty(1L, T))
+        1 * repository.saveWindowState(AlertEvalCursor.empty(1L, T))
         1 * repository.save({ it.isEnabled() && it.getStateSince() == T }) >> { args -> args[0] }
         updated.isEnabled()
         updated.getStateSince() == T
@@ -50,7 +58,7 @@ class RuleMutationSpec extends Specification {
         then:
         1 * repository.findById(1L) >> existing
         1 * repository.clearWindowState(1L)
-        1 * repository.saveWindowState(AlertWindowState.empty(1L, T + 60_000L))
+        1 * repository.saveWindowState(AlertEvalCursor.empty(1L, T + 60_000L))
         1 * repository.save({ it.getStateSince() == T + 60_000L }) >> { args -> args[0] }
         updated.isEnabled()
     }

@@ -1,8 +1,9 @@
 package com.neocat.alert.api.http.convert;
 
 import com.google.common.collect.Lists;
-import com.neocat.alert.domain.rule.*;
-import com.neocat.alert.domain.engine.result.PreviewResult;
+import com.neocat.alert.domain.entity.AlertRule;
+import com.neocat.alert.domain.entity.vo.rule.*;
+import com.neocat.alert.domain.entity.vo.result.PreviewResult;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.error.exception.ValidationException;

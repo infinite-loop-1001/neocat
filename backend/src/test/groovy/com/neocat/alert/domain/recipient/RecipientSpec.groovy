@@ -1,15 +1,15 @@
 package com.neocat.alert.domain.recipient
 
-import com.neocat.alert.domain.engine.AlertWindowState
-import com.neocat.alert.domain.rule.AlertChannel
-import com.neocat.alert.domain.rule.AlertRule
-import com.neocat.alert.domain.rule.AlertRuleRepository
-import com.neocat.alert.domain.rule.AlertScope
-import com.neocat.alert.domain.rule.AlertTarget
-import com.neocat.alert.domain.rule.Combinator
-import com.neocat.alert.domain.rule.Comparator
-import com.neocat.alert.domain.rule.Condition
-
+import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.gateway.RecipientGateway
+import com.neocat.alert.domain.repository.AlertRuleRepository
+import com.neocat.alert.domain.entity.vo.rule.AlertScope
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget
+import com.neocat.alert.domain.entity.vo.rule.Combinator
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 
@@ -118,7 +118,7 @@ class RecipientSpec extends Specification {
         1 * repository.save({ it.getRecipients() == [3L] && it.isEnabled() &&
                 it.getConditions() == original.getConditions() }) >> { args -> args[0] }
         1 * repository.clearWindowState(4L)
-        1 * repository.saveWindowState(AlertWindowState.empty(4L, T + 60_000L))
+        1 * repository.saveWindowState(AlertEvalCursor.empty(4L, T + 60_000L))
         updated.getRecipients() == [3L]
     }
 

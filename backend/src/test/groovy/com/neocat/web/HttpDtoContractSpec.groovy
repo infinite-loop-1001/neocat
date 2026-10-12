@@ -14,7 +14,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 import com.neocat.alert.api.http.AlertController
 import com.neocat.alert.api.http.convert.AlertConvert
-import com.neocat.alert.domain.engine.result.PreviewResult
+import com.neocat.alert.domain.entity.vo.result.PreviewResult
 import com.neocat.catalog.api.http.CatalogController
 import com.neocat.catalog.api.http.convert.CatalogConvert
 import com.neocat.dashboard.api.http.DashboardController
@@ -41,7 +41,7 @@ import org.mapstruct.factory.Mappers
 import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.web.bind.annotation.RequestMapping
 import com.neocat.alert.api.http.dto.rule.AlertDraft
-import com.neocat.alert.domain.engine.result.PointEvaluation
+import com.neocat.alert.domain.entity.vo.result.PointEvaluation
 import com.neocat.dashboard.api.http.dto.card.CardDraft
 import com.neocat.dashboard.api.http.dto.dashboard.DashboardDraft
 import com.neocat.identity.api.http.dto.auth.ChangePasswordRequest

@@ -1,11 +1,13 @@
 package com.neocat.alert.domain.recipient;
 
 import com.google.common.collect.Lists;
-import com.neocat.alert.domain.engine.AlertWindowState;
-import com.neocat.alert.domain.rule.AlertRule;
-import com.neocat.alert.domain.rule.AlertRuleRepository;
-import com.neocat.alert.domain.rule.AlertRuleService;
+import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor;
+import com.neocat.alert.domain.entity.AlertRule;
+import com.neocat.alert.domain.gateway.RecipientGateway;
+import com.neocat.alert.domain.repository.AlertRuleRepository;
+import com.neocat.alert.domain.AlertRuleService;
 import com.neocat.common.locking.MySqlLocked;
+import org.apache.commons.collections4.ListUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
 import java.util.*;
@@ -39,13 +41,13 @@ import java.util.NoSuchElementException;
  */
 public class RecipientService {
 
-    private final AlertRuleRepository repository;
+    private final AlertRuleRepository alertRuleRepository;
 
-    private final RecipientGateway gateway;
+    private final RecipientGateway recipientGateway;
 
-    public RecipientService(AlertRuleRepository repository, RecipientGateway gateway) {
-        this.repository = repository;
-        this.gateway = gateway;
+    public RecipientService(AlertRuleRepository alertRuleRepository, RecipientGateway recipientGateway) {
+        this.alertRuleRepository = alertRuleRepository;
+        this.recipientGateway = recipientGateway;
     }
 
     // fixme: 这部分逻辑需要写到 EventHandler 里面, 并且根据不同的内部领域事件类型分开处理, 不要塞到一个方法里面
@@ -83,11 +85,11 @@ public class RecipientService {
         }
         List<Long> result = new ArrayList<>();
         for (Long accountId : rule.getRecipients()) {
-            if (!gateway.isEnabled(accountId)) {
+            if (!recipientGateway.isEnabled(accountId)) {
                 continue;
             }
             if (rule.isOrganization() && Objects.nonNull(rule.getOrgId())
-                    && !gateway.isEffectiveMember(accountId, rule.getOrgId())) {
+                    && !recipientGateway.isEffectiveMember(accountId, rule.getOrgId())) {
                 continue;
             }
             result.add(accountId);
@@ -99,19 +101,18 @@ public class RecipientService {
      * 补充收件人：**重建窗口基线**，不追溯旧异常（PRD 06 §9）。
      */
     @MySqlLocked("metadata")
-    public AlertRule updateRecipients(long ruleId, List<Long> recipients, long addedAt) {
-        AlertRule rule = Optional.ofNullable(repository.findById(ruleId))
+    public AlertRule updateRecipients(long ruleId, List<String> recipients, long addedAt) {
+        AlertRule rule = Optional.ofNullable(alertRuleRepository.findById(ruleId))
                 .orElseThrow(() -> new NoSuchElementException("规则不存在：" + ruleId));
-        // rules: stream 流操作前需要进行判空, 类似 CollectionUtils.emptyIfNull().stream....
-        List<Long> sanitized = distinct(recipients);
+        List<String> sanitized = ListUtils.emptyIfNull(recipients).stream().distinct().toList();
 
         AlertRule updated = rule.withRecipients(sanitized);
-        AlertRule saved = repository.save(updated);
+        AlertRule saved = alertRuleRepository.save(updated);
 
         // 窗口重建：新基线为补充时刻，点集为空
         // fixme: 先修改 AlterRule 再和告警窗口通过领域事件交互
-        repository.clearWindowState(ruleId);
-        repository.saveWindowState(AlertWindowState.empty(ruleId, addedAt));
+        alertRuleRepository.clearWindowState(ruleId);
+        alertRuleRepository.saveWindowState(AlertEvalCursor.empty(ruleId, addedAt));
         return saved;
     }
     /** 校验收件人选择合法：账号必须启用；组织告警还必须是该叶子的有效成员。 */
@@ -121,11 +122,11 @@ public class RecipientService {
         }
         // rules: 遍历容器的时候不要单独 for 循环做可能高耗时的业务逻辑 (如 rpc, 数据库操作), 尽量使用批量处理
         for (Long accountId : recipients) {
-            if (!gateway.isEnabled(accountId)) {
+            if (!recipientGateway.isEnabled(accountId)) {
                 throw new IllegalArgumentException("收件人必须是启用状态的账号：" + accountId);
             }
             if (rule.isOrganization() && Objects.nonNull(rule.getOrgId())
-                    && !gateway.isEffectiveMember(accountId, rule.getOrgId())) {
+                    && !recipientGateway.isEffectiveMember(accountId, rule.getOrgId())) {
                 throw new IllegalArgumentException("组织告警的收件人必须是该叶子的有效成员：" + accountId);
             }
         }
@@ -135,25 +136,25 @@ public class RecipientService {
 
     private List<AlertRule> removeFromAll(long accountId) {
         List<AlertRule> changed = new ArrayList<>();
-        for (AlertRule rule : repository.findAll()) {
+        for (AlertRule rule : alertRuleRepository.findAll()) {
             if (CollectionUtils.isEmpty(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
                 continue;
             }
             List<Long> remaining = rule.getRecipients().stream().filter(id -> id != accountId).toList();
-            changed.add(repository.save(rule.withRecipients(remaining)));
+            changed.add(alertRuleRepository.save(rule.withRecipients(remaining)));
         }
         return changed;
     }
 
     private List<AlertRule> removeFromOrg(long orgId, long accountId) {
         List<AlertRule> changed = new ArrayList<>();
-        for (AlertRule rule : repository.byOrg(orgId)) {
+        for (AlertRule rule : alertRuleRepository.byOrg(orgId)) {
             // fixme: 抽一个公共方法在当前类里
             if (CollectionUtils.isEmpty(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
                 continue;
             }
             List<Long> remaining = rule.getRecipients().stream().filter(id -> id != accountId).toList();
-            changed.add(repository.save(rule.withRecipients(remaining)));
+            changed.add(alertRuleRepository.save(rule.withRecipients(remaining)));
         }
         return changed;
     }
@@ -161,18 +162,10 @@ public class RecipientService {
     private List<AlertRule> invalidateOrg(long orgId) {
         List<AlertRule> changed = new ArrayList<>();
         // rules: 遍历的容器需要遍历具体容器, 不要写类似 repository.byOrg(orgId) 这种的表达式
-        for (AlertRule rule : repository.byOrg(orgId)) {
+        for (AlertRule rule : alertRuleRepository.byOrg(orgId)) {
             // rules: 不要在循环里操作数据库, 尽量使用批量更新逻辑
-            changed.add(repository.save(rule.withInvalid(true).withEnabled(false, null)));
+            changed.add(alertRuleRepository.save(rule.withInvalid(true).withEnabled(false)));
         }
         return changed;
-    }
-    // rules: List 去重使用 stream 流, 不要单独再写一个函数
-    private List<Long> distinct(List<Long> recipients) {
-        if (CollectionUtils.isEmpty(recipients)) {
-            return Lists.newArrayList();
-        }
-        Set<Long> unique = new LinkedHashSet<>(recipients);
-        return List.copyOf(unique);
     }
 }

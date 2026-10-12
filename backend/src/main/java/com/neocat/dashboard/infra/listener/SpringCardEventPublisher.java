@@ -15,6 +15,7 @@ public class SpringCardEventPublisher implements CardEventPublisher {
     public SpringCardEventPublisher(ApplicationEventPublisher publisher) {
         this.publisher = publisher;
     }
+
     @Override
     public void publish(CardEvent event) {
         publisher.publishEvent(event);

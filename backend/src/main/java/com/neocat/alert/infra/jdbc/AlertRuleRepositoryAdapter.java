@@ -1,16 +1,16 @@
 package com.neocat.alert.infra.jdbc;
 
 import com.google.common.collect.Lists;
-import com.neocat.alert.domain.rule.AlertChannel;
-import com.neocat.alert.domain.rule.AlertRule;
-import com.neocat.alert.domain.rule.AlertRuleRepository;
-import com.neocat.alert.domain.rule.AlertScope;
-import com.neocat.alert.domain.rule.AlertTarget;
-import com.neocat.alert.domain.rule.AlertTargetKind;
-import com.neocat.alert.domain.engine.AlertWindowState;
-import com.neocat.alert.domain.rule.Combinator;
-import com.neocat.alert.domain.rule.Comparator;
-import com.neocat.alert.domain.rule.Condition;
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel;
+import com.neocat.alert.domain.entity.AlertRule;
+import com.neocat.alert.domain.repository.AlertRuleRepository;
+import com.neocat.alert.domain.entity.vo.rule.AlertScope;
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget;
+import com.neocat.alert.domain.entity.vo.rule.AlertTargetKind;
+import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor;
+import com.neocat.alert.domain.entity.vo.rule.Combinator;
+import com.neocat.alert.domain.entity.vo.rule.Comparator;
+import com.neocat.alert.domain.entity.vo.rule.Condition;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.organization.api.internal.OrgResourceIndex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -156,7 +156,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
     }
 
     @Override
-    public void saveWindowState(AlertWindowState state) {
+    public void saveWindowState(AlertEvalCursor state) {
         mapper.deleteWindowPoints(state.getRuleId());
         for (Long minute : state.getPoints()) {
             mapper.insertWindowPoint(state.getRuleId(), Timestamp.from(Instant.ofEpochMilli(minute)));

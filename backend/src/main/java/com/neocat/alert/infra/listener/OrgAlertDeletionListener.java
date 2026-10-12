@@ -1,6 +1,6 @@
 package com.neocat.alert.infra.listener;
 
-import com.neocat.alert.domain.rule.AlertRuleRepository;
+import com.neocat.alert.domain.repository.AlertRuleRepository;
 import com.neocat.organization.domain.lifecycle.OrgDeletionRequested;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

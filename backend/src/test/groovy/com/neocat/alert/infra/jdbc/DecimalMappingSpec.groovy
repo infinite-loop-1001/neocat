@@ -4,16 +4,16 @@ import org.apache.ibatis.builder.xml.XMLMapperBuilder
 import org.apache.ibatis.session.Configuration
 import org.apache.ibatis.type.BigDecimalTypeHandler
 import org.apache.ibatis.type.JdbcType
-import java.math.BigDecimal
+
 import java.sql.PreparedStatement
 import java.sql.ResultSet
-import com.neocat.alert.domain.rule.AlertRule
-import com.neocat.alert.domain.rule.AlertScope
-import com.neocat.alert.domain.rule.AlertTarget
-import com.neocat.alert.domain.rule.AlertChannel
-import com.neocat.alert.domain.rule.Combinator
-import com.neocat.alert.domain.rule.Comparator
-import com.neocat.alert.domain.rule.Condition
+import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.entity.vo.rule.AlertScope
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.vo.rule.Combinator
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 import com.neocat.alert.infra.jdbc.row.AlertConditionRow

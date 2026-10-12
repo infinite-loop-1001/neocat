@@ -89,4 +89,72 @@ class TimeProviderSpec extends Specification {
         TimeProvider.delayedMinuteStart(90) == Instant.parse('2026-10-03T01:59:00Z')
         TimeProvider.delayedMinuteStart(0) == Instant.parse('2026-10-03T02:00:00Z')
     }
+
+    def "分钟点窗口含传入点且最新点在前，长度等于窗口大小"() {
+        when:
+        def window = TimeProvider.minuteWindow(Instant.parse('2026-10-03T02:05:00Z'), 3)
+
+        then:
+        window == [Instant.parse('2026-10-03T02:05:00Z'),
+                   Instant.parse('2026-10-03T02:04:00Z'),
+                   Instant.parse('2026-10-03T02:03:00Z')]
+    }
+
+    def "分钟点窗口把未对齐的传入点向下对齐到分钟边界"() {
+        when:
+        def window = TimeProvider.minuteWindow(Instant.parse('2026-10-03T02:05:30.500Z'), 2)
+
+        then:
+        window == [Instant.parse('2026-10-03T02:05:00Z'),
+                   Instant.parse('2026-10-03T02:04:00Z')]
+    }
+
+    def "分钟点窗口为 1 时只返回对齐后的传入点"() {
+        expect:
+        TimeProvider.minuteWindow(Instant.parse('2026-10-03T02:05:45Z'), 1) ==
+                [Instant.parse('2026-10-03T02:05:00Z')]
+    }
+
+    def "epoch 毫秒入口与 Instant 入口给出同一窗口，装箱 Long 同样可用"() {
+        given:
+        def expected = TimeProvider.minuteWindow(Instant.parse('2026-10-03T02:05:00Z'), 3)
+
+        expect:
+        TimeProvider.minuteWindow(Instant.parse('2026-10-03T02:05:00Z').toEpochMilli(), 3) == expected
+        TimeProvider.minuteWindow(Long.valueOf(Instant.parse('2026-10-03T02:05:00Z').toEpochMilli()), 3) == expected
+    }
+
+    def "epoch 毫秒入口把未对齐的毫秒向下对齐到分钟边界"() {
+        expect:
+        TimeProvider.minuteWindow(Instant.parse('2026-10-03T02:05:30.500Z').toEpochMilli(), 2) ==
+                [Instant.parse('2026-10-03T02:05:00Z'),
+                 Instant.parse('2026-10-03T02:04:00Z')]
+    }
+
+    def "epoch 毫秒入口同样拒绝非正窗口大小"() {
+        when:
+        TimeProvider.minuteWindow(Instant.parse('2026-10-03T02:05:00Z').toEpochMilli(), 0)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def "分钟点窗口跨小时与跨天倒推正确"() {
+        expect:
+        TimeProvider.minuteWindow(Instant.parse('2026-10-03T00:01:00Z'), 3) ==
+                [Instant.parse('2026-10-03T00:01:00Z'),
+                 Instant.parse('2026-10-03T00:00:00Z'),
+                 Instant.parse('2026-10-02T23:59:00Z')]
+    }
+
+    def "窗口大小非正时拒绝构造窗口"() {
+        when:
+        TimeProvider.minuteWindow(Instant.parse('2026-10-03T02:05:00Z'), size)
+
+        then:
+        thrown(IllegalArgumentException)
+
+        where:
+        size << [0, -1]
+    }
 }

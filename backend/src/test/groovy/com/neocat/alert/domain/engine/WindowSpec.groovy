@@ -1,19 +1,20 @@
 package com.neocat.alert.domain.engine
 
-import java.math.BigDecimal
-
-import com.neocat.alert.domain.rule.AlertChannel
-import com.neocat.alert.domain.rule.AlertRule
-import com.neocat.alert.domain.rule.AlertTarget
-import com.neocat.alert.domain.rule.Combinator
-import com.neocat.alert.domain.rule.Comparator
-import com.neocat.alert.domain.rule.Condition
+import com.neocat.alert.domain.AlertEngine
+import com.neocat.alert.domain.gateway.MinutePointSourceGateway
+import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget
+import com.neocat.alert.domain.entity.vo.rule.Combinator
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
 
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 
-import static com.neocat.alert.domain.rule.AlertScope.SERVICE
-import com.neocat.alert.domain.engine.result.EvaluationResult
+import static com.neocat.alert.domain.entity.vo.rule.AlertScope.SERVICE
+import com.neocat.alert.domain.entity.vo.result.EvaluationResult
 
 /**
  * G10 任务79（红）：滑动窗口与分钟判定。
@@ -26,7 +27,7 @@ class WindowSpec extends Specification {
     static final long T = 1_790_000_000_000L
     static final long MINUTE = 60_000L
 
-    MinutePointSource source
+    MinutePointSourceGateway source
     Map<Long, Map<Stat, BigDecimal>> pointValues
     Notifier notifier
     List<AlertNotification> sent
@@ -34,7 +35,7 @@ class WindowSpec extends Specification {
 
     def setup() {
         pointValues = [:]
-        source = Stub(MinutePointSource) {
+        source = Stub(MinutePointSourceGateway) {
             values(_, _, _) >> { AlertTarget target, long minute, List<Stat> stats ->
                 pointValues.getOrDefault(minute, [:])
             }
@@ -56,7 +57,7 @@ class WindowSpec extends Specification {
     }
 
     def state(long baseline = T) {
-        return AlertWindowState.empty(1L, baseline)
+        return AlertEvalCursor.empty(1L, baseline)
     }
 
     def putSatisfied(long minute) {
@@ -78,7 +79,7 @@ class WindowSpec extends Specification {
                  new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05G)],
                 [], [], true, false, T)
         def requestedStats = []
-        def realTimeSource = Stub(MinutePointSource) {
+        def realTimeSource = Stub(MinutePointSourceGateway) {
             values(cardTarget, T, _) >> { AlertTarget target, long minute, List<Stat> stats ->
                 requestedStats.add(stats)
                 [(Stat.AVG): 10.0G, (Stat.HITS): 10.0G, (Stat.FAILURE_RATE): 0.1G]
@@ -192,7 +193,7 @@ class WindowSpec extends Specification {
         def r = rule(3)
         (1..3).each { putSatisfied(T - it * MINUTE) }
         putSatisfied(T)
-        def s = AlertWindowState.empty(1L, T)     // 基线 = 启用时刻 T
+        def s = AlertEvalCursor.empty(1L, T)     // 基线 = 启用时刻 T
 
         when: "启用后第一个完整点 T 到达"
         def res = engine.onMinute(r, s, T)
@@ -206,7 +207,7 @@ class WindowSpec extends Specification {
         given: "启用前已有大量满足点"
         def r = rule(3)
         (1..10).each { putSatisfied(T - it * MINUTE) }
-        def s = AlertWindowState.empty(1L, T)
+        def s = AlertEvalCursor.empty(1L, T)
         (0..2).each { putSatisfied(T + it * MINUTE) }
 
         when:
@@ -223,7 +224,7 @@ class WindowSpec extends Specification {
     def "早于基线的迟到点被忽略，不进入窗口"() {
         given:
         def r = rule(2)
-        def s = AlertWindowState.empty(1L, T + MINUTE)   // 基线为 T+1
+        def s = AlertEvalCursor.empty(1L, T + MINUTE)   // 基线为 T+1
         putSatisfied(T)                                   // 早于基线
         putSatisfied(T + MINUTE)
 
@@ -239,7 +240,7 @@ class WindowSpec extends Specification {
         given: "X=2；补人前 T..T+2 都满足，补人时刻为 T+3"
         def r = rule(2)
         (0..2).each { putSatisfied(T + it * MINUTE) }
-        def afterReplenish = AlertWindowState.empty(1L, T + 3 * MINUTE)
+        def afterReplenish = AlertEvalCursor.empty(1L, T + 3 * MINUTE)
         putSatisfied(T + 3 * MINUTE)
         putSatisfied(T + 4 * MINUTE)
 

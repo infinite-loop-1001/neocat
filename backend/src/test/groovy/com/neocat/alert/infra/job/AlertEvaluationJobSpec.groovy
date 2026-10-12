@@ -1,18 +1,25 @@
 package com.neocat.alert.infra.job
 
+import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.vo.rule.AlertScope
+import com.neocat.alert.domain.entity.vo.rule.AlertTarget
+import com.neocat.alert.domain.entity.vo.rule.Combinator
+import com.neocat.alert.domain.entity.vo.rule.Comparator
+import com.neocat.alert.domain.entity.vo.rule.Condition
+import com.neocat.alert.domain.repository.AlertRuleRepository
 import spock.lang.Specification
 
 import com.neocat.alert.config.AlertConfig
-import com.neocat.alert.domain.engine.AlertEngine
-import com.neocat.alert.domain.engine.AlertWindowState
-import com.neocat.alert.domain.rule.*
+import com.neocat.alert.domain.AlertEngine
+import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor
 import com.neocat.common.time.clock.TimeProvider
 import com.neocat.query.domain.stat.Stat
 
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import com.neocat.alert.domain.engine.result.EvaluationResult
+import com.neocat.alert.domain.entity.vo.result.EvaluationResult
 
 class AlertEvaluationJobSpec extends Specification {
     def cleanup() {
@@ -47,14 +54,14 @@ class AlertEvaluationJobSpec extends Specification {
     def 'enabled rule uses the persisted activation baseline and retains returned window state'() {
         given:
         def active = rule(1L, 3)
-        def progressed = new AlertWindowState(1L, T, [T])
+        def progressed = new AlertEvalCursor(1L, T, [T])
 
         when:
         job.evaluateAt(T)
 
         then:
         1 * repository.enabledRules() >> [active]
-        1 * engine.onMinute(active, AlertWindowState.empty(1L, T), T) >>
+        1 * engine.onMinute(active, AlertEvalCursor.empty(1L, T), T) >>
                 new EvaluationResult(false, [], progressed)
         job.trackedWindows() == 1
 
@@ -79,7 +86,7 @@ class AlertEvaluationJobSpec extends Specification {
         1 * repository.enabledRules() >> [broken, healthy]
         1 * engine.onMinute(broken, _, T) >> { throw new IllegalStateException('malformed rule') }
         1 * engine.onMinute(healthy, _, T) >>
-                new EvaluationResult(false, [], AlertWindowState.empty(2L, T))
+                new EvaluationResult(false, [], AlertEvalCursor.empty(2L, T))
         job.trackedWindows() == 2
     }
 
@@ -113,7 +120,7 @@ class AlertEvaluationJobSpec extends Specification {
     def 'changed enable baseline discards an earlier in-process window'() {
         given:
         def old = rule(1L)
-        def newRule = old.withEnabled(true, T + MINUTE)
+        def newRule = old.withEnabled(true)
 
         when:
         job.evaluateAt(T)
@@ -122,10 +129,10 @@ class AlertEvaluationJobSpec extends Specification {
         then:
         1 * repository.enabledRules() >> [old]
         1 * repository.enabledRules() >> [newRule]
-        1 * engine.onMinute(old, AlertWindowState.empty(1L, T), T) >>
-                new EvaluationResult(false, [], new AlertWindowState(1L, T, [T]))
-        1 * engine.onMinute(newRule, AlertWindowState.empty(1L, T + MINUTE), T + MINUTE) >>
-                new EvaluationResult(false, [], AlertWindowState.empty(1L, T + MINUTE))
+        1 * engine.onMinute(old, AlertEvalCursor.empty(1L, T), T) >>
+                new EvaluationResult(false, [], new AlertEvalCursor(1L, T, [T]))
+        1 * engine.onMinute(newRule, AlertEvalCursor.empty(1L, T + MINUTE), T + MINUTE) >>
+                new EvaluationResult(false, [], AlertEvalCursor.empty(1L, T + MINUTE))
     }
 
     def 'a delay longer than one minute still schedules completed points'() {

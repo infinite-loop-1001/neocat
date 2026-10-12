@@ -1,7 +1,6 @@
 package com.neocat.alert.infra.adapter;
 
-import com.neocat.alert.domain.rule.AlertChannel;
-import com.neocat.alert.domain.engine.DeliveryLogger;
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
