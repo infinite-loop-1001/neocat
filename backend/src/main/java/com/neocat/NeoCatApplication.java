@@ -14,9 +14,9 @@ import com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig;
  * <p>Spring Modulith 以包为模块边界；跨模块调用只走公开接口或应用事件。
  *
  * <p>配置来自 Apollo：服务发现、远端读取与本地缓存回退都由 Apollo 客户端负责，
- * 应用不重复实现。{@code app.id} 由 {@code -Dapp.id}、{@code APP_ID} 或
- * {@code META-INF/app.properties} 提供，{@code apollo.meta} 由 {@code -Dapollo.meta}
- * 或 {@code APOLLO_META} 提供；两者都是部署参数，不在此写死。
+ * 应用不重复实现。{@code app.id} 与 namespace 配置在 {@code bootstrap.properties}，
+ * 由 {@code application.properties} 显式导入；{@code apollo.meta} 由
+ * {@code -Dapollo.meta} 或 {@code APOLLO_META} 提供。
  */
 @SpringBootApplication
 @EnableScheduling
