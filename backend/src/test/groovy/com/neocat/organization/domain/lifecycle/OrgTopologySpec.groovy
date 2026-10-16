@@ -92,7 +92,7 @@ class OrgTopologySpec extends Specification {
         1 * nodes.findById(7L) >> leaf()
         1 * resources.dashboardsOf(7L) >> [new DashboardSummary(12L, '订单', 3L)]
         1 * resources.alertRuleCount(7L) >> 2L
-        1 * leaves.membersOf(7L) >> ([100L, 200L] as Set)
+        1 * leaves.membersOf(7L) >> (['keith.ji', 'alice'] as Set)
         preview.dashboardCount() == 1L
         preview.cardCount() == 3L
         preview.getAlertRuleCount() == 2L

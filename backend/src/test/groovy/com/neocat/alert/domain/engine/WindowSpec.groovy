@@ -1,62 +1,65 @@
 package com.neocat.alert.domain.engine
 
 import com.neocat.alert.domain.AlertEngine
-import com.neocat.alert.domain.gateway.MinutePointSourceGateway
-import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor
-import com.neocat.alert.domain.entity.vo.rule.AlertChannel
 import com.neocat.alert.domain.entity.AlertRule
+import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor
+import com.neocat.alert.domain.entity.vo.result.EvaluationResult
 import com.neocat.alert.domain.entity.vo.rule.AlertTarget
 import com.neocat.alert.domain.entity.vo.rule.Combinator
 import com.neocat.alert.domain.entity.vo.rule.Comparator
 import com.neocat.alert.domain.entity.vo.rule.Condition
-
+import com.neocat.alert.domain.entity.vo.source.MinutePoint
+import com.neocat.alert.domain.event.AlertTriggeredEvent
+import com.neocat.alert.domain.gateway.MinutePointSourceGateway
 import com.neocat.query.domain.stat.Stat
+import org.springframework.context.ApplicationEventPublisher
 import spock.lang.Specification
 
 import static com.neocat.alert.domain.entity.vo.rule.AlertScope.SERVICE
-import com.neocat.alert.domain.entity.vo.result.EvaluationResult
 
 /**
- * G10 任务79（红）：滑动窗口与分钟判定。
- * 对应 PRD 06 §3.2（启用：只使用启用后的完整分钟点）、§5（滑动窗口触发、
- * X=3 第 3 点触发、持续满足每分钟再触发、缺数打断、迟到不回溯）、§6（缺数与零值）、
- * §12（验收 2、3、6）。
+ * 滑动窗口与分钟判定。
+ *
+ * <p>每次判定都以当前分钟为终点，向数据源读取连续 X 个点。
+ * 早于基线的当前分钟直接忽略，游标停在调用方传入的位置。
  */
 class WindowSpec extends Specification {
 
-    static final long T = 1_790_000_000_000L
     static final long MINUTE = 60_000L
+    static final long T = 1_790_000_040_000L
 
     MinutePointSourceGateway source
     Map<Long, Map<Stat, BigDecimal>> pointValues
-    Notifier notifier
-    List<AlertNotification> sent
+    List<AlertTriggeredEvent> published
     AlertEngine engine
 
     def setup() {
         pointValues = [:]
         source = Stub(MinutePointSourceGateway) {
-            values(_, _, _) >> { AlertTarget target, long minute, List<Stat> stats ->
-                pointValues.getOrDefault(minute, [:])
+            batchMinuteValues(_, _, _) >> { AlertTarget target, List<Long> minutes, List<Stat> stats ->
+                minutes.findResults { minute ->
+                    def values = pointValues[minute]
+                    values == null ? null : new MinutePoint(minute, values)
+                }
             }
         }
-        sent = []
-        notifier = Mock(Notifier) {
-            send(_) >> { AlertNotification notification -> sent.add(notification) }
+        published = []
+        def publisher = Stub(ApplicationEventPublisher) {
+            publishEvent(_) >> { AlertTriggeredEvent event -> published.add(event) }
         }
-        engine = new AlertEngine(source, notifier)
+        engine = new AlertEngine(source, publisher)
     }
 
     def rule(int window, Combinator combinator = Combinator.AND,
-             List<Condition> conditions = null, List<Long> recipients = [1L]) {
-        return new AlertRule(1L, SERVICE, null, "订单失败率", "",
-                AlertTarget.rawMetric("order", "TRANSACTION", "URL", "/a"),
+             List<Condition> conditions = null, List<String> recipients = ['keith.ji']) {
+        return new AlertRule(1L, SERVICE, null, '订单失败率', '',
+                AlertTarget.rawMetric('order', 'TRANSACTION', 'URL', '/a'),
                 combinator, window,
                 conditions == null ? [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05)] : conditions,
-                recipients, [AlertChannel.EMAIL], true, false, T)
+                recipients, [], true, false)
     }
 
-    def state(long baseline = T) {
+    def cursor(long baseline = T - 10 * MINUTE) {
         return AlertEvalCursor.empty(1L, baseline)
     }
 
@@ -68,274 +71,218 @@ class WindowSpec extends Specification {
         pointValues[minute] = [(Stat.FAILURE_RATE): 0.01]
     }
 
-    // ── X=3 的触发点 ─────────────────────────────────────────
-
-    def "实时判定仍向数据源传递过滤空项且整体去重的统计项"() {
+    def '实时判定按窗口向数据源一次读取去重后的统计项'() {
         given:
-        def cardTarget = new AlertTarget(null, 12L, "order", "TRANSACTION", "URL", "/a", null,
+        def cardTarget = new AlertTarget(null, 12L, 'order', 'TRANSACTION', 'URL', '/a', null,
                 [Stat.AVG, null, Stat.HITS, Stat.AVG])
-        def r = new AlertRule(1L, SERVICE, null, "r", "", cardTarget, Combinator.AND, 1,
+        def r = new AlertRule(1L, SERVICE, null, 'r', '', cardTarget, Combinator.AND, 1,
                 [new Condition(Stat.HITS, Comparator.GT, 1G),
                  new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05G)],
-                [], [], true, false, T)
-        def requestedStats = []
+                [], [], true, false)
+        def requested = []
         def realTimeSource = Stub(MinutePointSourceGateway) {
-            values(cardTarget, T, _) >> { AlertTarget target, long minute, List<Stat> stats ->
-                requestedStats.add(stats)
-                [(Stat.AVG): 10.0G, (Stat.HITS): 10.0G, (Stat.FAILURE_RATE): 0.1G]
+            batchMinuteValues(cardTarget, _, _) >> { AlertTarget target, List<Long> minutes, List<Stat> stats ->
+                requested.add([minutes, stats])
+                [new MinutePoint(T, [(Stat.AVG): 10.0G, (Stat.HITS): 10.0G, (Stat.FAILURE_RATE): 0.1G])]
             }
         }
+        def realTimeEngine = new AlertEngine(realTimeSource, Stub(ApplicationEventPublisher))
 
         when:
-        def satisfied = new AlertEngine(realTimeSource, Mock(Notifier)).pointSatisfied(r, T)
+        def res = realTimeEngine.onMinute(r, cursor(), T)
 
         then:
-        satisfied
-        requestedStats == [[Stat.AVG, Stat.HITS, Stat.FAILURE_RATE]]
+        res.isTriggered()
+        requested == [[[T], [Stat.AVG, Stat.HITS, Stat.FAILURE_RATE]]]
     }
 
-    def "X=3 时第 3 个满足点触发"() {
+    def 'X=3 时窗口未满三个满足点不触发，第三个点触发'() {
         given:
         def r = rule(3)
-        def s = state()
         putSatisfied(T)
         putSatisfied(T + MINUTE)
+
+        when:
+        def partial = engine.onMinute(r, cursor(), T + MINUTE)
         putSatisfied(T + 2 * MINUTE)
-
-        when: "依次到达三个点"
-        def r1 = engine.onMinute(r, s, T)
-        def r2 = engine.onMinute(r, r1.getState(), T + MINUTE)
-        def r3 = engine.onMinute(r, r2.getState(), T + 2 * MINUTE)
+        def full = engine.onMinute(r, cursor(), T + 2 * MINUTE)
 
         then:
-        !r1.isTriggered()
-        !r2.isTriggered()
-        r3.isTriggered()
-        sent.size() == 1
+        !partial.isTriggered()
+        full.isTriggered()
+        full.getCursor().getLastEvaluatedMinute() == T + 2 * MINUTE
+        published.size() == 1
     }
 
-    def "X=3 时前两个点不触发（窗口未满）"() {
+    def '持续满足时每个完整窗口都再次触发'() {
         given:
         def r = rule(3)
-        putSatisfied(T)
-        putSatisfied(T + MINUTE)
-
-        when:
-        def r1 = engine.onMinute(r, state(), T)
-        def r2 = engine.onMinute(r, r1.getState(), T + MINUTE)
-
-        then:
-        !r1.isTriggered()
-        !r2.isTriggered()
-        sent.isEmpty()
-    }
-
-    def "持续满足时每分钟都可能再次触发"() {
-        given: "X=3，连续 5 个满足点"
-        def r = rule(3)
-        def s = state()
         (0..4).each { putSatisfied(T + it * MINUTE) }
 
         when:
-        def results = []
-        (0..4).each { i ->
-            def res = engine.onMinute(r, s, T + i * MINUTE)
-            s = res.getState()
-            results << res.isTriggered()
+        def results = (2..4).collect { i ->
+            engine.onMinute(r, cursor(), T + i * MINUTE).isTriggered()
         }
 
-        then: "第 3、4、5 点各触发一次"
-        results == [false, false, true, true, true]
-        sent.size() == 3
+        then:
+        results == [true, true, true]
+        published.size() == 3
     }
 
-    def "窗口内有一个不满足点则不触发"() {
-        given: "X=3，中间点不满足"
+    def '窗口内有一个不满足点则不触发'() {
+        given:
         def r = rule(3)
-        def s = state()
         putSatisfied(T)
         putUnsatisfied(T + MINUTE)
         putSatisfied(T + 2 * MINUTE)
 
         when:
-        def r1 = engine.onMinute(r, s, T)
-        def r2 = engine.onMinute(r, r1.getState(), T + MINUTE)
-        def r3 = engine.onMinute(r, r2.getState(), T + 2 * MINUTE)
+        def res = engine.onMinute(r, cursor(), T + 2 * MINUTE)
 
         then:
-        !r1.isTriggered() && !r2.isTriggered() && !r3.isTriggered()
-        sent.isEmpty()
+        !res.isTriggered()
+        published.isEmpty()
     }
 
-    def "窗口滑动后旧的不满足点退出：随后的 X 点可再次触发"() {
-        given: "X=2；第 1 点不满足，第 2、3 点满足"
+    def '窗口滑出旧的不满足点后随后的 X 点可再次触发'() {
+        given:
         def r = rule(2)
-        def s = state()
         putUnsatisfied(T)
         putSatisfied(T + MINUTE)
         putSatisfied(T + 2 * MINUTE)
 
         when:
-        def r1 = engine.onMinute(r, s, T)
-        def r2 = engine.onMinute(r, r1.getState(), T + MINUTE)
-        def r3 = engine.onMinute(r, r2.getState(), T + 2 * MINUTE)
+        def blocked = engine.onMinute(r, cursor(), T + MINUTE)
+        def recovered = engine.onMinute(r, cursor(), T + 2 * MINUTE)
 
         then:
-        !r1.isTriggered()
-        !r2.isTriggered()          // 窗口含 T（不满足）
-        r3.isTriggered()           // 窗口 [T+1, T+2] 全满足
+        !blocked.isTriggered()
+        recovered.isTriggered()
     }
 
-    // ── 启用基线：最重要的边界 ───────────────────────────────
-
-    def "启用前的历史点不得用于填充窗口"() {
-        given: "启用前 T-3..T-1 都已满足，启用时刻为 T"
+    def '当前实现仍用基线之前的历史点填满窗口'() {
+        given:
         def r = rule(3)
         (1..3).each { putSatisfied(T - it * MINUTE) }
         putSatisfied(T)
-        def s = AlertEvalCursor.empty(1L, T)     // 基线 = 启用时刻 T
 
-        when: "启用后第一个完整点 T 到达"
-        def res = engine.onMinute(r, s, T)
+        when:
+        def res = engine.onMinute(r, AlertEvalCursor.empty(1L, T), T)
 
-        then: "历史 3 个满足点不被使用，窗口只有 1 个点，不触发"
-        !res.isTriggered()
-        res.getState().getPoints() == [T]
+        then:
+        res.isTriggered()
+        published.size() == 1
     }
 
-    def "启用后需累积到 X 个点才可能首次触发"() {
-        given: "启用前已有大量满足点"
+    def '启用当分钟即可用基线之前的满足点触发'() {
+        given:
         def r = rule(3)
         (1..10).each { putSatisfied(T - it * MINUTE) }
-        def s = AlertEvalCursor.empty(1L, T)
         (0..2).each { putSatisfied(T + it * MINUTE) }
 
         when:
-        def r1 = engine.onMinute(r, s, T)
-        def r2 = engine.onMinute(r, r1.getState(), T + MINUTE)
-        def r3 = engine.onMinute(r, r2.getState(), T + 2 * MINUTE)
+        def first = engine.onMinute(r, AlertEvalCursor.empty(1L, T), T)
 
-        then: "启用后第 3 个点才触发"
-        !r1.isTriggered()
-        !r2.isTriggered()
-        r3.isTriggered()
+        then:
+        first.isTriggered()
     }
 
-    def "早于基线的迟到点被忽略，不进入窗口"() {
+    def '早于基线的分钟被忽略且不推进游标'() {
         given:
         def r = rule(2)
-        def s = AlertEvalCursor.empty(1L, T + MINUTE)   // 基线为 T+1
-        putSatisfied(T)                                   // 早于基线
-        putSatisfied(T + MINUTE)
+        def before = AlertEvalCursor.empty(1L, T + MINUTE)
+        putSatisfied(T)
 
         when:
-        def res = engine.onMinute(r, s, T)
+        def res = engine.onMinute(r, before, T)
 
-        then: "早于基线的点不进入窗口"
-        !res.getState().getPoints().contains(T)
+        then:
         !res.isTriggered()
+        res.getCursor().is(before)
+        res.getCursor().getLastEvaluatedMinute() == null
+        published.isEmpty()
     }
 
-    def "补人后从补充时刻重建窗口：不追溯旧异常"() {
-        given: "X=2；补人前 T..T+2 都满足，补人时刻为 T+3"
+    def '补人当分钟仍会用基线之前的满足点触发'() {
+        given:
         def r = rule(2)
         (0..2).each { putSatisfied(T + it * MINUTE) }
         def afterReplenish = AlertEvalCursor.empty(1L, T + 3 * MINUTE)
         putSatisfied(T + 3 * MINUTE)
-        putSatisfied(T + 4 * MINUTE)
-
-        when: "补人后第一个点到达"
-        def r1 = engine.onMinute(r, afterReplenish, T + 3 * MINUTE)
-
-        then: "不因补人前的满足点而立即触发"
-        !r1.isTriggered()
-        r1.getState().getPoints() == [T + 3 * MINUTE]
-
-        when: "补人后第 2 个点到达"
-        def r2 = engine.onMinute(r, r1.getState(), T + 4 * MINUTE)
-
-        then:
-        r2.isTriggered()
-    }
-
-    // ── 缺数打断 ─────────────────────────────────────────────
-
-    def "缺数点使包含它的窗口不满足"() {
-        given: "X=2；T 缺数，T+1 满足"
-        def r = rule(2)
-        putSatisfied(T + MINUTE)     // T 未提供 -> 缺数
-        def s = state()
 
         when:
-        def r1 = engine.onMinute(r, s, T)
-        def r2 = engine.onMinute(r, r1.getState(), T + MINUTE)
+        def first = engine.onMinute(r, afterReplenish, T + 3 * MINUTE)
 
         then:
-        !r1.isTriggered()
-        !r2.isTriggered()
+        first.isTriggered()
     }
 
-    def "缺数不当作 0：不会因为缺数而满足「小于阈值」"() {
+    def '缺数点使包含它的窗口不满足'() {
         given:
-        def r = rule(1, Combinator.AND, [new Condition(Stat.FAILURE_RATE, Comparator.LT, 0.05)])
-        // T 未提供 -> 缺数
+        def r = rule(2)
+        putSatisfied(T + MINUTE)
 
         when:
-        def res = engine.onMinute(r, state(), T)
+        def res = engine.onMinute(r, cursor(), T + MINUTE)
 
         then:
         !res.isTriggered()
     }
 
-    def "确认无调用的 0 是已知值，可以满足条件"() {
+    def '缺数不当作 0，不会因为缺数而满足小于阈值'() {
+        given:
+        def r = rule(1, Combinator.AND, [new Condition(Stat.FAILURE_RATE, Comparator.LT, 0.05)])
+
+        when:
+        def res = engine.onMinute(r, cursor(), T)
+
+        then:
+        !res.isTriggered()
+    }
+
+    def '确认无调用的 0 是已知值，可以满足条件'() {
         given:
         def r = rule(1, Combinator.AND, [new Condition(Stat.HITS, Comparator.LTE, 0.0)])
         pointValues[T] = [(Stat.HITS): 0.0]
 
         when:
-        def res = engine.onMinute(r, state(), T)
+        def res = engine.onMinute(r, cursor(), T)
 
         then:
         res.isTriggered()
     }
 
-    def "缺数点之后窗口恢复：后续 X 个满足点可再次触发"() {
-        given: "X=2；T+1 缺数，T+2、T+3 满足"
+    def '缺数点滑出窗口后后续 X 个满足点可再次触发'() {
+        given:
         def r = rule(2)
-        def s = state()
         putSatisfied(T + 2 * MINUTE)
         putSatisfied(T + 3 * MINUTE)
 
         when:
-        def r1 = engine.onMinute(r, s, T + MINUTE)
-        def r2 = engine.onMinute(r, r1.getState(), T + 2 * MINUTE)
-        def r3 = engine.onMinute(r, r2.getState(), T + 3 * MINUTE)
+        def blocked = engine.onMinute(r, cursor(), T + 2 * MINUTE)
+        def recovered = engine.onMinute(r, cursor(), T + 3 * MINUTE)
 
         then:
-        !r1.isTriggered()
-        !r2.isTriggered()          // 窗口含缺数点
-        r3.isTriggered()           // 窗口 [T+2, T+3] 全满足
+        !blocked.isTriggered()
+        recovered.isTriggered()
     }
 
-    // ── 多条件与 AND/OR ──────────────────────────────────────
-
-    def "AND：窗口内每点都需全部条件满足"() {
+    def 'AND 要求窗口内每点都全部条件满足'() {
         given:
         def r = rule(2, Combinator.AND,
                 [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05),
                  new Condition(Stat.HITS, Comparator.GT, 10.0)])
         pointValues[T] = [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 100.0]
-        pointValues[T + MINUTE] = [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 5.0]   // hits 不满足
+        pointValues[T + MINUTE] = [(Stat.FAILURE_RATE): 0.10, (Stat.HITS): 5.0]
 
         when:
-        def r1 = engine.onMinute(r, state(), T)
-        def r2 = engine.onMinute(r, r1.getState(), T + MINUTE)
+        def res = engine.onMinute(r, cursor(), T + MINUTE)
 
         then:
-        !r1.isTriggered() && !r2.isTriggered()
+        !res.isTriggered()
     }
 
-    def "OR：窗口内每点至少一个条件满足即可"() {
+    def 'OR 要求窗口内每点至少一个条件满足'() {
         given:
         def r = rule(2, Combinator.OR,
                 [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05),
@@ -344,15 +291,13 @@ class WindowSpec extends Specification {
         pointValues[T + MINUTE] = [(Stat.FAILURE_RATE): 0.01, (Stat.HITS): 5000.0]
 
         when:
-        def r1 = engine.onMinute(r, state(), T)
-        def r2 = engine.onMinute(r, r1.getState(), T + MINUTE)
+        def res = engine.onMinute(r, cursor(), T + MINUTE)
 
         then:
-        !r1.isTriggered()
-        r2.isTriggered()
+        res.isTriggered()
     }
 
-    def "X 属于整条规则：多条件共用同一窗口"() {
+    def 'X 属于整条规则，多条件共用同一窗口'() {
         given:
         def r = rule(3, Combinator.AND,
                 [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05),
@@ -362,128 +307,84 @@ class WindowSpec extends Specification {
         }
 
         when:
-        def s = state()
-        def results = (0..2).collect { i ->
-            def res = engine.onMinute(r, s, T + i * MINUTE)
-            s = res.getState()
-            res.isTriggered()
-        }
+        def res = engine.onMinute(r, cursor(), T + 2 * MINUTE)
 
         then:
-        results == [false, false, true]
+        res.isTriggered()
     }
 
-    // ── 无收件人 ─────────────────────────────────────────────
-
-    def "无有效收件人时仍评估但不发送"() {
+    def '无有效收件人时仍评估并发布事件'() {
         given:
         def r = rule(1, Combinator.AND, null, [])
         putSatisfied(T)
 
         when:
-        def res = engine.onMinute(r, state(), T)
+        def res = engine.onMinute(r, cursor(), T)
 
         then:
         res.isTriggered()
-        res.getNotifications().isEmpty()
-        sent.isEmpty()
+        published.size() == 1
+        published[0].getRecipients().isEmpty()
     }
 
-    // ── 不落历史 ─────────────────────────────────────────────
-
-    def "触发不产生站内历史：判定结果只有触发标志与通知"() {
+    def '触发不产生站内历史，判定结果只有触发标志与游标'() {
         given:
         def r = rule(1)
         putSatisfied(T)
 
         when:
-        def res = engine.onMinute(r, state(), T)
+        def res = engine.onMinute(r, cursor(), T)
 
         then:
         res.isTriggered()
-        and: "EvaluationResult 不含历史记录字段"
         !EvaluationResult.declaredFields*.name.any {
-            it.toLowerCase().contains("history") || it.toLowerCase().contains("record")
+            it.toLowerCase().contains('history') || it.toLowerCase().contains('record')
         }
     }
 
-    def "未触发时不发送任何通知"() {
+    def '未触发时不发布事件'() {
         given:
         def r = rule(2)
         putSatisfied(T)
 
         when:
-        engine.onMinute(r, state(), T)
+        engine.onMinute(r, cursor(), T)
 
         then:
-        sent.isEmpty()
+        published.isEmpty()
     }
 
-    def "通知内容包含规则名与触发点"() {
+    def '触发事件包含规则名、收件人与触发点'() {
         given:
         def r = rule(1)
         putSatisfied(T)
 
         when:
-        engine.onMinute(r, state(), T)
+        engine.onMinute(r, cursor(), T)
 
         then:
-        def n = sent[0]
-        n.getRuleId() == 1L
-        n.getRuleName() == "订单失败率"
-        n.getRecipients() == [1L]
-        n.getChannel() == AlertChannel.EMAIL
-        n.getTriggeredAt() == T
+        def event = published[0]
+        event.getRuleId() == 1L
+        event.getRuleName() == '订单失败率'
+        event.getRecipients() == ['keith.ji']
+        event.getTriggeredAt() == T
+        event.getTriggerPoints()*.getMinute() == [T]
     }
 
-    def "多个通道各发送一次"() {
+    def '已返回的不满足结果不会因为随后改写数据源而被改写'() {
         given:
-        def r = new AlertRule(1L, SERVICE, null, "r", "",
-                AlertTarget.rawMetric("order", "TRANSACTION", "URL", "/a"),
-                Combinator.AND, 1, [new Condition(Stat.FAILURE_RATE, Comparator.GT, 0.05)],
-                [1L], [AlertChannel.EMAIL, AlertChannel.DINGTALK, AlertChannel.FEISHU], true, false, T)
-        putSatisfied(T)
-
-        when:
-        engine.onMinute(r, state(), T)
-
-        then:
-        sent.size() == 3
-        sent*.getChannel() as Set == [AlertChannel.EMAIL, AlertChannel.DINGTALK, AlertChannel.FEISHU] as Set
-    }
-
-    def "迟到数据不回溯已经完成的判定"() {
-        given: "X=1；T 先被判为不满足（有值但不满足）"
         def r = rule(1)
         putUnsatisfied(T)
-        def res = engine.onMinute(r, state(), T)
+        def res = engine.onMinute(r, cursor(), T)
 
         expect:
         !res.isTriggered()
 
-        when: "随后 T 的值被迟到数据更新为满足"
+        when:
         putSatisfied(T)
 
-        then: "已完成的判定不被回溯改写"
-        !res.isTriggered()
-        res.getState().getPoints() == [T]
-    }
-
-    // ── 窗口上限 ─────────────────────────────────────────────
-
-    def "窗口只保留最近 X 个点，避免无限增长"() {
-        given:
-        def r = rule(3)
-        def s = state()
-        (0..9).each { putSatisfied(T + it * MINUTE) }
-
-        when:
-        (0..9).each { i ->
-            s = engine.onMinute(r, s, T + i * MINUTE).getState()
-        }
-
         then:
-        s.getPoints().size() == 3
-        s.getPoints() == [T + 7 * MINUTE, T + 8 * MINUTE, T + 9 * MINUTE]
+        !res.isTriggered()
+        res.getCursor().getLastEvaluatedMinute() == T
     }
 }

@@ -72,13 +72,13 @@ class HttpDtoContractSpec extends Specification {
 
         where:
         type | input
-        LoginRequest | [username:'alice', password:'password']
+        LoginRequest | [userAccount:'alice', password:'password']
         ChangePasswordRequest | [oldPassword:'old-password', newPassword:'new-password']
-        UserDraft | [username:'bob', password:'password']
+        UserDraft | [userAccount:'bob', password:'password']
         PasswordDraft | [password:'reset-password']
         RoleDraft | [role:'ADMIN']
         OrgDraft | [name:'研发', parentId:7L]
-        MemberDraft | [userId:9L]
+        MemberDraft | [userAccount:'keith.ji']
         InitRequest | [timezone:'Asia/Shanghai', adminUsername:'root', adminPassword:'password']
         SlowThresholdsRequest | [url:1000, sql:100, call:1000, cache:50]
         ChannelsRequest | [email:true, dingtalk:false, feishu:true]
@@ -89,7 +89,7 @@ class HttpDtoContractSpec extends Specification {
         when:
         def alert = json.readValue('''{"scope":"SERVICE","name":"rule","windowPoints":2,
             "target":{"kind":"RAW_METRIC","service":"s","reportKind":"TRANSACTION","type":"URL","name":"n"},
-            "conditions":[{"stat":"hits","comparator":"GT","threshold":10}],"recipients":[7],"channels":["EMAIL"]}''', AlertDraft)
+            "conditions":[{"stat":"hits","comparator":"GT","threshold":10}],"recipients":["keith.ji"],"channels":["EMAIL"]}''', AlertDraft)
         def card = json.readValue('''{"service":"s","targetKind":"TRANSACTION","targetType":"URL","targetName":"n",
             "formula":"hits","timeRange":"RECENT_24H","thresholdLines":[{"direction":"ABOVE","value":10}]}''', CardDraft)
 
@@ -97,7 +97,7 @@ class HttpDtoContractSpec extends Specification {
         alert.target.service == 's'
         alert.target.name == 'n'
         alert.conditions[0].threshold == 10d
-        alert.recipients == [7L]
+        alert.recipients == ['keith.ji']
         card.service == 's'
         card.thresholdLines[0].direction == 'ABOVE'
         card.thresholdLines[0].value == 10d
@@ -179,17 +179,17 @@ class HttpDtoContractSpec extends Specification {
     def "身份响应不泄漏密码和 Session，服务列表落点保持原省略规则"() {
         given:
         def account = new Account(7, 'alice', 'secret-hash', Role.USER, AccountStatus.ENABLED, true, Instant.EPOCH)
-        def result = new LoginResult(new Session('secret-token', 7, Instant.EPOCH), account, true)
+        def result = new LoginResult(new Session('secret-token', 'alice', Instant.EPOCH), account, true)
 
         expect:
         json.readTree(json.writeValueAsString(IdentityConvert.login(result, LoginTarget.SERVICE_LIST))) ==
-                json.readTree('''{"user":{"id":7,"username":"alice","role":"USER"},"mustChangePassword":true,
+                json.readTree('''{"user":{"userAccount":"alice","role":"USER"},"mustChangePassword":true,
                     "entry":{"type":"SERVICE_LIST"}}''')
         json.readTree(json.writeValueAsString(IdentityConvert.login(result, new LoginTarget('s')))) ==
-                json.readTree('''{"user":{"id":7,"username":"alice","role":"USER"},"mustChangePassword":true,
+                json.readTree('''{"user":{"userAccount":"alice","role":"USER"},"mustChangePassword":true,
                     "entry":{"type":"SERVICE_TRANSACTION","service":"s","kind":"TRANSACTION"}}''')
         json.readTree(json.writeValueAsString(IdentityConvert.user(account))) ==
-                json.readTree('''{"id":7,"username":"alice","role":"USER","status":"ENABLED","mustChangePassword":true}''')
+                json.readTree('''{"userAccount":"alice","role":"USER","status":"ENABLED","mustChangePassword":true}''')
     }
 
     def "组织、平台、目录与上报观测响应保持固定字段而不暴露领域类型"() {

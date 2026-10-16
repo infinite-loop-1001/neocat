@@ -34,7 +34,7 @@ class PreviewSpec extends Specification {
         pointValues = [:]
         source = Stub(MinutePointSourceGateway) {
             values(_, _, _) >> { AlertTarget target, long minute, List<Stat> stats ->
-                pointValues.getOrDefault(minute, [:])
+                new com.neocat.alert.domain.entity.vo.source.MinutePoint(minute, pointValues.getOrDefault(minute, [:]))
             }
         }
         service = new PreviewService(source)
@@ -43,7 +43,7 @@ class PreviewSpec extends Specification {
     def rule(Combinator combinator, int window, List<Condition> conditions) {
         return AlertRule.draft(AlertScope.SERVICE, null, "订单失败率", "",
                 AlertTarget.rawMetric("order", "TRANSACTION", "URL", "/a"),
-                combinator, window, conditions, [1L], [AlertChannel.EMAIL])
+                combinator, window, conditions, ['keith.ji'], [AlertChannel.EMAIL])
     }
 
     def failureRateAbove(BigDecimal threshold) {
@@ -68,7 +68,7 @@ class PreviewSpec extends Specification {
             values(cardTarget, _, _) >> { AlertTarget target, long minute, List<Stat> stats ->
                 requestedStats.add(stats)
                 requestedMinutes.add(minute)
-                [(Stat.HITS): 10.0G]
+                new com.neocat.alert.domain.entity.vo.source.MinutePoint(minute, [(Stat.HITS): 10.0G])
             }
         })
 
@@ -113,7 +113,7 @@ class PreviewSpec extends Specification {
 
         then: "数据源只收到有效统计项"
         1 * sourceWithoutNullStat.values(cardTarget, MIN_10_00, [Stat.AVG, Stat.HITS]) >>
-                [(Stat.HITS): 10.0G]
+                new com.neocat.alert.domain.entity.vo.source.MinutePoint(MIN_10_00, [(Stat.HITS): 10.0G])
         0 * sourceWithoutNullStat._
         preview.getResult() == INSUFFICIENT_DATA
         preview.getPoints()[0].getMissingStat() == 'avgDuration'
@@ -133,7 +133,7 @@ class PreviewSpec extends Specification {
         1 * mutableSource.values(r.getTarget(), MIN_10_00, [Stat.HITS]) >>
                 { AlertTarget target, long minute, List<Stat> stats ->
                     stats.add(Stat.FAILURES)
-                    [(Stat.HITS): 10.0G, (Stat.FAILURES): 0.0G]
+                    new com.neocat.alert.domain.entity.vo.source.MinutePoint(minute, [(Stat.HITS): 10.0G, (Stat.FAILURES): 0.0G])
                 }
         result.getResult() == TRIGGER
         r.getConditions() == originalConditions
@@ -373,7 +373,7 @@ class PreviewSpec extends Specification {
         s.preview(r, MIN_10_00)
 
         then:
-        !PreviewService.declaredFields*.type.contains(Notifier)
+        !PreviewService.declaredFields*.type.name.any { it.contains('Notifier') }
     }
 
     def "预告警不改变规则状态"() {
@@ -386,7 +386,7 @@ class PreviewSpec extends Specification {
 
         then:
         !r.isEnabled()
-        r.getStateSince() == null
+        !AlertRule.declaredFields*.name.contains('stateSince')
     }
 
     def "预告警数据结构上不含持久化字段（不产生站内记录）"() {

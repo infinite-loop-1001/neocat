@@ -15,9 +15,9 @@ import java.util.List;
 @Mapper
 public interface AccessHistoryMapper {
 
-    int upsert(@Param("accountId") long accountId,
+    int upsert(@Param("userAccount") String userAccount,
                @Param("serviceName") String serviceName,
                @Param("accessedAt") Timestamp accessedAt);
 
-    List<String> selectRecentServices(@Param("accountId") long accountId, @Param("limit") int limit);
+    List<String> selectRecentServices(@Param("userAccount") String userAccount, @Param("limit") int limit);
 }

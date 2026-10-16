@@ -44,7 +44,7 @@ class SessionGuardSpec extends Specification {
     def 'valid request slides the expiry once'() {
         given:
         def account = new Account(1L, 'alice', 'hash', Role.USER, AccountStatus.ENABLED, false, NOW)
-        def session = new Session('sid', 1L, NOW.plusSeconds(1800))
+        def session = new Session('sid', 'alice', NOW.plusSeconds(1800))
 
         when:
         def error = guard.check('sid', 'GET /api/report', NOW)
@@ -52,7 +52,7 @@ class SessionGuardSpec extends Specification {
         then:
         1 * sessions.isValid('sid', NOW) >> true
         1 * sessions.findSession('sid') >> session
-        1 * accounts.findById(1L) >> account
+        1 * accounts.findByUserAccount('alice') >> account
         1 * sessions.touch('sid', NOW)
         error == null
     }
@@ -66,8 +66,8 @@ class SessionGuardSpec extends Specification {
 
         then:
         1 * sessions.isValid('sid', NOW) >> true
-        1 * sessions.findSession('sid') >> new Session('sid', 1L, NOW.plusSeconds(1800))
-        1 * accounts.findById(1L) >> account
+        1 * sessions.findSession('sid') >> new Session('sid', 'alice', NOW.plusSeconds(1800))
+        1 * accounts.findByUserAccount('alice') >> account
         1 * sessions.invalidate('sid')
         0 * sessions.touch(_, _)
         error.code() == ErrorCode.UNAUTHENTICATED
@@ -82,8 +82,8 @@ class SessionGuardSpec extends Specification {
 
         then:
         1 * sessions.isValid('sid', NOW) >> true
-        1 * sessions.findSession('sid') >> new Session('sid', 1L, NOW.plusSeconds(1800))
-        1 * accounts.findById(1L) >> account
+        1 * sessions.findSession('sid') >> new Session('sid', 'alice', NOW.plusSeconds(1800))
+        1 * accounts.findByUserAccount('alice') >> account
         0 * sessions.touch(_, _)
         error.code() == ErrorCode.PASSWORD_CHANGE_REQUIRED
     }

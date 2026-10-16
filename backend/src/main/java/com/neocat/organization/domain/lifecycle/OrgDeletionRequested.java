@@ -5,7 +5,7 @@ import lombok.ToString;
 import org.springframework.modulith.NamedInterface;
 
 /** Synchronous notification; listeners delete resources in the caller's MySQL transaction. */
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 @Getter
 @EqualsAndHashCode
 @ToString

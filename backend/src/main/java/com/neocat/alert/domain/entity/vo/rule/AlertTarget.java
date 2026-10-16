@@ -52,7 +52,7 @@ public class AlertTarget {
     public static AlertTarget rawMetric(String service, String reportKind, String type, String name) {
 
         return new AlertTarget(AlertTargetKind.RAW_METRIC,
-                0, service, reportKind, type, name, null, Lists.newArrayList());
+                0L, service, reportKind, type, name, null, Lists.newArrayList());
     }
 
     public static AlertTarget cardResult(Long cardId, String service, String reportKind,

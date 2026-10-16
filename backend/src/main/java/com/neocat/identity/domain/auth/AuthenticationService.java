@@ -35,8 +35,8 @@ public class AuthenticationService {
         this.sessions = sessions;
         this.hasher = hasher;
     }
-    public LoginResult login(String username, String rawPassword, Instant at) {
-        Account account = accounts.findByUsername(username);
+    public LoginResult login(String userAccount, String rawPassword, Instant at) {
+        Account account = accounts.findByUserAccount(userAccount);
         if (Objects.isNull(account)) {
             throw new AuthenticationException(BAD_CREDENTIALS);
         }
@@ -46,7 +46,7 @@ public class AuthenticationService {
         if (!hasher.matches(rawPassword, account.getPasswordHash())) {
             throw new AuthenticationException(BAD_CREDENTIALS);
         }
-        Session session = sessions.create(account.getId(), at);
+        Session session = sessions.create(account.getUserAccount(), at);
         return new LoginResult(session, account, account.isMustChangePassword());
     }
 }

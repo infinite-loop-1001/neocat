@@ -18,16 +18,16 @@ public final class IdentityConvert {
         Entry entry = target.isServiceList()
                 ? new Entry("SERVICE_LIST", null, null)
                 : new Entry("SERVICE_TRANSACTION", target.getTargetService(), "TRANSACTION");
-        return new LoginResponse(new UserSummary(account.getId(), account.getUsername(), account.getRole().name()),
+        return new LoginResponse(new UserSummary(account.getUserAccount(), account.getRole().name()),
                 result.isMustChangePassword(), entry);
     }
 
     public static CurrentUser current(Account account) {
-        return new CurrentUser(account.getId(), account.getUsername(), account.getRole().name(), account.isMustChangePassword());
+        return new CurrentUser(account.getUserAccount(), account.getRole().name(), account.isMustChangePassword());
     }
 
     public static UserResponse user(Account account) {
-        return new UserResponse(account.getId(), account.getUsername(), account.getRole().name(),
+        return new UserResponse(account.getUserAccount(), account.getRole().name(),
                 account.getStatus().name(), account.isMustChangePassword());
     }
 }

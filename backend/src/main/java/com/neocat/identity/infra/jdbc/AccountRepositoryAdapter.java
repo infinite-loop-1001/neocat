@@ -30,14 +30,8 @@ public class AccountRepositoryAdapter implements AccountRepository {
     }
 
     @Override
-    public Account findById(long id) {
-        var row = mapper.selectById(id);
-        return Objects.isNull(row) ? null : toDomain(row);
-    }
-
-    @Override
-    public Account findByUsername(String username) {
-        var row = mapper.selectByUsername(username);
+    public Account findByUserAccount(String userAccount) {
+        var row = mapper.selectByUserAccount(userAccount);
         return Objects.isNull(row) ? null : toDomain(row);
     }
 
@@ -54,10 +48,10 @@ public class AccountRepositoryAdapter implements AccountRepository {
     }
 
     @Override
-    public Account create(String username, String passwordHash, Role role,
+    public Account create(String userAccount, String passwordHash, Role role,
                           boolean mustChangePassword, Instant at) {
         AccountRow row = new AccountRow();
-        row.setUsername(username);
+        row.setUserAccount(userAccount);
         row.setPasswordHash(passwordHash);
         row.setRole(role.name());
         row.setStatus(AccountStatus.ENABLED.name());
@@ -71,7 +65,7 @@ public class AccountRepositoryAdapter implements AccountRepository {
     private Account toDomain(AccountRow row) {
         return new Account(
                 row.getId(),
-                row.getUsername(),
+                row.getUserAccount(),
                 row.getPasswordHash(),
                 Role.valueOf(row.getRole()),
                 AccountStatus.valueOf(row.getStatus()),
@@ -82,7 +76,7 @@ public class AccountRepositoryAdapter implements AccountRepository {
     private AccountRow toRow(Account account) {
         AccountRow row = new AccountRow();
         row.setId(account.getId());
-        row.setUsername(account.getUsername());
+        row.setUserAccount(account.getUserAccount());
         row.setPasswordHash(account.getPasswordHash());
         row.setRole(account.getRole().name());
         row.setStatus(account.getStatus().name());

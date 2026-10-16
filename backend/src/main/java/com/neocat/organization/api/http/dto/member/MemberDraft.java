@@ -9,6 +9,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 @Getter
 @AllArgsConstructor(onConstructor_ = @JsonCreator(mode = JsonCreator.Mode.PROPERTIES))
 public class MemberDraft {
-    @Schema(description = "账号 ID", requiredMode = Schema.RequiredMode.REQUIRED)
-    private final long userId;
+    @Schema(description = "账号标识（登录名，形如 keith.ji）", requiredMode = Schema.RequiredMode.REQUIRED)
+    private final String userAccount;
 }

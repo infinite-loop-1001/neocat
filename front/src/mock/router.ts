@@ -24,7 +24,7 @@ import type {
 } from "./model";
 
 interface MockState {
-  session: { username: string; role: string } | null;
+  session: { userAccount: string; role: string } | null;
   mustChangePassword: boolean;
   accounts: Account[];
   orgs: OrgNode[];
@@ -39,7 +39,7 @@ interface MockState {
 const restored = readSession();
 
 const state: MockState = {
-  session: restored ? { username: restored.username, role: restored.role } : null,
+  session: restored ? { userAccount: restored.userAccount, role: restored.role } : null,
   mustChangePassword: restored?.mustChangePassword ?? false,
   accounts: [...d.accounts],
   orgs: [...d.orgs],
@@ -121,23 +121,23 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
     return state.platform as T;
   }
   if (path === "/login" && method === "POST") {
-    const username = String(body.username ?? "");
+    const userAccount = String(body.userAccount ?? "");
     const password = String(body.password ?? "");
-    const account = state.accounts.find((a) => a.username === username);
+    const account = state.accounts.find((a) => a.userAccount === userAccount);
     // 三种失败原因（不存在 / 口令不符 / 已禁用）统一返回同一错误码，
     // 不暴露账号是否存在（PRD 01 §4.1）
     if (!account || account.status !== "ENABLED" || account.password !== password) {
       throw new ApiError(401, E.BAD_CREDENTIALS, "用户名或密码错误");
     }
-    state.session = { username: account.username, role: account.role };
+    state.session = { userAccount: account.userAccount, role: account.role };
     state.mustChangePassword = account.mustChangePassword;
     writeSession({
-      username: account.username,
+      userAccount: account.userAccount,
       role: account.role,
       mustChangePassword: account.mustChangePassword,
     });
     return {
-      user: { id: account.id, username: account.username, role: account.role },
+      user: { userAccount: account.userAccount, role: account.role },
       mustChangePassword: account.mustChangePassword,
       entry: account.mustChangePassword
         ? { type: "PASSWORD_CHANGE" }
@@ -155,7 +155,7 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
 
   if (path === "/me" && method === "GET") {
     return {
-      username: state.session?.username,
+      userAccount: state.session?.userAccount,
       role: state.session?.role,
       mustChangePassword: state.mustChangePassword,
     } as T;
@@ -172,7 +172,7 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
     state.mustChangePassword = false;
     if (state.session) {
       writeSession({
-        username: state.session.username,
+        userAccount: state.session.userAccount,
         role: state.session.role,
         mustChangePassword: false,
       });
@@ -192,17 +192,16 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
   }
   if (path === "/users" && method === "POST") {
     requireAdmin();
-    const username = String(body.username ?? "");
+    const userAccount = String(body.userAccount ?? "");
     const password = String(body.password ?? "");
     if (password.length < 8) {
       throw new ApiError(400, E.PASSWORD_TOO_SHORT, "密码至少 8 位");
     }
-    if (state.accounts.some((a) => a.username === username)) {
-      throw new ApiError(409, E.USER_EXISTS, "用户名已存在");
+    if (state.accounts.some((a) => a.userAccount === userAccount)) {
+      throw new ApiError(409, E.USER_EXISTS, "账号标识已存在");
     }
     const created: Account = {
-      id: ++state.seq.account,
-      username,
+      userAccount,
       password,
       role: "USER",
       status: "ENABLED",
@@ -211,10 +210,9 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
     state.accounts.push(created);
     return publicAccount(created) as T;
   }
-  if (/^\/users\/\d+\/password\/reset$/.test(path) && method === "POST") {
+  if (/^\/users\/[^/]+\/password\/reset$/.test(path) && method === "POST") {
     requireAdmin();
-    const id = Number(path.split("/")[2]);
-    const account = state.accounts.find((a) => a.id === id);
+    const account = state.accounts.find((a) => a.userAccount === decodeURIComponent(path.split("/")[2]));
     if (!account) throw new ApiError(404, E.USER_NOT_FOUND, "账号不存在");
     if (String(body.password ?? "").length < 8) {
       throw new ApiError(400, E.PASSWORD_TOO_SHORT, "密码至少 8 位");
@@ -222,27 +220,26 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
     account.mustChangePassword = true;
     return publicAccount(account) as T;
   }
-  if (/^\/users\/\d+\/role$/.test(path) && method === "POST") {
+  if (/^\/users\/[^/]+\/role$/.test(path) && method === "POST") {
     if (state.session?.role !== "SUPER_ADMIN") {
       throw new ApiError(403, E.FORBIDDEN, "只有超级管理员可以授予或取消 ADMIN");
     }
-    const id = Number(path.split("/")[2]);
-    const account = state.accounts.find((a) => a.id === id);
+    const account = state.accounts.find((a) => a.userAccount === decodeURIComponent(path.split("/")[2]));
     if (!account) throw new ApiError(404, E.USER_NOT_FOUND, "账号不存在");
     account.role = body.role === "ADMIN" ? "ADMIN" : "USER";
     return publicAccount(account) as T;
   }
-  if (/^\/users\/\d+\/(disable|enable)$/.test(path) && method === "POST") {
+  if (/^\/users\/[^/]+\/(disable|enable)$/.test(path) && method === "POST") {
     requireAdmin();
     const parts = path.split("/");
-    const id = Number(parts[2]);
-    const account = state.accounts.find((a) => a.id === id);
+    const userAccount = decodeURIComponent(parts[2]);
+    const account = state.accounts.find((a) => a.userAccount === userAccount);
     if (!account) throw new ApiError(404, E.USER_NOT_FOUND, "账号不存在");
     account.status = parts[3] === "disable" ? "DISABLED" : "ENABLED";
     if (account.status === "DISABLED") {
       // 禁用即移除告警收件人；启用不恢复
       state.alerts.forEach((rule) => {
-        rule.recipients = rule.recipients.filter((r) => r !== id);
+        rule.recipients = rule.recipients.filter((r) => r !== userAccount);
       });
     }
     return publicAccount(account) as T;
@@ -595,7 +592,7 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
       combinator: (body.combinator as AlertRule["combinator"]) ?? "AND",
       windowPoints: Number(body.windowPoints ?? 3),
       conditions: (body.conditions as AlertRule["conditions"]) ?? [],
-      recipients: (body.recipients as number[]) ?? [],
+      recipients: (body.recipients as string[]) ?? [],
       channels: (body.channels as string[]) ?? ["EMAIL"],
       // 保存后一律关闭
       enabled: false,

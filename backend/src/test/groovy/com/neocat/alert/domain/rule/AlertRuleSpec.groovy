@@ -38,25 +38,21 @@ class AlertRuleSpec extends Specification {
         def rule = service.save(AlertRule.draft(AlertScope.SERVICE, null, "订单失败率",
                 "", target(), Combinator.AND, 3,
                 [condition(Stat.FAILURE_RATE, Comparator.GT, 0.05)],
-                [1L, 2L], [EMAIL]))
+                ['keith.ji', 'ada.li'], [EMAIL]))
 
         then:
         !rule.isEnabled()
         !rule.isInvalid()
-        rule.getStateSince() == null
+        !AlertRule.declaredFields*.name.contains('stateSince')
     }
 
-    def "保存不会发送通知（保存动作本身不产生任何通知副作用）"() {
-        given:
-        def notifier = Mock(Notifier)
-        def s = new AlertRuleService(notifier)
-
+    def "保存规则本身不依赖通知器"() {
         when:
-        s.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(), Combinator.AND, 1,
-                [condition(Stat.HITS, Comparator.GT, 10.0)], [1L], [EMAIL]))
+        def rule = service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(), Combinator.AND, 1,
+                [condition(Stat.HITS, Comparator.GT, 10.0)], ['keith.ji'], [EMAIL]))
 
         then:
-        0 * notifier._
+        !rule.isEnabled()
     }
 
     // ── 一条规则一个目标 ─────────────────────────────────────
@@ -67,7 +63,7 @@ class AlertRuleSpec extends Specification {
                 Combinator.AND, 2,
                 [condition(Stat.HITS, Comparator.GT, 10.0),
                  condition(Stat.FAILURE_RATE, Comparator.GT, 0.1)],
-                [1L], [EMAIL]))
+                ['keith.ji'], [EMAIL]))
 
         then: "两个条件作用于同一目标"
         rule.getConditions().size() == 2
@@ -87,7 +83,7 @@ class AlertRuleSpec extends Specification {
         def rule = service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
                 combinator, 1,
                 [condition(Stat.HITS, Comparator.GT, 1.0), condition(Stat.FAILURES, Comparator.GT, 0.0)],
-                [1L], [EMAIL]))
+                ['keith.ji'], [EMAIL]))
 
         then:
         rule.getCombinator() == combinator
@@ -116,7 +112,7 @@ class AlertRuleSpec extends Specification {
     def "窗口长度至少为 1"() {
         when:
         service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
-                Combinator.AND, 0, [condition(Stat.HITS, Comparator.GT, 1.0)], [1L], [EMAIL]))
+                Combinator.AND, 0, [condition(Stat.HITS, Comparator.GT, 1.0)], ['keith.ji'], [EMAIL]))
 
         then:
         thrown(IllegalArgumentException)
@@ -125,7 +121,7 @@ class AlertRuleSpec extends Specification {
     def "窗口长度上限校验（避免长时间窗口导致无意义等待）"() {
         when:
         service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
-                Combinator.AND, 1441, [condition(Stat.HITS, Comparator.GT, 1.0)], [1L], [EMAIL]))
+                Combinator.AND, 1441, [condition(Stat.HITS, Comparator.GT, 1.0)], ['keith.ji'], [EMAIL]))
 
         then:
         thrown(IllegalArgumentException)
@@ -136,7 +132,7 @@ class AlertRuleSpec extends Specification {
     def "至少需要一个条件"() {
         when:
         service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
-                Combinator.AND, 1, [], [1L], [EMAIL]))
+                Combinator.AND, 1, [], ['keith.ji'], [EMAIL]))
 
         then:
         thrown(IllegalArgumentException)
@@ -154,7 +150,7 @@ class AlertRuleSpec extends Specification {
     def "服务告警不绑定组织"() {
         when:
         def rule = service.save(AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(),
-                Combinator.AND, 1, [condition(Stat.HITS, Comparator.GT, 1.0)], [1L], [EMAIL]))
+                Combinator.AND, 1, [condition(Stat.HITS, Comparator.GT, 1.0)], ['keith.ji'], [EMAIL]))
 
         then:
         rule.getOrgId() == null
@@ -249,7 +245,7 @@ class AlertRuleSpec extends Specification {
                           condition(Stat.FAILURES, Comparator.LT, 10.0)]
         def cardTarget = AlertTarget.cardResult(12L, "order", "TRANSACTION", "URL", "/a", formulaStats)
         def rule = AlertRule.draft(AlertScope.ORGANIZATION, 7L, "r", "", cardTarget,
-                Combinator.AND, 1, conditions, [1L], [EMAIL])
+                Combinator.AND, 1, conditions, ['keith.ji'], [EMAIL])
 
         expect:
         rule.requiredStats() == [Stat.AVG, Stat.HITS, Stat.FAILURES]
@@ -275,7 +271,7 @@ class AlertRuleSpec extends Specification {
         def conditions = [condition(Stat.HITS, Comparator.GT, 1.0)]
         def suppliedTarget = new AlertTarget(null, 12L, "order", "TRANSACTION", "URL", "/a", null, formulaStats)
         def rule = new AlertRule(1L, AlertScope.SERVICE, null, "r", "", suppliedTarget,
-                Combinator.AND, 1, conditions, [], [], false, false, null)
+                Combinator.AND, 1, conditions, [], [], false, false)
         def first = new ArrayList<>(rule.requiredStats())
         def second = rule.requiredStats()
 
@@ -296,7 +292,7 @@ class AlertRuleSpec extends Specification {
     def "规则依赖兼容尚未完整装配的目标与条件：#caseName"() {
         given:
         def rule = new AlertRule(1L, AlertScope.SERVICE, null, "r", "", suppliedTarget,
-                Combinator.AND, 1, suppliedConditions, [], [], false, false, null)
+                Combinator.AND, 1, suppliedConditions, [], [], false, false)
 
         expect:
         rule.requiredStats() == expected
@@ -325,7 +321,7 @@ class AlertRuleSpec extends Specification {
         given:
         def suppliedTarget = new AlertTarget(null, 0L, "order", "TRANSACTION", "URL", "/a", null, formulaStats)
         def rule = new AlertRule(1L, AlertScope.SERVICE, null, "r", "", suppliedTarget,
-                Combinator.AND, 1, conditions, [], [], false, false, null)
+                Combinator.AND, 1, conditions, [], [], false, false)
 
         expect:
         rule.requiredStats() == expected
@@ -345,7 +341,7 @@ class AlertRuleSpec extends Specification {
     def "规则依赖收集不吞掉空条件对象"() {
         given:
         def rule = new AlertRule(1L, AlertScope.SERVICE, null, "r", "", target(),
-                Combinator.AND, 1, [null], [], [], false, false, null)
+                Combinator.AND, 1, [null], [], [], false, false)
 
         when:
         rule.requiredStats()
@@ -358,7 +354,7 @@ class AlertRuleSpec extends Specification {
         when:
         def rule = AlertRule.draft(AlertScope.SERVICE, null, "r", "", target(), Combinator.AND, 1,
                 [condition(Stat.FAILURE_RATE, Comparator.GT, 0.1), condition(Stat.HITS, Comparator.GT, 10.0)],
-                [1L], [EMAIL])
+                ['keith.ji'], [EMAIL])
 
         then:
         rule.referencedStats() as Set == [Stat.FAILURE_RATE, Stat.HITS] as Set
@@ -369,7 +365,7 @@ class AlertRuleSpec extends Specification {
         def cardTarget = AlertTarget.cardResult(12L, "order", "TRANSACTION", "URL", "/a",
                 [Stat.FAILURES, Stat.HITS])
         def rule = AlertRule.draft(AlertScope.ORGANIZATION, 7L, "r", "", cardTarget, Combinator.AND, 1,
-                [condition(Stat.FAILURE_RATE, Comparator.GT, 0.1)], [1L], [EMAIL])
+                [condition(Stat.FAILURE_RATE, Comparator.GT, 0.1)], ['keith.ji'], [EMAIL])
 
         then:
         rule.referencedStats() as Set == [Stat.FAILURES, Stat.HITS] as Set

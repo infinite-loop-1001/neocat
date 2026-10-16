@@ -28,22 +28,22 @@ class CardAlertLinkSpec extends Specification {
 
     def 'creating a valid card saves the expected dashboard target and formula'() {
         when:
-        def created = service.createCard(100L, 3L, card(0L))
+        def created = service.createCard('keith.ji', 3L, card(0L))
 
         then:
         1 * repository.findById(3L) >> dashboard()
-        1 * access.isEffectiveMember(100L, 7L) >> true
+        1 * access.isEffectiveMember('keith.ji', 7L) >> true
         1 * repository.saveCard({ it.getDashboardId() == 3L && it.getFormula() == 'failures / hits' }) >> card()
         created.getId() == 12L
     }
 
     def 'invalid formula is rejected before writing a card'() {
         when:
-        service.createCard(100L, 3L, card(0L, 'hits + tp99'))
+        service.createCard('keith.ji', 3L, card(0L, 'hits + tp99'))
 
         then:
         1 * repository.findById(3L) >> dashboard()
-        1 * access.isEffectiveMember(100L, 7L) >> true
+        1 * access.isEffectiveMember('keith.ji', 7L) >> true
         0 * repository.saveCard(_)
         def error = thrown(NeocatException)
         error.code() == UNIT_MISMATCH
@@ -51,11 +51,11 @@ class CardAlertLinkSpec extends Specification {
 
     def 'nonmember cannot create or read another leaf card'() {
         when:
-        service.createCard(999L, 3L, card(0L))
+        service.createCard('ghost', 3L, card(0L))
 
         then:
         1 * repository.findById(3L) >> dashboard()
-        1 * access.isEffectiveMember(999L, 7L) >> false
+        1 * access.isEffectiveMember('ghost', 7L) >> false
         0 * repository.saveCard(_)
         def error = thrown(NeocatException)
         error.code() == NOT_ORG_MEMBER
@@ -63,12 +63,12 @@ class CardAlertLinkSpec extends Specification {
 
     def 'changing the formula publishes a card-target event with updated dependencies'() {
         when:
-        def updated = service.updateCard(100L, 12L, card(12L, 'tp99 - avgDuration'))
+        def updated = service.updateCard('keith.ji', 12L, card(12L, 'tp99 - avgDuration'))
 
         then:
         1 * repository.findCard(12L) >> card()
         2 * repository.findById(3L) >> dashboard()
-        1 * access.isEffectiveMember(100L, 7L) >> true
+        1 * access.isEffectiveMember('keith.ji', 7L) >> true
         1 * repository.saveCard({ it.getFormula() == 'tp99 - avgDuration' }) >> card(12L, 'tp99 - avgDuration')
         1 * events.publish({ it instanceof CardTargetChanged && it.getCardId() == 12L
                 && it.getAffectedStats() as Set == ['TP99', 'AVG'] as Set })
@@ -81,24 +81,24 @@ class CardAlertLinkSpec extends Specification {
                 null, [], 'failures / hits', 'RECENT_1H', 0)
 
         when:
-        service.updateCard(100L, 12L, draft)
+        service.updateCard('keith.ji', 12L, draft)
 
         then:
         1 * repository.findCard(12L) >> card()
         1 * repository.findById(3L) >> dashboard()
-        1 * access.isEffectiveMember(100L, 7L) >> true
+        1 * access.isEffectiveMember('keith.ji', 7L) >> true
         1 * repository.saveCard(_) >> draft
         0 * events.publish(_)
     }
 
     def 'deleting a card publishes the removed target and its referenced stats'() {
         when:
-        service.deleteCard(100L, 12L)
+        service.deleteCard('keith.ji', 12L)
 
         then:
         1 * repository.findCard(12L) >> card()
         2 * repository.findById(3L) >> dashboard()
-        1 * access.isEffectiveMember(100L, 7L) >> true
+        1 * access.isEffectiveMember('keith.ji', 7L) >> true
         1 * repository.deleteCard(12L)
         1 * events.publish({ it instanceof CardDeleted && it.getOrgId() == 7L
                 && it.getRemovedTargetIdentity() == card().targetIdentity()
@@ -107,12 +107,12 @@ class CardAlertLinkSpec extends Specification {
 
     def 'nonmember cannot delete a card'() {
         when:
-        service.deleteCard(999L, 12L)
+        service.deleteCard('ghost', 12L)
 
         then:
         1 * repository.findCard(12L) >> card()
         1 * repository.findById(3L) >> dashboard()
-        1 * access.isEffectiveMember(999L, 7L) >> false
+        1 * access.isEffectiveMember('ghost', 7L) >> false
         0 * repository.deleteCard(_)
         0 * events.publish(_)
         thrown(NeocatException)
@@ -120,10 +120,10 @@ class CardAlertLinkSpec extends Specification {
 
     def 'selectable raw stats and card result come only from the leaf cards'() {
         when:
-        def targets = service.alertableTargets(100L, 7L)
+        def targets = service.alertableTargets('keith.ji', 7L)
 
         then:
-        1 * access.isEffectiveMember(100L, 7L) >> true
+        1 * access.isEffectiveMember('keith.ji', 7L) >> true
         1 * repository.byOrg(7L) >> [dashboard()]
         1 * repository.cardsOf(3L) >> [card(), card(13L, 'hits', '/a')]
         targets.findAll { it.getKind() == AlertableTargetKind.CARD_RESULT }*.getCardId() == [12L, 13L]

@@ -14,9 +14,7 @@ import com.neocat.identity.infra.jdbc.row.AccountRow;
 @Mapper
 public interface AccountMapper {
 
-    AccountRow selectById(@Param("id") long id);
-
-    AccountRow selectByUsername(@Param("username") String username);
+    AccountRow selectByUserAccount(@Param("userAccount") String userAccount);
 
     List<AccountRow> selectAll();
 

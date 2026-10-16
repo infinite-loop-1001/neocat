@@ -64,49 +64,49 @@ public class AccountService {
     }
     /** §3.1 创建普通账号：密码 ≥ 8 位、用户名唯一、标记首次登录必须改密。 */
     @MySqlLocked("metadata")
-    public Account create(String username, String rawPassword, Instant at) {
+    public Account create(String userAccount, String rawPassword, Instant at) {
         requirePasswordLength(rawPassword);
-        if (Objects.nonNull(accounts.findByUsername(username))) {
-            throw new ConflictException(USER_EXISTS, username);
+        if (Objects.nonNull(accounts.findByUserAccount(userAccount))) {
+            throw new ConflictException(USER_EXISTS, userAccount);
         }
-        return accounts.create(username, hasher.hash(rawPassword), Role.USER, true, at);
+        return accounts.create(userAccount, hasher.hash(rawPassword), Role.USER, true, at);
     }
     /** §3.1 管理员创建账号：只能创建普通用户，不能经此路径绕过授予 ADMIN 的规则。 */
     @MySqlLocked("metadata")
-    public Account createAsAdmin(String username, String rawPassword, Role targetRole, Instant at) {
+    public Account createAsAdmin(String userAccount, String rawPassword, Role targetRole, Instant at) {
         if (!Objects.equals(targetRole, Role.USER)) {
             throw new AuthorizationException(FORBIDDEN, "管理员只能创建普通用户；授予 ADMIN 仅限超级管理员");
         }
-        return create(username, rawPassword, at);
+        return create(userAccount, rawPassword, at);
     }
     /** §3.2 授予/取消 ADMIN：仅超管可执行。 */
     @MySqlLocked("metadata")
-    public Account changeRole(long accountId, Role targetRole, Role actorRole) {
-        return changeRole(accountId, targetRole, actorRole, NO_ACTOR);
+    public Account changeRole(String userAccount, Role targetRole, Role actorRole) {
+        return changeRole(userAccount, targetRole, actorRole, null);
     }
     /**
      * §3.2 带操作者身份的变更。
      *
-     * @param actorAccountId 操作者账号 ID；传 {@link #NO_ACTOR} 表示不校验「不能修改自己」
+     * @param actorUserAccount 操作者的账号标识；传 {@code null} 表示不校验「不能修改自己」
      */
     @MySqlLocked("metadata")
-    public Account changeRole(long accountId, Role targetRole, Role actorRole, long actorAccountId) {
+    public Account changeRole(String userAccount, Role targetRole, Role actorRole, String actorUserAccount) {
         if (!Objects.equals(actorRole, Role.SUPER_ADMIN)) {
             throw new AuthorizationException(FORBIDDEN, "只有超级管理员可以授予或取消 ADMIN");
         }
-        if (actorAccountId != NO_ACTOR && actorAccountId == accountId) {
+        if (Objects.nonNull(actorUserAccount) && Objects.equals(actorUserAccount, userAccount)) {
             throw new AuthorizationException(CANNOT_MODIFY_SELF);
         }
-        Account account = requireAccount(accountId);
+        Account account = requireAccount(userAccount);
         return accounts.save(account.withRole(targetRole));
     }
     /** §3.3 重置密码：置强制改密 + 吊销该账号全部会话。 */
     @MySqlLocked("metadata")
-    public Account resetPassword(long accountId, String newRawPassword, Instant at) {
+    public Account resetPassword(String userAccount, String newRawPassword, Instant at) {
         requirePasswordLength(newRawPassword);
-        Account account = requireAccount(accountId);
+        Account account = requireAccount(userAccount);
         Account updated = accounts.save(account.withPassword(hasher.hash(newRawPassword), true));
-        sessions.invalidateAllOf(accountId);
+        sessions.invalidateAllOf(userAccount);
         return updated;
     }
     /**
@@ -117,29 +117,29 @@ public class AccountService {
      */
     @Transactional
     @MySqlLocked("metadata")
-    public AccountChangeResult disable(long accountId, Instant at) {
-        Account account = requireAccount(accountId);
+    public AccountChangeResult disable(String userAccount, Instant at) {
+        Account account = requireAccount(userAccount);
         Account updated = accounts.save(account.withStatus(AccountStatus.DISABLED));
-        sessions.invalidateAllOf(accountId);
+        sessions.invalidateAllOf(userAccount);
         if (Objects.nonNull(events)) {
-            events.publishEvent(new AccountStatusChanged(accountId, false));
+            events.publishEvent(new AccountStatusChanged(userAccount, false));
         }
         return new AccountChangeResult(updated, true, false);
     }
     /** §3.4 启用：可重新登录、恢复组织成员继承资格、不恢复任何告警收件关系。 */
     @Transactional
     @MySqlLocked("metadata")
-    public AccountChangeResult enable(long accountId, Instant at) {
-        Account account = requireAccount(accountId);
+    public AccountChangeResult enable(String userAccount, Instant at) {
+        Account account = requireAccount(userAccount);
         Account updated = accounts.save(account.withStatus(AccountStatus.ENABLED));
         // rules: 不允许 if 和内部执行语句没有 {} 包裹, 且在同一行
-        if (Objects.nonNull(events)) events.publishEvent(new AccountStatusChanged(accountId, true));
+        if (Objects.nonNull(events)) events.publishEvent(new AccountStatusChanged(userAccount, true));
         return new AccountChangeResult(updated, true, false);
     }
     /** §4.3 首次改密 / 重置后改密：新旧不同、新密码 ≥ 8 位、成功后清除标记。 */
     @MySqlLocked("metadata")
-    public Account changePassword(long accountId, String oldRawPassword, String newRawPassword, Instant at) {
-        Account account = requireAccount(accountId);
+    public Account changePassword(String userAccount, String oldRawPassword, String newRawPassword, Instant at) {
+        Account account = requireAccount(userAccount);
         if (!hasher.matches(oldRawPassword, account.getPasswordHash())) {
             throw new AuthenticationException(BAD_CREDENTIALS);
         }
@@ -150,8 +150,8 @@ public class AccountService {
         return accounts.save(account.withPassword(hasher.hash(newRawPassword), false));
     }
     /** §4.1 登录落点：有可用最近访问服务 → 该服务 Transaction；否则 → 服务列表。 */
-    public LoginTarget resolveLoginTarget(long accountId, ServiceAvailability availability) {
-        for (String service : accessHistory.recentServices(accountId, 10)) {
+    public LoginTarget resolveLoginTarget(String userAccount, ServiceAvailability availability) {
+        for (String service : accessHistory.recentServices(userAccount, 10)) {
             if (availability.hasData(service)) {
                 return new LoginTarget(service);
             }
@@ -159,23 +159,21 @@ public class AccountService {
         return LoginTarget.SERVICE_LIST;
     }
     /** §4.1 记录一次服务访问，用于下次登录落点。 */
-    public void recordAccess(long accountId, String serviceName, Instant at) {
-        accessHistory.record(accountId, serviceName, at);
+    public void recordAccess(String userAccount, String serviceName, Instant at) {
+        accessHistory.record(userAccount, serviceName, at);
     }
 
     // ── 内部 ─────────────────────────────────────────────────
-
-    private static final long NO_ACTOR = -1L;
 
     private void requirePasswordLength(String rawPassword) {
         if (Objects.isNull(rawPassword) || rawPassword.length() < MIN_PASSWORD_LENGTH) {
             throw new ValidationException(PASSWORD_TOO_SHORT, MIN_PASSWORD_LENGTH);
         }
     }
-    private Account requireAccount(long accountId) {
-        Account found = accounts.findById(accountId);
+    private Account requireAccount(String userAccount) {
+        Account found = accounts.findByUserAccount(userAccount);
         if (Objects.isNull(found)) {
-            throw new ResourceNotFoundException(USER_NOT_FOUND, accountId);
+            throw new ResourceNotFoundException(USER_NOT_FOUND, userAccount);
         }
         return found;
     }

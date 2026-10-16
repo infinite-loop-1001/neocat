@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 组织树用例（PRD 01 §5）。
  */
 @Service
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 public class OrgTreeService {
 
     private final OrgNodeRepository nodes;

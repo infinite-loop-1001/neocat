@@ -16,13 +16,13 @@ import org.springframework.modulith.NamedInterface;
 public class Session {
     private final String id;
 
-    private final long accountId;
+    private final String userAccount;
 
     private final Instant expiresAt;
 
-    public Session(String id, long accountId, Instant expiresAt) {
+    public Session(String id, String userAccount, Instant expiresAt) {
         this.id = id;
-        this.accountId = accountId;
+        this.userAccount = userAccount;
         this.expiresAt = expiresAt;
     }
 

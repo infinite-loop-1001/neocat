@@ -4,6 +4,7 @@ import java.util.Set;
 
 public interface OrganizationAccess {
     boolean isLeaf(long orgId);
-    boolean isEffectiveMember(long accountId, long orgId);
-    Set<Long> effectiveLeaves(long accountId);
+    /** 账号（业务标识）是否为该叶子的有效成员（直系或祖先继承）。 */
+    boolean isEffectiveMember(String userAccount, long orgId);
+    Set<Long> effectiveLeaves(String userAccount);
 }

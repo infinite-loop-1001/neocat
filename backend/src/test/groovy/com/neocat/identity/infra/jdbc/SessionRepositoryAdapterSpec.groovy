@@ -15,13 +15,13 @@ class SessionRepositoryAdapterSpec extends Specification {
 
     def '创建会话生成唯一 ID 并写入三十分钟过期时间'() {
         when:
-        def first = repository.create(1L, NOW)
-        def second = repository.create(1L, NOW)
+        def first = repository.create('alice', NOW)
+        def second = repository.create('alice', NOW)
 
         then:
         first.getId() != second.getId()
         first.getExpiresAt() == NOW.plusSeconds(Session.SLIDING_SECONDS)
-        2 * mapper.insert(_ as String, 1L, Timestamp.from(NOW),
+        2 * mapper.insert(_ as String, 'alice', Timestamp.from(NOW),
                 Timestamp.from(NOW.plusSeconds(Session.SLIDING_SECONDS))) >> 1
     }
 
@@ -38,7 +38,7 @@ class SessionRepositoryAdapterSpec extends Specification {
         given:
         def row = new SessionRow()
         row.id = 'sid'
-        row.accountId = 1L
+        row.userAccount = 'keith.ji'
         row.expiresAt = Timestamp.from(NOW)
 
         when:
@@ -50,16 +50,16 @@ class SessionRepositoryAdapterSpec extends Specification {
         3 * mapper.selectById('sid') >> row
         before
         !boundary
-        session == new Session('sid', 1L, NOW)
+        session == new Session('sid', 'keith.ji', NOW)
     }
 
     def '失效仅删除指定会话，账号级撤销删除全部会话'() {
         when:
         repository.invalidate('sid')
-        repository.invalidateAllOf(1L)
+        repository.invalidateAllOf('alice')
 
         then:
         1 * mapper.deleteById('sid') >> 1
-        1 * mapper.deleteByAccountId(1L) >> 2
+        1 * mapper.deleteByUserAccount('alice') >> 2
     }
 }

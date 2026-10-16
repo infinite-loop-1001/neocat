@@ -9,7 +9,7 @@ import org.springframework.modulith.NamedInterface;
 /**
  * 组织节点（PRD 01 §5）：组织是树，允许多个根节点；只有叶子能拥有大盘。
  */
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 @Getter
 @EqualsAndHashCode
 @ToString

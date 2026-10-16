@@ -13,6 +13,7 @@ import com.neocat.alert.domain.entity.vo.rule.Comparator;
 import com.neocat.alert.domain.entity.vo.rule.Condition;
 import com.neocat.query.domain.stat.Stat;
 import com.neocat.organization.api.internal.OrgResourceIndex;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,14 +31,15 @@ import java.util.stream.Collectors;
 import com.neocat.alert.infra.jdbc.row.AlertConditionRow;
 import com.neocat.alert.infra.jdbc.row.AlertRecipientRow;
 import com.neocat.alert.infra.jdbc.row.AlertRuleRow;
+import com.neocat.alert.infra.jdbc.row.AlertEvalCursorRow;
 
 /**
  * 告警规则与窗口状态的 MyBatis 适配器
  * （表 {@code nc_alert_rule} / {@code nc_alert_condition} / {@code nc_alert_recipient} /
- * {@code nc_alert_window_state}）。
+ * {@code nc_alert_eval_cursor}）。
  *
  * <p>关键约束（PRD 06 §11）：**不存在任何触发历史表**。
- * 一期只保存规则本身、启停状态与滑动窗口的点集合，不保存告警事件。
+ * 一期只保存规则本身、启停状态与每条规则一行的判定游标，不保存告警事件。
  */
 @Repository
 public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
@@ -83,10 +85,6 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         row.setWindowPoints(rule.getWindowPoints());
         row.setEnabled(rule.isEnabled());
         row.setInvalid(rule.isInvalid());
-        row.setStateSince(Objects.isNull(rule.getStateSince())
-                ? null
-                : Timestamp.from(Instant.ofEpochMilli(rule.getStateSince())));
-
         if (Objects.isNull(row.getId())) {
             mapper.insertRule(row);
         } else {
@@ -102,7 +100,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
         }
         mapper.deleteRecipients(ruleId);
         for (AlertChannel channel : rule.getChannels()) {
-            for (Long recipient : rule.getRecipients()) {
+            for (String recipient : rule.getRecipients()) {
                 mapper.insertRecipient(ruleId, recipient, channel.name());
             }
         }
@@ -145,10 +143,10 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
     public void delete(long ruleId) {
         AlertRuleRow existing = mapper.selectRule(ruleId);
         // 表定义无外键，级联必须在同一事务内按依赖顺序显式删除：
-        // 条件 → 收件人 → 窗口状态 → 规则，避免留下悬挂引用。
+        // 条件 → 收件人 → 判定游标 → 规则，避免留下悬挂引用。
         mapper.deleteConditions(ruleId);
         mapper.deleteRecipients(ruleId);
-        mapper.deleteWindowPoints(ruleId);
+        mapper.deleteAlertEvalCursor(ruleId);
         mapper.deleteRule(ruleId);
         if (Objects.nonNull(resources) && Objects.nonNull(existing) && Objects.nonNull(existing.getOrgId())) {
             resources.removeAlertRule(existing.getOrgId(), ruleId);
@@ -156,16 +154,19 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
     }
 
     @Override
-    public void saveWindowState(AlertEvalCursor state) {
-        mapper.deleteWindowPoints(state.getRuleId());
-        for (Long minute : state.getPoints()) {
-            mapper.insertWindowPoint(state.getRuleId(), Timestamp.from(Instant.ofEpochMilli(minute)));
-        }
+    public void saveAlertEvalCursor(AlertEvalCursor cursor) {
+        mapper.deleteAlertEvalCursor(cursor.getRuleId());
+        mapper.insertAlertEvalCursor(toCursorRow(cursor));
     }
 
     @Override
-    public void clearWindowState(long ruleId) {
-        mapper.deleteWindowPoints(ruleId);
+    public AlertEvalCursor findAlertEvalCursor(long ruleId) {
+        return toCursor(mapper.selectAlertEvalCursor(ruleId));
+    }
+
+    @Override
+    public void clearAlertEvalCursor(long ruleId) {
+        mapper.deleteAlertEvalCursor(ruleId);
     }
 
     // ── 转换 ─────────────────────────────────────────────────
@@ -177,7 +178,8 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
                     Comparator.valueOf(condition.getComparator()), condition.getThreshold()));
         }
         List<AlertRecipientRow> recipients = mapper.selectRecipients(row.getId());
-        List<Long> recipientIds = recipients.stream().map(AlertRecipientRow::getAccountId).distinct().toList();
+        List<String> recipientAccounts = recipients.stream()
+                .map(AlertRecipientRow::getUserAccount).distinct().toList();
         List<AlertChannel> channels = Objects.isNull(row.getChannels()) || row.getChannels().isBlank()
                 ? Lists.newArrayList() : Arrays.stream(row.getChannels().split(","))
                 .map(AlertChannel::valueOf).toList();
@@ -190,7 +192,7 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
                 row.getTargetType(),
                 row.getTargetName(),
                 row.getTargetMetricLabels(),
-                Objects.isNull(row.getFormulaStats()) || row.getFormulaStats().isBlank() ? Lists.newArrayList() :
+                Objects.isNull(row.getFormulaStats()) || StringUtils.isBlank(row.getFormulaStats()) ? Lists.newArrayList() :
                         Arrays.stream(row.getFormulaStats().split(",")).map(Stat::parse).toList());
 
         return new AlertRule(
@@ -203,12 +205,35 @@ public class AlertRuleRepositoryAdapter implements AlertRuleRepository {
                 Combinator.valueOf(row.getCombinator()),
                 row.getWindowPoints(),
                 conditions,
-                recipientIds,
+                recipientAccounts,
                 channels,
                 row.isEnabled(),
-                row.isInvalid(),
-                Objects.isNull(row.getStateSince()) ? null : row.getStateSince().toInstant().toEpochMilli());
+                row.isInvalid()
+        );
+    }
+
+    private AlertEvalCursorRow toCursorRow(AlertEvalCursor cursor) {
+        AlertEvalCursorRow row = new AlertEvalCursorRow();
+        row.setRuleId(cursor.getRuleId());
+        row.setBaselineAt(Timestamp.from(Instant.ofEpochMilli(cursor.getBaselineAt())));
+        row.setLastEvaluatedMinute(Objects.isNull(cursor.getLastEvaluatedMinute())
+                ? null
+                : Timestamp.from(Instant.ofEpochMilli(cursor.getLastEvaluatedMinute())));
+        return row;
+    }
+
+    private AlertEvalCursor toCursor(AlertEvalCursorRow row) {
+        if (Objects.isNull(row)) {
+            return null;
+        }
+        AlertEvalCursor cursor = new AlertEvalCursor();
+        cursor.setId(row.getId());
+        cursor.setRuleId(row.getRuleId());
+        cursor.setBaselineAt(row.getBaselineAt().toInstant().toEpochMilli());
+        cursor.setLastEvaluatedMinute(Objects.isNull(row.getLastEvaluatedMinute())
+                ? null
+                : row.getLastEvaluatedMinute().toInstant().toEpochMilli());
+        return cursor;
     }
 
 }
-

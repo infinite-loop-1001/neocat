@@ -13,7 +13,7 @@ public class SuperAdminProvisioningAdapter implements SuperAdminProvisioner {
         this.accounts = accounts;
     }
     @Override
-    public long createSuperAdmin(String username, String rawPassword) {
-        return accounts.createInitialSuperAdmin(username, rawPassword);
+    public String createSuperAdmin(String userAccount, String rawPassword) {
+        return accounts.createInitialSuperAdmin(userAccount, rawPassword);
     }
 }

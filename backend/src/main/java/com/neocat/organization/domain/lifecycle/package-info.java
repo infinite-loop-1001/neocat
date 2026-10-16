@@ -1,2 +1,2 @@
-/** Types in this package contribute to the "isOrganization" named interface. */
+/** Types in this package contribute to the "organization" named interface. */
 package com.neocat.organization.domain.lifecycle;

@@ -18,7 +18,7 @@ import org.springframework.modulith.NamedInterface;
 public class Account {
     private final long id;
 
-    private final String username;
+    private final String userAccount;
 
     private final String passwordHash;
 
@@ -30,9 +30,9 @@ public class Account {
 
     private final Instant createdAt;
 
-    public Account(long id, String username, String passwordHash, Role role, AccountStatus status, boolean mustChangePassword, Instant createdAt) {
+    public Account(long id, String userAccount, String passwordHash, Role role, AccountStatus status, boolean mustChangePassword, Instant createdAt) {
         this.id = id;
-        this.username = username;
+        this.userAccount = userAccount;
         this.passwordHash = passwordHash;
         this.role = role;
         this.status = status;
@@ -41,13 +41,13 @@ public class Account {
     }
 
     public Account withRole(Role newRole) {
-        return new Account(id, username, passwordHash, newRole, status, mustChangePassword, createdAt);
+        return new Account(id, userAccount, passwordHash, newRole, status, mustChangePassword, createdAt);
     }
     public Account withStatus(AccountStatus newStatus) {
-        return new Account(id, username, passwordHash, role, newStatus, mustChangePassword, createdAt);
+        return new Account(id, userAccount, passwordHash, role, newStatus, mustChangePassword, createdAt);
     }
     public Account withPassword(String newHash, boolean requireChange) {
-        return new Account(id, username, newHash, role, status, requireChange, createdAt);
+        return new Account(id, userAccount, newHash, role, status, requireChange, createdAt);
     }
     public boolean enabled() {
         return Objects.equals(status, AccountStatus.ENABLED);

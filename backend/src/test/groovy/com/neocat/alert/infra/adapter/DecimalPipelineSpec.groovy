@@ -44,17 +44,17 @@ class DecimalPipelineSpec extends Specification {
         def source = new ReportMinutePointSource(reports, cards)
         def target = AlertTarget.cardResult(1L, 'order', 'TRANSACTION', 'URL', '/a', [Stat.AVG])
         def rule = AlertRule.draft(AlertScope.SERVICE, null, 'precise', '', target, Combinator.AND, 1,
-                [new Condition(Stat.AVG, Comparator.EQ, 3.333333)], [1L], [AlertChannel.EMAIL])
+                [new Condition(Stat.AVG, Comparator.EQ, 3.333333)], ['keith.ji'], [AlertChannel.EMAIL])
 
         expect:
         input.buckets(card, from, from.plusSeconds(60), 60L)[from.toEpochMilli()][Stat.AVG]
                 .toPlainString() == '0.3333333'
         cards.value(1L, from, from.plusSeconds(60)).toPlainString() == '3.333333'
-        source.values(target, from.toEpochMilli(), [Stat.AVG])[Stat.AVG].toPlainString() == '3.333333'
+        source.values(target, from.toEpochMilli(), [Stat.AVG]).getValues()[Stat.AVG].toPlainString() == '3.333333'
         new PreviewService(source).preview(rule, from.toEpochMilli()).getResult() == PreviewResultType.TRIGGER
 
         and: '直接统计告警的完整结果应先舍入六位'
         source.values(AlertTarget.rawMetric('order', 'TRANSACTION', 'URL', '/a'), from.toEpochMilli(),
-                [Stat.AVG])[Stat.AVG].toPlainString() == '0.333333'
+                [Stat.AVG]).getValues()[Stat.AVG].toPlainString() == '0.333333'
     }
 }

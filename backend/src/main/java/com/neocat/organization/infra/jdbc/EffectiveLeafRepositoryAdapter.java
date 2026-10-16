@@ -5,7 +5,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
-
 @Repository
 public class EffectiveLeafRepositoryAdapter implements EffectiveLeafRepository {
     private final EffectiveLeafMapper mapper;
@@ -15,17 +14,17 @@ public class EffectiveLeafRepositoryAdapter implements EffectiveLeafRepository {
     }
     @Override
     @Transactional
-    public void replaceAll(long accountId, Set<Long> leafOrgIds) {
-        mapper.deleteByAccount(accountId);
+    public void replaceAll(String userAccount, Set<Long> leafOrgIds) {
+        mapper.deleteByAccount(userAccount);
         for (Long orgId : leafOrgIds) {
-            mapper.insert(accountId, orgId);
+            mapper.insert(userAccount, orgId);
         }
     }
     @Override
-    public Set<Long> leavesOf(long accountId) { return Set.copyOf(mapper.leavesOf(accountId)); }
+    public Set<Long> leavesOf(String userAccount) { return Set.copyOf(mapper.leavesOf(userAccount)); }
 
     @Override
-    public Set<Long> membersOf(long orgId) { return Set.copyOf(mapper.membersOf(orgId)); }
+    public Set<String> membersOf(long orgId) { return Set.copyOf(mapper.membersOf(orgId)); }
 
     @Override
     public void removeOrg(long orgId) { mapper.removeOrg(orgId); }

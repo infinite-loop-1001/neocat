@@ -14,7 +14,7 @@ public interface SuperAdminProvisioner {
     /**
      * 创建第一个超级管理员。
      *
-     * @return 新建账号 ID
+     * @return 新建账号的业务标识（登录名）
      */
-    long createSuperAdmin(String username, String rawPassword);
+    String createSuperAdmin(String userAccount, String rawPassword);
 }

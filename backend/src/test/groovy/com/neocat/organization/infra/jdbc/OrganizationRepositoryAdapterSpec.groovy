@@ -9,28 +9,28 @@ class OrganizationRepositoryAdapterSpec extends Specification {
         def repository = new MembershipRepositoryAdapter(mapper)
 
         when:
-        repository.add(3L, 7L)
-        repository.remove(3L, 7L)
-        repository.removeAllOf(7L)
+        repository.add(3L, 'keith.ji')
+        repository.remove(3L, 'keith.ji')
+        repository.removeAllOf('keith.ji')
 
         then:
-        1 * mapper.add(3L, 7L)
-        1 * mapper.remove(3L, 7L)
-        1 * mapper.removeAllOf(7L)
+        1 * mapper.add(3L, 'keith.ji')
+        1 * mapper.remove(3L, 'keith.ji')
+        1 * mapper.removeAllOf('keith.ji')
         0 * mapper._
     }
 
     def '查询成员和直接加入的组织以 Set 返回'() {
         given:
         def mapper = Stub(MembershipMapper) {
-            membersOf(3L) >> [7L, 8L]
-            orgsOf(7L) >> [3L, 4L]
+            membersOf(3L) >> ['keith.ji', 'ada.li']
+            orgsOf('keith.ji') >> [3L, 4L]
         }
         def repository = new MembershipRepositoryAdapter(mapper)
 
         expect:
-        repository.membersOf(3L) == [7L, 8L] as Set
-        repository.orgsOf(7L) == [3L, 4L] as Set
+        repository.membersOf(3L) == ['keith.ji', 'ada.li'] as Set
+        repository.orgsOf('keith.ji') == [3L, 4L] as Set
     }
 
     def '有效叶子替换先删除旧集合再逐个插入；空集合只删除'() {
@@ -39,27 +39,27 @@ class OrganizationRepositoryAdapterSpec extends Specification {
         def repository = new EffectiveLeafRepositoryAdapter(mapper)
 
         when:
-        repository.replaceAll(7L, [3L, 4L] as Set)
-        repository.replaceAll(7L, [] as Set)
+        repository.replaceAll('keith.ji', [3L, 4L] as Set)
+        repository.replaceAll('keith.ji', [] as Set)
 
         then:
-        1 * mapper.deleteByAccount(7L)
-        1 * mapper.insert(7L, 3L)
-        1 * mapper.insert(7L, 4L)
-        1 * mapper.deleteByAccount(7L)
+        1 * mapper.deleteByAccount('keith.ji')
+        1 * mapper.insert('keith.ji', 3L)
+        1 * mapper.insert('keith.ji', 4L)
+        1 * mapper.deleteByAccount('keith.ji')
         0 * mapper._
     }
 
     def '权限与反向成员查询来自 mapper'() {
         given:
         def mapper = Stub(EffectiveLeafMapper) {
-            leavesOf(7L) >> [3L, 4L]
-            membersOf(3L) >> [7L]
+            leavesOf('keith.ji') >> [3L, 4L]
+            membersOf(3L) >> ['keith.ji']
         }
         def repository = new EffectiveLeafRepositoryAdapter(mapper)
 
         expect:
-        repository.leavesOf(7L) == [3L, 4L] as Set
-        repository.membersOf(3L) == [7L] as Set
+        repository.leavesOf('keith.ji') == [3L, 4L] as Set
+        repository.membersOf(3L) == ['keith.ji'] as Set
     }
 }

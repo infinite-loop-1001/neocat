@@ -16,12 +16,12 @@ import java.util.Objects;
 @EqualsAndHashCode
 @ToString
 public class RequestActor {
-    private final long id;
+    private final String userAccount;
 
     private final String role;
 
-    public RequestActor(long id, String role) {
-        this.id = id;
+    public RequestActor(String userAccount, String role) {
+        this.userAccount = userAccount;
         this.role = role;
     }
     public static final String ATTRIBUTE = "neocat.actor";

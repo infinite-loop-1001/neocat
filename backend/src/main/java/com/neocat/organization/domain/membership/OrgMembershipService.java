@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 每次成员关系变更后立即重算，保证「权限变化即时生效」。
  */
 @Service
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 public class OrgMembershipService {
 
     private final OrgNodeRepository nodes;
@@ -54,34 +54,34 @@ public class OrgMembershipService {
     /** §6 加入成员：任意节点可加人，随后立即重算该用户的有效叶子。 */
     @Transactional
     @MySqlLocked("metadata")
-    public void addMember(long orgId, long accountId) {
+    public void addMember(long orgId, String userAccount) {
         requireNode(orgId);
-        memberships.add(orgId, accountId);
-        recompute(accountId);
+        memberships.add(orgId, userAccount);
+        recompute(userAccount);
     }
     /** §6 移除成员：立即重算；无任何路径时权限立即撤销。 */
     @Transactional
     @MySqlLocked("metadata")
-    public void removeMember(long orgId, long accountId) {
-        memberships.remove(orgId, accountId);
-        recompute(accountId);
+    public void removeMember(long orgId, String userAccount) {
+        memberships.remove(orgId, userAccount);
+        recompute(userAccount);
     }
     /** §6 按当前树形与直接成员关系重算某用户的有效叶子集合。 */
     @Transactional
     @MySqlLocked("metadata")
-    public void recompute(long accountId) {
-        Set<Long> previous = Objects.isNull(events) ? Sets.newHashSet() : effectiveLeaves.leavesOf(accountId);
+    public void recompute(String userAccount) {
+        Set<Long> previous = Objects.isNull(events) ? Sets.newHashSet() : effectiveLeaves.leavesOf(userAccount);
         Set<Long> leaves = new HashSet<>();
-        for (Long orgId : memberships.orgsOf(accountId)) {
+        for (Long orgId : memberships.orgsOf(userAccount)) {
             leaves.addAll(descendantLeaves(orgId));
         }
-        effectiveLeaves.replaceAll(accountId, leaves);
+        effectiveLeaves.replaceAll(userAccount, leaves);
         if (Objects.nonNull(events)) {
             for (Long orgId : previous) {
-                if (!leaves.contains(orgId)) events.publishEvent(new EffectiveMembershipChanged(accountId, orgId, false));
+                if (!leaves.contains(orgId)) events.publishEvent(new EffectiveMembershipChanged(userAccount, orgId, false));
             }
             for (Long orgId : leaves) {
-                if (!previous.contains(orgId)) events.publishEvent(new EffectiveMembershipChanged(accountId, orgId, true));
+                if (!previous.contains(orgId)) events.publishEvent(new EffectiveMembershipChanged(userAccount, orgId, true));
             }
         }
     }
@@ -89,26 +89,26 @@ public class OrgMembershipService {
     @Transactional
     @MySqlLocked("metadata")
     public void recomputeAll() {
-        Set<Long> accounts = new HashSet<>();
+        Set<String> accounts = new HashSet<>();
         for (OrgNode node : nodes.findAll()) {
             accounts.addAll(memberships.membersOf(node.getId()));
         }
         accounts.forEach(this::recompute);
     }
-    public Set<Long> effectiveLeaves(long accountId) {
-        return effectiveLeaves.leavesOf(accountId);
+    public Set<Long> effectiveLeaves(String userAccount) {
+        return effectiveLeaves.leavesOf(userAccount);
     }
     /**
      * 该节点的直接成员账号集合。
      *
      * <p>组织树页展示的「成员数」是直接成员数；叶子权限则用 {@link #effectiveLeaves} 计算。
      */
-    public Set<Long> effectiveMembers(long orgId) {
+    public Set<String> effectiveMembers(long orgId) {
         return memberships.membersOf(orgId);
     }
     /** 是否为该叶子的有效成员（直系或祖先继承）。 */
-    public boolean isEffectiveMember(long accountId, long leafOrgId) {
-        return effectiveLeaves.leavesOf(accountId).contains(leafOrgId);
+    public boolean isEffectiveMember(String userAccount, long leafOrgId) {
+        return effectiveLeaves.leavesOf(userAccount).contains(leafOrgId);
     }
 
     // ── 内部 ─────────────────────────────────────────────────

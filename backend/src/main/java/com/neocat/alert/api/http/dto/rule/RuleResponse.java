@@ -34,8 +34,8 @@ public class RuleResponse {
     @Schema(description = "目标是否已失效（卡片被删或目标变更）")
     private final boolean invalid;
 
-    @Schema(description = "收件人账号 ID 列表")
-    private final List<Long> recipients;
+    @Schema(description = "收件人账号标识（登录名）列表")
+    private final List<String> recipients;
 
     @Schema(description = "通知通道名列表")
     private final List<String> channels;

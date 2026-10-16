@@ -3,6 +3,7 @@ package com.neocat.alert.domain;
 import java.math.BigDecimal;
 
 import com.google.common.collect.Lists;
+import com.neocat.alert.domain.entity.vo.source.MinutePoint;
 import com.neocat.alert.domain.gateway.MinutePointSourceGateway;
 import com.neocat.alert.domain.entity.AlertRule;
 import com.neocat.alert.domain.entity.vo.rule.Combinator;
@@ -12,15 +13,11 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 
-import java.util.Locale;
 import com.neocat.alert.domain.entity.vo.result.PointEvaluation;
 import com.neocat.alert.domain.entity.vo.result.PreviewResult;
 import com.neocat.alert.domain.entity.vo.result.PreviewResultType;
@@ -48,10 +45,10 @@ import com.neocat.alert.domain.entity.vo.result.PreviewResultType;
 @NamedInterface("alert")
 public class PreviewService {
 
-    private final MinutePointSourceGateway points;
+    private final MinutePointSourceGateway minutePointSourceGateway;
 
-    public PreviewService(MinutePointSourceGateway points) {
-        this.points = points;
+    public PreviewService(MinutePointSourceGateway minutePointSourceGateway) {
+        this.minutePointSourceGateway = minutePointSourceGateway;
     }
 
     // rules: 复杂逻辑需要注释解释流程, 以及为什么这么做
@@ -64,7 +61,10 @@ public class PreviewService {
         // fixme: 这里 MinutePointSource 需要提供批量接口, 不能循环调用每分钟的指标值
         for (int i = 0; i < window; i++) {
             long minute = latestMinute - (long) i * 60_000L;
-            Map<Stat, BigDecimal> values = points.values(rule.getTarget(), minute, requiredStats);
+            Map<Stat, BigDecimal> values =
+                    Optional.ofNullable(minutePointSourceGateway.values(rule.getTarget(), minute, requiredStats))
+                            .map(MinutePoint::getValues)
+                            .orElse(Collections.emptyMap());
 
             String missing = firstMissing(requiredStats, values);
             if (Objects.nonNull(missing)) {
@@ -90,7 +90,6 @@ public class PreviewService {
      * <p>AND：全部条件满足；OR：任一条件满足。
      * 缺数由调用方预先排除，此处只处理有值的点。
      */
-    // fixme: 这里逻辑需要收束到 AlterWindowStateService 里
     public boolean combine(AlertRule rule, Map<Stat, BigDecimal> values) {
         List<Condition> conditions = rule.getConditions();
         if (CollectionUtils.isEmpty(conditions)) {

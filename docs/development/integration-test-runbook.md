@@ -53,19 +53,19 @@ curl -sS -i -b "$COOKIE_JAR" -X POST "$BASE/api/me/password" \
 # 如果当前会话失效，用新口令重新 /api/login，刷新 COOKIE_JAR，再执行管理接口。
 ```
 
-创建 `it_user` 和 `it_admin`（使用 `/api/users` 返回的 `id`），分别在**独立 Cookie jar** 登录，必要时完成强制改密后继续。创建根组织 `it_root`，叶子 `it_leaf` 和另一个隔离叶子 `it_other`，把 `it_user` 加入根/叶以验证继承及撤销。ID 从实际 HTTP 返回提取，不把数据库自增 ID 写死。负例请求用另一 jar/匿名执行。以下测试按顺序执行；耗时分钟/小时任务需按**平台时区**的完整桶、实际刷新延时观察，不用固定 `sleep 70` 推断成功。
+创建 `it_user` 和 `it_admin`（使用 `/api/users` 返回的 `userAccount`），分别在**独立 Cookie jar** 登录，必要时完成强制改密后继续。创建根组织 `it_root`，叶子 `it_leaf` 和另一个隔离叶子 `it_other`，把 `it_user` 加入根/叶以验证继承及撤销。ID 从实际 HTTP 返回提取，不把数据库自增 ID 写死。负例请求用另一 jar/匿名执行。以下测试按顺序执行；耗时分钟/小时任务需按**平台时区**的完整桶、实际刷新延时观察，不用固定 `sleep 70` 推断成功。
 
 下面命令接续本节登录后的超管 Cookie（将 `<...>` 和口令替换成现场值，Cookie 文件勿共享）；每次 POST/DELETE 后立即 GET 并在独立会话验证权限。若强制改密，先调用 `/api/me/password` 再继续：
 
 ```bash
-USER_ID=$(curl -fsS -b "$COOKIE_JAR" -H 'Content-Type: application/json' \
-  -d '{"username":"it_user","password":"<强密码>"}' "$BASE/api/users" | jq -er '.id')
+USER_ACCOUNT=$(curl -fsS -b "$COOKIE_JAR" -H 'Content-Type: application/json' \
+  -d '{"userAccount":"it_user","password":"<强密码>"}' "$BASE/api/users" | jq -er '.userAccount')
 ROOT_ID=$(curl -fsS -b "$COOKIE_JAR" -H 'Content-Type: application/json' \
   -d '{"name":"it_root","parentId":null}' "$BASE/api/orgs" | jq -er '.id')
 LEAF_ID=$(curl -fsS -b "$COOKIE_JAR" -H 'Content-Type: application/json' \
   -d "{\"name\":\"it_leaf\",\"parentId\":$ROOT_ID}" "$BASE/api/orgs" | jq -er '.id')
 curl -i -b "$COOKIE_JAR" -X POST "$BASE/api/orgs/$ROOT_ID/members" \
-  -H 'Content-Type: application/json' -d "{\"userId\":$USER_ID}"
+  -H 'Content-Type: application/json' -d "{\"userAccount\":\"$USER_ACCOUNT\"}"
 curl -fsS -b "$COOKIE_JAR" "$BASE/api/orgs/$LEAF_ID/deletion-preview" | jq .
 curl -fsS -b "$COOKIE_JAR" "$BASE/api/orgs/mine" | jq .
 ```
@@ -157,7 +157,7 @@ curl -sS -b "$COOKIE_JAR" \
 {"service":"it-order","targetKind":"TRANSACTION","targetType":"URL","targetName":"GET /it","metricLabels":"","formula":"hits","timeRange":"RECENT_24H","thresholdLines":[]}
 ```
 
-实际 `formula` 与字段组合以 UI 保存生成的请求及 `/api/cards` 响应复核；示例 `HITS` 属当前 `FormulaParser` 可解析统计项，但**不自行直改数据库以制造成功**。服务规则草稿需 `scope=SERVICE`, `target:{kind:"RAW_METRIC",cardId:0,service:"it-order",reportKind:"TRANSACTION",type:"URL",name:"GET /it",formulaStats:[]}`, `conditions:[{stat:"HITS",comparator:"GT",threshold:0}]`, `windowPoints:3`, `combinator:"AND"`, `recipients:[<userId>]`, `channels:["EMAIL"]`；组织规则改 `scope=ORGANIZATION`, `orgId=<leafId>`, `target.kind=CARD_RESULT`, `target.cardId=<cardId>`。通道设置 API `PUT /api/platform/channels` body `{"email":true,"dingtalk":false,"feishu":false}` 当前控制器只写开关、凭据为 null；**开启开关不表示通道能投递**，适配器仍会拒绝真实发送。禁用测试后恢复开关。
+实际 `formula` 与字段组合以 UI 保存生成的请求及 `/api/cards` 响应复核；示例 `HITS` 属当前 `FormulaParser` 可解析统计项，但**不自行直改数据库以制造成功**。服务规则草稿需 `scope=SERVICE`, `target:{kind:"RAW_METRIC",cardId:0,service:"it-order",reportKind:"TRANSACTION",type:"URL",name:"GET /it",formulaStats:[]}`, `conditions:[{stat:"HITS",comparator:"GT",threshold:0}]`, `windowPoints:3`, `combinator:"AND"`, `recipients:["<userAccount>"]`, `channels:["EMAIL"]`；组织规则改 `scope=ORGANIZATION`, `orgId=<leafId>`, `target.kind=CARD_RESULT`, `target.cardId=<cardId>`。通道设置 API `PUT /api/platform/channels` body `{"email":true,"dingtalk":false,"feishu":false}` 当前控制器只写开关、凭据为 null；**开启开关不表示通道能投递**，适配器仍会拒绝真实发送。禁用测试后恢复开关。
 
 以下用例在现场可以直接替换 ID 后执行；先确认当前登录 Cookie 为 `LEAF_ID` 的有效成员（建盘），平台开关需使用管理员 Cookie（切换后不要误用普通成员）。
 
@@ -172,7 +172,7 @@ curl -fsS -b "$COOKIE_JAR" "$BASE/api/dashboards/targets?orgId=$LEAF_ID" | jq .
 curl -i -b "$COOKIE_JAR" -X PUT "$BASE/api/platform/channels" \
   -H 'Content-Type: application/json' -d '{"email":true,"dingtalk":false,"feishu":false}'
 RULE_ID=$(curl -fsS -b "$COOKIE_JAR" -H 'Content-Type: application/json' \
-  -d "{\"scope\":\"SERVICE\",\"name\":\"it-service-rule\",\"target\":{\"kind\":\"RAW_METRIC\",\"cardId\":0,\"service\":\"it-order\",\"reportKind\":\"TRANSACTION\",\"type\":\"URL\",\"name\":\"GET /it\",\"formulaStats\":[]},\"combinator\":\"AND\",\"windowPoints\":3,\"conditions\":[{\"stat\":\"HITS\",\"comparator\":\"GT\",\"threshold\":0}],\"recipients\":[$USER_ID],\"channels\":[\"EMAIL\"]}" \
+  -d "{\"scope\":\"SERVICE\",\"name\":\"it-service-rule\",\"target\":{\"kind\":\"RAW_METRIC\",\"cardId\":0,\"service\":\"it-order\",\"reportKind\":\"TRANSACTION\",\"type\":\"URL\",\"name\":\"GET /it\",\"formulaStats\":[]},\"combinator\":\"AND\",\"windowPoints\":3,\"conditions\":[{\"stat\":\"HITS\",\"comparator\":\"GT\",\"threshold\":0}],\"recipients\":[\"$USER_ACCOUNT\"],\"channels\":[\"EMAIL\"]}" \
   "$BASE/api/alerts" | jq -er '.id')
 curl -fsS -b "$COOKIE_JAR" -X POST "$BASE/api/alerts/$RULE_ID/enable" | jq .
 curl -fsS -b "$COOKIE_JAR" "$BASE/api/alerts?scope=SERVICE" | jq .
@@ -194,7 +194,7 @@ SELECT org_id,resource_kind,resource_id,card_count FROM nc_org_resource WHERE or
 SELECT c.id FROM nc_card c LEFT JOIN nc_dashboard d ON d.id = c.dashboard_id WHERE d.id IS NULL;
 SELECT t.id FROM nc_card_threshold_line t LEFT JOIN nc_card c ON c.id = t.card_id WHERE c.id IS NULL;
 SELECT x.id FROM nc_alert_condition x LEFT JOIN nc_alert_rule r ON r.id = x.rule_id WHERE r.id IS NULL;
-SELECT w.rule_id FROM nc_alert_window_state w LEFT JOIN nc_alert_rule r ON r.id = w.rule_id WHERE r.id IS NULL;
+SELECT w.rule_id FROM nc_alert_eval_cursor w LEFT JOIN nc_alert_rule r ON r.id = w.rule_id WHERE r.id IS NULL;
 -- ClickHouse/neocat：同一服务/时间桶中核对明细、原始树、质量事件和聚合
 SELECT kind,type,name,minute,sum(count) FROM neocat.nc_minute_bucket
  WHERE service='it-order' GROUP BY kind,type,name,minute ORDER BY minute DESC LIMIT 30;

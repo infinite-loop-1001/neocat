@@ -17,7 +17,7 @@ import org.springframework.modulith.NamedInterface;
  * 因为管理员需要判断「删掉的是哪几块大盘」，
  * 只看到「3 块大盘」无法判断后果（PRD 01 §5.3「展示影响范围」）。
  */
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 @Getter
 @EqualsAndHashCode
 @ToString

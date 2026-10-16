@@ -12,8 +12,8 @@ export interface PlatformProfile {
 }
 
 export interface Account {
-  id: number;
-  username: string;
+  /** 账号标识（登录名，全局唯一，形如 keith.ji）；后端不再返回数值 id。 */
+  userAccount: string;
   /** 仅存在于 mock：真实后端只保存口令哈希，绝不会把口令返回给前端。 */
   password?: string;
   role: "USER" | "ADMIN" | "SUPER_ADMIN";
@@ -122,7 +122,8 @@ export interface AlertRule {
   combinator: "AND" | "OR";
   windowPoints: number;
   conditions: AlertConditionModel[];
-  recipients: number[];
+  /** 收件人账号标识（登录名）列表。 */
+  recipients: string[];
   channels: string[];
   enabled: boolean;
   invalid: boolean;

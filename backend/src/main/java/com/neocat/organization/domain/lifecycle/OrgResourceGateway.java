@@ -16,7 +16,7 @@ import com.neocat.organization.domain.tree.result.DashboardSummary;
  *   <li>删除叶子前的影响预览与原子级联删除（PRD 01 §5.3）。</li>
  * </ul>
  */
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 public interface OrgResourceGateway {
 
     /** 该叶子是否已有大盘。 */

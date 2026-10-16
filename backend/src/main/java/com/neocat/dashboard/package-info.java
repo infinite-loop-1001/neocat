@@ -1,7 +1,7 @@
 /**
  * 叶子组织大盘模块（PRD 05，链路 24、25、27）。
  *
- * <p>依赖 {@code core}、{@code query}（卡片取数）、{@code isOrganization}（成员资格）
+ * <p>依赖 {@code core}、{@code query}（卡片取数）、{@code organization}（成员资格）
  * 与 {@code platform}。
  *
  * <p>与 {@code alert} 的联动**不存在编译期依赖**：

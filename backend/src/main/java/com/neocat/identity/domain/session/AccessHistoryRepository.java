@@ -10,8 +10,8 @@ import org.springframework.modulith.NamedInterface;
 @NamedInterface("identity")
 public interface AccessHistoryRepository {
 
-    void record(long accountId, String serviceName, Instant at);
+    void record(String userAccount, String serviceName, Instant at);
 
     /** 按访问时间倒序返回该账号的最近服务名。 */
-    List<String> recentServices(long accountId, int limit);
+    List<String> recentServices(String userAccount, int limit);
 }

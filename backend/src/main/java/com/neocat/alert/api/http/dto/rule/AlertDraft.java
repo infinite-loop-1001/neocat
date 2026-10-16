@@ -35,8 +35,8 @@ public class AlertDraft {
     @Schema(description = "比较条件，至少一条；嵌套或括号表达式不支持")
     private final List<ConditionDraft> conditions;
 
-    @Schema(description = "收件人账号 ID 列表")
-    private final List<Long> recipients;
+    @Schema(description = "收件人账号标识（登录名）列表")
+    private final List<String> recipients;
 
     @Schema(description = "通知通道名列表，必须是平台已配置的通道")
     private final List<String> channels;

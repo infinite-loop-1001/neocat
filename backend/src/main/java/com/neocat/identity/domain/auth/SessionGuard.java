@@ -52,7 +52,7 @@ public class SessionGuard {
         if (Objects.isNull(session)) {
             return new AuthenticationException(ErrorCode.UNAUTHENTICATED);
         }
-        Account account = accounts.findById(session.getAccountId());
+        Account account = accounts.findByUserAccount(session.getUserAccount());
         if (Objects.isNull(account) || !account.enabled()) {
             sessions.invalidate(sessionId);
             return new AuthenticationException(ErrorCode.UNAUTHENTICATED);
@@ -72,7 +72,7 @@ public class SessionGuard {
         if (Objects.isNull(session)) {
             throw new AuthenticationException(ErrorCode.UNAUTHENTICATED);
         }
-        Account account = accounts.findById(session.getAccountId());
+        Account account = accounts.findByUserAccount(session.getUserAccount());
         if (Objects.isNull(account) || !account.enabled()) {
             throw new AuthenticationException(ErrorCode.UNAUTHENTICATED);
         }

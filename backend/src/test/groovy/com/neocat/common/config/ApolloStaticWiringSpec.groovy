@@ -107,7 +107,7 @@ class ApolloStaticWiringSpec extends Specification {
         ApolloConfigGuard.DYNAMIC_CONFIG_TYPES.each { type -> type.declaredFields.each { field ->
             def fieldType = field.getType()
             values[keyOf(field)] = fieldType == double.class ? '1.0'
-                    : fieldType == boolean.class ? 'true' : '10'
+                    : (fieldType == boolean.class || fieldType == Boolean.class) ? 'true' : '10'
         } }
         values['server.port'] = '8080'
         values['neocat.platform.init.timezone'] = 'Asia/Shanghai'

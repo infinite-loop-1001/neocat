@@ -37,13 +37,15 @@
     </resultMap>
 
     <resultMap id="recipientRow" type="com.neocat.alert.infra.jdbc.row.AlertRecipientRow">
-        <result property="accountId" column="account_id"/>
+        <result property="userAccount" column="user_account"/>
         <result property="channel" column="channel"/>
     </resultMap>
 
-    <resultMap id="windowPointRow" type="com.neocat.alert.infra.jdbc.row.AlertWindowPointRow">
-        <result property="pointMinute" column="point_minute"/>
-        <result property="satisfied" column="satisfied"/>
+    <resultMap id="evalCursorRow" type="com.neocat.alert.infra.jdbc.row.AlertEvalCursorRow">
+        <id property="id" column="id"/>
+        <result property="ruleId" column="rule_id"/>
+        <result property="baselineAt" column="baseline_at"/>
+        <result property="lastEvaluatedMinute" column="last_evaluated_minute"/>
     </resultMap>
 
     <sql id="ruleColumns">
@@ -122,30 +124,31 @@
     </delete>
 
     <select id="selectRecipients" resultMap="recipientRow">
-        SELECT account_id, channel FROM nc_alert_recipient WHERE rule_id = #{ruleId} ORDER BY channel, account_id
+        SELECT user_account, channel FROM nc_alert_recipient WHERE rule_id = #{ruleId} ORDER BY channel, user_account
     </select>
 
     <insert id="insertRecipient">
-        INSERT INTO nc_alert_recipient (rule_id, account_id, channel)
-        VALUES (#{ruleId}, #{accountId}, #{channel})
+        INSERT INTO nc_alert_recipient (rule_id, user_account, channel)
+        VALUES (#{ruleId}, #{userAccount}, #{channel})
     </insert>
 
     <delete id="deleteRecipients">
         DELETE FROM nc_alert_recipient WHERE rule_id = #{ruleId}
     </delete>
 
-    <select id="selectWindowPoints" resultMap="windowPointRow">
-        SELECT point_minute, satisfied FROM nc_alert_window_state
-        WHERE rule_id = #{ruleId} ORDER BY point_minute
+    <select id="selectAlertEvalCursor" resultMap="evalCursorRow">
+        SELECT id, rule_id, baseline_at, last_evaluated_minute
+        FROM nc_alert_eval_cursor
+        WHERE rule_id = #{ruleId}
     </select>
 
-    <insert id="insertWindowPoint">
-        INSERT INTO nc_alert_window_state (rule_id, point_minute, satisfied)
-        VALUES (#{ruleId}, #{pointMinute}, 1)
+    <insert id="insertAlertEvalCursor" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO nc_alert_eval_cursor (rule_id, baseline_at, last_evaluated_minute)
+        VALUES (#{ruleId}, #{baselineAt}, #{lastEvaluatedMinute})
     </insert>
 
-    <delete id="deleteWindowPoints">
-        DELETE FROM nc_alert_window_state WHERE rule_id = #{ruleId}
+    <delete id="deleteAlertEvalCursor">
+        DELETE FROM nc_alert_eval_cursor WHERE rule_id = #{ruleId}
     </delete>
 
 </mapper>

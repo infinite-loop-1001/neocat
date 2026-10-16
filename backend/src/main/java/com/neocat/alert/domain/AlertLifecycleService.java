@@ -48,8 +48,8 @@ public class AlertLifecycleService {
     public AlertRule enable(long ruleId, long enabledAt) {
         AlertRule rule = require(ruleId);
         // fixme: 单独拆一个监控窗口的 repository 不要和 AlertRuleRepository 混合, 另外这里直接更新时间就行, 不用先删后增
-        repository.clearWindowState(ruleId);
-        repository.saveWindowState(AlertEvalCursor.empty(ruleId, enabledAt));
+        repository.clearAlertEvalCursor(ruleId);
+        repository.saveAlertEvalCursor(AlertEvalCursor.empty(ruleId, enabledAt));
         // fixme: 先启用, 再处理监控窗口
         return repository.save(rule.withEnabled(true));
     }
@@ -58,7 +58,7 @@ public class AlertLifecycleService {
     @MySqlLocked("metadata")
     public AlertRule disable(long ruleId) {
         AlertRule rule = require(ruleId);
-        repository.clearWindowState(ruleId);
+        repository.clearAlertEvalCursor(ruleId);
         // fixme: 先禁用, 再处理监控窗口
         return repository.save(rule.withEnabled(false));
     }
@@ -84,9 +84,9 @@ public class AlertLifecycleService {
                 draft.getRecipients(),
                 draft.getChannels(),
                 false,                  // 编辑后恒为关闭
-                existing.isInvalid(),
-                null);                  // 窗口基线清零
-        repository.clearWindowState(ruleId);
+                existing.isInvalid()
+        );                  // 窗口基线清零
+        repository.clearAlertEvalCursor(ruleId);
         // fixme: 先更新告警规则, 再重置更新告警窗口
         return repository.save(merged);
     }
@@ -95,7 +95,7 @@ public class AlertLifecycleService {
     public void delete(long ruleId) {
         require(ruleId);
         repository.delete(ruleId);
-        repository.clearWindowState(ruleId);
+        repository.clearAlertEvalCursor(ruleId);
     }
 
     // ── 内部 ─────────────────────────────────────────────────

@@ -91,6 +91,9 @@ public final class ApolloConfigGuard {
             } else if (Objects.equals(type, boolean.class)
                     && !"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
                 problems.add("布尔运行参数不合法：" + key + "=" + raw);
+            } else if (Objects.equals(type, Boolean.class)
+                    && !"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
+                problems.add("布尔运行参数不合法：" + key + "=" + raw);
             }
         } catch (NumberFormatException e) {
             problems.add("运行参数不是合法数字：" + key + "=" + raw);

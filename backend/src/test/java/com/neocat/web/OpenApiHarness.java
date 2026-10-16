@@ -104,7 +104,7 @@ public final class OpenApiHarness {
                 PlatformService.class, CatalogService.class, IngestService.class, TraceAssembler.class,
                 ReportQueryService.class, MetricCountQueryService.class, DashboardService.class, CardService.class,
                 AlertRuleRepository.class, AlertRuleService.class, AlertLifecycleService.class, PreviewService.class,
-                RecipientService.class, NotificationDispatcher.class, RecipientGateway.class, MinutePointSourceGateway.class);
+                RecipientService.class, RecipientGateway.class, MinutePointSourceGateway.class);
         return beanFactory -> {
             for (Class<?> type : types) {
                 beanFactory.registerSingleton(type.getSimpleName(), Mockito.mock(type));

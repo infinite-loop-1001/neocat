@@ -87,7 +87,7 @@ public class AlertController {
         if (Objects.nonNull(orgId)) {
             // question: 这里的权限判断能不能放到权限拦截器里做 & 或者通过权限 aop 做
             //  另外就是个人权限信息能不能通过 aop 在执行请求前先把当前人的权限信息提前注入到上下文里?
-            requireOrgMember(account.getId(), orgId);
+            requireOrgMember(account.getUserAccount(), orgId);
             rules = repository.byOrg(orgId);
         } else if (Objects.isNull(scope)) {
             rules = repository.findAll();
@@ -137,7 +137,7 @@ public class AlertController {
             if (Objects.isNull(draft.getOrgId())) {
                 throw new ValidationException(ErrorCode.ALERT_ORG_REQUIRED);
             }
-            requireOrgMember(account.getId(), draft.getOrgId());
+            requireOrgMember(account.getUserAccount(), draft.getOrgId());
         }
 
         AlertRule rule = convert.rule(draft, scope);
@@ -157,7 +157,7 @@ public class AlertController {
         RequestActor account = RequestActor.current(request);
         AlertScope scope = scope(draft);
         if (Objects.equals(scope, AlertScope.ORGANIZATION) && Objects.nonNull(draft.getOrgId())) {
-            requireOrgMember(account.getId(), draft.getOrgId());
+            requireOrgMember(account.getUserAccount(), draft.getOrgId());
         }
         // fixme: 这里要由 AlterRuleService 处理
         return ResponseEntity.ok(convert.response(lifecycle.edit(id, convert.rule(draft, scope))));
@@ -196,8 +196,8 @@ public class AlertController {
         return Objects.isNull(draft.getScope()) ? AlertScope.SERVICE : AlertScope.valueOf(draft.getScope());
     }
 
-    private void requireOrgMember(long accountId, long orgId) {
-        if (!recipientGateway.isEffectiveMember(accountId, orgId)) {
+    private void requireOrgMember(String userAccount, long orgId) {
+        if (!recipientGateway.isEffectiveMember(userAccount, orgId)) {
             throw new AuthorizationException(ErrorCode.NOT_ORG_MEMBER);
         }
     }

@@ -1,5 +1,6 @@
 package com.neocat.common.config
 
+import com.neocat.alert.application.job.AlertEvaluationJob
 import com.neocat.alert.config.AlertConfig
 import com.neocat.trace.config.TraceConfig
 
@@ -7,7 +8,6 @@ import com.neocat.trace.api.http.TraceController
 import com.neocat.trace.domain.tree.TraceAssembler
 import com.neocat.trace.domain.sample.SampleService
 import com.neocat.query.infra.port.SamplePort
-import com.neocat.alert.infra.job.AlertEvaluationJob
 import com.neocat.alert.domain.AlertEngine
 import com.neocat.alert.domain.repository.AlertRuleRepository
 import spock.lang.Specification
@@ -62,7 +62,7 @@ class DynamicHttpConfigSpec extends Specification {
         def convert = Mappers.getMapper(AlertConvert)
         TimeProvider.clock = Clock.fixed(Instant.parse('2026-10-03T02:02:30Z'), ZoneOffset.UTC)
         def controller = new AlertController(null, null, null, preview,
-                null, null, null, convert)
+                null, null, convert)
         def target = new TargetDraft('RAW_METRIC', 0, 's', 'TRANSACTION', 'URL', 'n', [])
         def condition = new ConditionDraft('hits', 'GT', 0)
         def draft = new AlertDraft('SERVICE', null, 'r', '',
@@ -126,11 +126,16 @@ class DynamicHttpConfigSpec extends Specification {
 
         when:
         job.evaluate()
+
+        then:
+        1 * repository.enabledRules() >> []
+
+        when:
+        TimeProvider.clock = Clock.fixed(Instant.parse('2026-10-03T02:04:30Z'), ZoneOffset.UTC)
         AlertConfig.EVALUATE_DELAY_SECONDS = 90
         job.evaluate()
 
         then:
         1 * repository.enabledRules() >> []
-        job.evaluationDelaySeconds() == 90
     }
 }

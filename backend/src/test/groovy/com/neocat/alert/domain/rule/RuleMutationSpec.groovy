@@ -2,8 +2,8 @@ package com.neocat.alert.domain.rule
 
 import com.neocat.alert.domain.AlertLifecycleService
 import com.neocat.alert.domain.entity.AlertRule
-import com.neocat.alert.domain.entity.vo.rule.AlertChannel
 import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor
+import com.neocat.alert.domain.entity.vo.rule.AlertChannel
 import com.neocat.alert.domain.entity.vo.rule.AlertScope
 import com.neocat.alert.domain.entity.vo.rule.AlertTarget
 import com.neocat.alert.domain.entity.vo.rule.Combinator
@@ -23,16 +23,16 @@ class RuleMutationSpec extends Specification {
         new AlertRule(id, AlertScope.SERVICE, null, '订单失败率', '',
                 AlertTarget.rawMetric('order', 'TRANSACTION', 'URL', '/a'),
                 Combinator.AND, 3, [new Condition(Stat.HITS, Comparator.GT, 1d)],
-                [1L], [AlertChannel.EMAIL], enabled, false, enabled ? T : null)
+                ['keith.ji'], [AlertChannel.EMAIL], enabled, false)
     }
 
-    def 'new rules are disabled and have no activation baseline'() {
+    def 'new rules are disabled and do not store an activation baseline'() {
         expect:
         !rule(0L).isEnabled()
-        rule(0L).getStateSince() == null
+        !AlertRule.declaredFields*.name.contains('stateSince')
     }
 
-    def 'enabling an existing rule clears prior points and starts a fresh window'() {
+    def 'enabling an existing rule clears prior points and starts a fresh cursor'() {
         given:
         def existing = rule()
 
@@ -41,14 +41,13 @@ class RuleMutationSpec extends Specification {
 
         then:
         1 * repository.findById(1L) >> existing
-        1 * repository.clearWindowState(1L)
-        1 * repository.saveWindowState(AlertEvalCursor.empty(1L, T))
-        1 * repository.save({ it.isEnabled() && it.getStateSince() == T }) >> { args -> args[0] }
+        1 * repository.clearAlertEvalCursor(1L)
+        1 * repository.saveAlertEvalCursor(AlertEvalCursor.empty(1L, T))
+        1 * repository.save({ it.isEnabled() }) >> { args -> args[0] }
         updated.isEnabled()
-        updated.getStateSince() == T
     }
 
-    def 're-enabling moves the baseline forward instead of reusing previous points'() {
+    def 're-enabling starts a new cursor instead of reusing previous points'() {
         given:
         def existing = rule(1L, true)
 
@@ -57,37 +56,37 @@ class RuleMutationSpec extends Specification {
 
         then:
         1 * repository.findById(1L) >> existing
-        1 * repository.clearWindowState(1L)
-        1 * repository.saveWindowState(AlertEvalCursor.empty(1L, T + 60_000L))
-        1 * repository.save({ it.getStateSince() == T + 60_000L }) >> { args -> args[0] }
+        1 * repository.clearAlertEvalCursor(1L)
+        1 * repository.saveAlertEvalCursor(AlertEvalCursor.empty(1L, T + 60_000L))
+        1 * repository.save({ it.isEnabled() }) >> { args -> args[0] }
         updated.isEnabled()
     }
 
-    def 'disabling clears the window and activation baseline'() {
+    def 'disabling clears the evaluation cursor'() {
         when:
         def updated = service.disable(1L)
 
         then:
         1 * repository.findById(1L) >> rule(1L, true)
-        1 * repository.clearWindowState(1L)
-        1 * repository.save({ !it.isEnabled() && it.getStateSince() == null }) >> { args -> args[0] }
+        1 * repository.clearAlertEvalCursor(1L)
+        1 * repository.save({ !it.isEnabled() }) >> { args -> args[0] }
         !updated.isEnabled()
     }
 
     def 'editing even an enabled rule preserves ID but requires manual re-enabling'() {
         given:
-        def edited = rule(0L).withId(0L)
+        def edited = rule(0L)
 
         when:
         def result = service.edit(1L, new AlertRule(0L, edited.getScope(), edited.getOrgId(),
                 '新名字', edited.getDescription(), edited.getTarget(), edited.getCombinator(), 5,
-                edited.getConditions(), edited.getRecipients(), edited.getChannels(), true, false, T))
+                edited.getConditions(), edited.getRecipients(), edited.getChannels(), true, false))
 
         then:
         1 * repository.findById(1L) >> rule(1L, true)
-        1 * repository.clearWindowState(1L)
+        1 * repository.clearAlertEvalCursor(1L)
         1 * repository.save({ it.getId() == 1L && it.getName() == '新名字' && it.getWindowPoints() == 5 &&
-                !it.isEnabled() && it.getStateSince() == null }) >> { args -> args[0] }
+                !it.isEnabled() }) >> { args -> args[0] }
         result.getId() == 1L
         !result.isEnabled()
     }
@@ -98,19 +97,19 @@ class RuleMutationSpec extends Specification {
 
         then:
         1 * repository.findById(9999L) >> null
-        0 * repository.clearWindowState(_)
+        0 * repository.clearAlertEvalCursor(_)
         0 * repository.save(_)
         thrown(NoSuchElementException)
     }
 
-    def 'deletion removes both the rule and its window'() {
+    def 'deletion removes both the rule and its cursor'() {
         when:
         service.delete(1L)
 
         then:
         1 * repository.findById(1L) >> rule()
         1 * repository.delete(1L)
-        1 * repository.clearWindowState(1L)
+        1 * repository.clearAlertEvalCursor(1L)
     }
 
     def 'no persisted trigger history or acknowledgement state is modeled'() {

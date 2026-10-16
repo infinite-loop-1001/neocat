@@ -11,9 +11,11 @@ import com.neocat.alert.domain.gateway.MinutePointSourceGateway;
 import com.neocat.dashboard.api.internal.CardResults;
 import com.neocat.query.api.internal.ReportPoints;
 import com.neocat.query.domain.stat.Stat;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,22 +41,42 @@ public class ReportMinutePointSource implements MinutePointSourceGateway {
 
     @Override
     public MinutePoint values(AlertTarget target, Long minute, List<Stat> stats) {
+        return minutePoint(target, minute, stats);
+    }
+
+    @Override
+    public List<MinutePoint> batchMinuteValues(AlertTarget target, List<Long> minutes, List<Stat> stats) {
+        if (CollectionUtils.isEmpty(minutes) || CollectionUtils.isEmpty(stats)) {
+            return Lists.newArrayList();
+        }
+        List<MinutePoint> result = new ArrayList<>(minutes.size());
+        for (Long minute : minutes) {
+            result.add(minutePoint(target, minute, stats));
+        }
+        return result;
+    }
+
+    /**
+     * 每个完整分钟独立取数。区间接口会合并所有行，不能直接用于窗口内的多个分钟点。
+     */
+    private MinutePoint minutePoint(AlertTarget target, Long minute, List<Stat> stats) {
         Instant from = Instant.ofEpochMilli(minute);
+        Instant to = from.plusSeconds(60);
         if (target.isCardResult()) {
-            BigDecimal value = cards.value(target.getCardId(), from, from.plusSeconds(60));
-            Map<Stat, BigDecimal> result = new LinkedHashMap<>();
+            BigDecimal value = cards.value(target.getCardId(), from, to);
+            Map<Stat, BigDecimal> values = new LinkedHashMap<>();
             for (Stat stat : stats) {
-                result.put(stat, value);
+                values.put(stat, value);
             }
-            return result;
+            return new MinutePoint(minute, values);
         }
         String name = Objects.equals("METRIC", target.getReportKind()) ? target.getMetricLabels() : target.getName();
         Map<String, BigDecimal> raw = reports.values(target.getReportKind(), target.getService(), target.getType(),
-                name, from, from.plusSeconds(60), stats.stream().map(Enum::name).toList(), Lists.newArrayList());
-        Map<Stat, BigDecimal> result = new LinkedHashMap<>();
+                name, from, to, stats.stream().map(Enum::name).toList(), Lists.newArrayList());
+        Map<Stat, BigDecimal> values = new LinkedHashMap<>();
         for (Stat stat : stats) {
-            result.put(stat, DecimalMath.result(raw.get(stat.name())));
+            values.put(stat, DecimalMath.result(raw.get(stat.name())));
         }
-        return result;
+        return new MinutePoint(minute, values);
     }
 }

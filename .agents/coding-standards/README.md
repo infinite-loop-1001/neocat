@@ -28,6 +28,8 @@
 
 14. 手写生产代码的具名类型按「一种类型一个文件」组织，类、接口、枚举均使用与类型同名的独立文件，不以容器类集中声明 DTO、领域事件、值对象或持久化模型。私有辅助类、`NeoCat.Builder`、生成代码、匿名类和测试夹具除外。详见 [java.md](java.md)。
 
+15. 监听外部领域事件的类命名为 `***EventHandler`，放在所属业务模块 `application/handler` 包（无 `application` 层则创建）；一个 Handler 收束同类但内容不同的事件（如账号启用与禁用），不是一事一类。详见 [java.md](java.md#监听外部领域事件的-handler强制)。
+
 ## 建议
 
 1. Spring Bean 使用构造函数注入；实例运行时字段初始化放进构造函数。自有组件优先 `@Service` / `@Component`，不为简单构造专设 Wiring。

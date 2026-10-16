@@ -14,6 +14,7 @@ import com.neocat.alert.domain.AlertLifecycleService
 import com.neocat.alert.domain.repository.AlertRuleRepository
 import com.neocat.alert.domain.AlertRuleService
 import com.neocat.alert.domain.entity.vo.rule.AlertScope
+import com.neocat.alert.domain.entity.vo.source.MinutePoint
 import com.neocat.common.error.exception.ValidationException
 import com.neocat.common.http.error.ApiExceptionHandler
 import com.neocat.dashboard.api.http.convert.DashboardConvert
@@ -36,9 +37,11 @@ class DecimalJsonSpec extends Specification {
 
     def '真实 HTTP 绑定保留大阈值，缺失与不可存储阈值返回 400'() {
         given:
-        def points = Stub(MinutePointSourceGateway) { values(_, _, _) >> [(Stat.HITS): 99999999999999.999999] }
+        def points = Stub(MinutePointSourceGateway) {
+            values(_, _, _) >> new MinutePoint(0L, [(Stat.HITS): 99999999999999.999999])
+        }
         def controller = new AlertController(Stub(AlertRuleRepository), Stub(AlertRuleService), Stub(AlertLifecycleService),
-                new PreviewService(points), Stub(RecipientService), Stub(NotificationDispatcher), Stub(RecipientGateway), convert)
+                new PreviewService(points), Stub(RecipientService), Stub(RecipientGateway), convert)
         def mvc = MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new ApiExceptionHandler())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(json)).build()
         def draft = { field -> '{"scope":"SERVICE","windowPoints":1,"conditions":[{"stat":"HITS","comparator":"EQ"' + field + '}]}' }

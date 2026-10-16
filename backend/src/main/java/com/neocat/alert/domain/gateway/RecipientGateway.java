@@ -9,6 +9,9 @@ import org.springframework.modulith.NamedInterface;
 @NamedInterface("alert")
 public interface RecipientGateway {
 
+    /** 账号是否为启用状态。 */
+    boolean isEnabled(String userAccount);
+
     /** 账号是否为该叶子的有效成员（直系或祖先继承）。 */
-    boolean isEffectiveMember(long accountId, long orgId);
+    boolean isEffectiveMember(String userAccount, long orgId);
 }

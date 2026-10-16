@@ -8,8 +8,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Getter
 @AllArgsConstructor
 public class UserDraft {
-    @Schema(description = "登录名，全局唯一", requiredMode = Schema.RequiredMode.REQUIRED)
-    private final String username;
+    @Schema(description = "账号标识（登录名），全局唯一", requiredMode = Schema.RequiredMode.REQUIRED)
+    private final String userAccount;
 
     @Schema(description = "初始口令", requiredMode = Schema.RequiredMode.REQUIRED)
     private final String password;

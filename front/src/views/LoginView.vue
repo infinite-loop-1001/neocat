@@ -40,7 +40,7 @@ async function submit() {
     const result = await api<{
       mustChangePassword: boolean;
       entry: { type: string; service?: string; kind?: string };
-    }>("/login", { method: "POST", body: { username: username.value, password: password.value } });
+    }>("/login", { method: "POST", body: { userAccount: username.value, password: password.value } });
 
     // 首次登录 / 重置后必须先改密（PRD 01 §4.3）
     if (result.mustChangePassword) {

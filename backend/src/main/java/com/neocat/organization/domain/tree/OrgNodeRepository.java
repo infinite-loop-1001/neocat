@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.lang.Nullable;
 import org.springframework.modulith.NamedInterface;
 
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 public interface OrgNodeRepository {
 
     OrgNode create(String name, Long parentId);

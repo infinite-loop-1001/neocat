@@ -195,12 +195,11 @@ flowchart TD
 |---|---|---|---|
 | `PlatformInitializedEvent` | platform | analysis, catalog | timezone, slow thresholds |
 | `SlowThresholdChangedEvent` | platform | analysis | url/sql/call/cache ms |
-| `UserDisabledEvent` | identity | alert, organization | userId |
-| `UserEnabledEvent` | identity | organization | userId |
-| `UserPasswordResetEvent` | identity | identity(session) | userId |
-| `UserRoleChangedEvent` | identity | — | userId, from, to |
-| `OrgMembershipChangedEvent` | organization | alert, dashboard | userId, orgId, granted |
-| `OrgDeletedEvent` | organization | alert, dashboard | orgId, cascaded dashboardIds |
+| `AccountStatusChanged` | identity | alert | userAccount, enabled |
+| `UserPasswordResetEvent` | identity | identity(session) | userAccount |
+| `UserRoleChangedEvent` | identity | — | userAccount, from, to |
+| `EffectiveMembershipChanged` | organization | alert | userAccount, orgId, granted |
+| `OrgDeletionRequested` | organization | alert, dashboard | orgId |
 | `CardTargetChangedEvent` | dashboard | alert | cardId, dashboardId, orgId, newTarget |
 | `CardDeletedEvent` | dashboard | alert | cardId, dashboardId, orgId, removedTargets |
 | `TreeIngestedEvent` | ingest | analysis | treeId（仅当入队成功） |

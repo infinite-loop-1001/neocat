@@ -26,11 +26,11 @@ class SuperAdminProvisioningAdapterSpec extends Specification {
         def adapter = new SuperAdminProvisioningAdapter(directory)
 
         when:
-        def id = adapter.createSuperAdmin('root', 'secret123')
+        def created = adapter.createSuperAdmin('root', 'secret123')
 
         then:
-        1 * directory.createInitialSuperAdmin('root', 'secret123') >> 7L
-        id == 7L
+        1 * directory.createInitialSuperAdmin('root', 'secret123') >> 'root'
+        created == 'root'
     }
 
     def 'identity creates the first super admin with hashed password and forced change'() {
@@ -41,14 +41,14 @@ class SuperAdminProvisioningAdapterSpec extends Specification {
         def directory = new AccountDirectoryService(accounts, passwords)
 
         when:
-        def id = directory.createInitialSuperAdmin('root', 'secret123')
+        def created = directory.createInitialSuperAdmin('root', 'secret123')
 
         then:
-        1 * accounts.findByUsername('root') >> null
+        1 * accounts.findByUserAccount('root') >> null
         1 * passwords.hash('secret123') >> 'bcrypt-hash'
         1 * accounts.create('root', 'bcrypt-hash', Role.SUPER_ADMIN, true, NOW) >>
                 new Account(7L, 'root', 'bcrypt-hash', Role.SUPER_ADMIN, AccountStatus.ENABLED, true, NOW)
-        id == 7L
+        created == 'root'
     }
 
     def 'an existing username cannot be replaced by initialization'() {
@@ -61,7 +61,7 @@ class SuperAdminProvisioningAdapterSpec extends Specification {
 
         then:
         1 * accounts.createInitialSuperAdmin('root', 'secret123') >> {
-            throw new IllegalStateException('username already exists')
+            throw new IllegalStateException('user account already exists')
         }
         thrown(IllegalStateException)
     }

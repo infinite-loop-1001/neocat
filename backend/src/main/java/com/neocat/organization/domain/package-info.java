@@ -4,7 +4,7 @@
  * <p>{@code dashboard} 校验叶子成员资格、{@code alert} 校验组织告警收件人，
  * 因此本包对外暴露。
  */
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 package com.neocat.organization.domain;
 
 import org.springframework.modulith.NamedInterface;

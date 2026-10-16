@@ -1,9 +1,9 @@
-package com.neocat.alert.infra.listener;
+package com.neocat.alert.application.handler;
 
 import com.neocat.alert.domain.entity.AlertRule;
-import com.neocat.alert.domain.repository.AlertRuleRepository;
 import com.neocat.alert.domain.entity.vo.rule.AlertTarget;
 import com.neocat.alert.domain.entity.vo.rule.AlertTargetKind;
+import com.neocat.alert.domain.repository.AlertRuleRepository;
 import com.neocat.dashboard.api.internal.CardChange;
 import com.neocat.dashboard.api.internal.CardReferences;
 import com.neocat.query.domain.stat.Stat;
@@ -13,14 +13,20 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Objects;
 
-/** Reconciles isOrganization alerts in the same MySQL transaction as a card update. */
+/**
+ * 卡片变更（PRD 06 §8，链路 31）。
+ *
+ * <p>与卡片更新同一个 MySQL 事务内同步维护该叶子的组织告警：
+ * 卡片公式变更 → 规则跟随新公式并清零窗口；卡片删除 → 规则失效但保留配置。
+ */
 @Component
-public class CardChangeListener {
+public class CardChangeEventHandler {
+
     private final AlertRuleRepository rules;
 
     private final CardReferences references;
 
-    public CardChangeListener(AlertRuleRepository rules, CardReferences references) {
+    public CardChangeEventHandler(AlertRuleRepository rules, CardReferences references) {
         this.rules = rules;
         this.references = references;
     }
@@ -39,10 +45,10 @@ public class CardChangeListener {
                     AlertTarget updated = new AlertTarget(AlertTargetKind.CARD_RESULT, event.getCardId(),
                             event.getService(), event.getReportKind(), event.getType(), event.getName(),
                             event.getMetricLabels(), stats);
-                    rules.clearWindowState(rule.getId());
+                    rules.clearAlertEvalCursor(rule.getId());
                     rules.save(new AlertRule(rule.getId(), rule.getScope(), rule.getOrgId(), rule.getName(),
                             rule.getDescription(), updated, rule.getCombinator(), rule.getWindowPoints(),
-                            rule.getConditions(), rule.getRecipients(), rule.getChannels(), false, rule.isInvalid(), null));
+                            rule.getConditions(), rule.getRecipients(), rule.getChannels(), false, rule.isInvalid()));
                 }
             } else if (!target.isCardResult() && sameTarget(target, event)
                     && rule.referencedStats().stream().anyMatch(stat ->
@@ -53,7 +59,7 @@ public class CardChangeListener {
         }
     }
     private void invalidate(AlertRule rule) {
-        rules.clearWindowState(rule.getId());
+        rules.clearAlertEvalCursor(rule.getId());
         rules.save(rule.withInvalid(true).withEnabled(false));
     }
     private boolean sameTarget(AlertTarget target, CardChange event) {

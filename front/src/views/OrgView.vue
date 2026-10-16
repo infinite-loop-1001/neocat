@@ -122,7 +122,7 @@ async function create() {
 }
 
 async function addMember(orgId: number) {
-  await api(`/orgs/${orgId}/members`, { method: "POST", body: { userId: 3 } });
+  await api(`/orgs/${orgId}/members`, { method: "POST", body: { userAccount: "bob" } });
   await load();
 }
 

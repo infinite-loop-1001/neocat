@@ -6,13 +6,13 @@ import org.springframework.modulith.NamedInterface;
 @NamedInterface("identity")
 public interface SessionRepository {
 
-    Session create(long accountId, Instant at);
+    Session create(String userAccount, Instant at);
 
     void touch(String sessionId, Instant at);
 
     void invalidate(String sessionId);
 
-    void invalidateAllOf(long accountId);
+    void invalidateAllOf(String userAccount);
 
     boolean isValid(String sessionId, Instant at);
 

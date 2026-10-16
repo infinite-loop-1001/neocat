@@ -59,44 +59,45 @@ public class UserAdminController {
     @PostMapping("/users")
     public ResponseEntity<UserResponse> createUser(HttpServletRequest request, @RequestBody UserDraft draft) {
         requireAdmin(request);
-        Account created = accounts.createAsAdmin(draft.getUsername(), draft.getPassword(), Role.USER, TimeProvider.now());
+        Account created = accounts.createAsAdmin(draft.getUserAccount(), draft.getPassword(), Role.USER, TimeProvider.now());
         return ResponseEntity.status(201).body(IdentityConvert.user(created));
     }
     @Operation(operationId = "resetUserPassword", summary = "重置指定账号口令",
             description = "置强制改密并吊销该账号全部会话。")
     @ApiResponse(responseCode = "200", description = "已重置")
     @ApiResponse(responseCode = "404", description = "账号不存在：USER_NOT_FOUND")
-    @PostMapping("/users/{id}/password/reset")
-    public ResponseEntity<UserResponse> resetPassword(HttpServletRequest request, @PathVariable long id,
+    @PostMapping("/users/{userAccount}/password/reset")
+    public ResponseEntity<UserResponse> resetPassword(HttpServletRequest request, @PathVariable String userAccount,
                                               @RequestBody PasswordDraft draft) {
         requireAdmin(request);
-        return ResponseEntity.ok(IdentityConvert.user(accounts.resetPassword(id, draft.getPassword(), TimeProvider.now())));
+        return ResponseEntity.ok(IdentityConvert.user(accounts.resetPassword(userAccount, draft.getPassword(), TimeProvider.now())));
     }
     @Operation(operationId = "changeUserRole", summary = "变更账号角色",
             description = "只允许 SUPER_ADMIN 调用；不能修改自己，管理员不能授予 ADMIN。")
     @ApiResponse(responseCode = "200", description = "已变更")
     @ApiResponse(responseCode = "403", description = "越权或修改自身：FORBIDDEN / CANNOT_MODIFY_SELF")
-    @PostMapping("/users/{id}/role")
-    public ResponseEntity<UserResponse> changeRole(HttpServletRequest request, @PathVariable long id,
+    @PostMapping("/users/{userAccount}/role")
+    public ResponseEntity<UserResponse> changeRole(HttpServletRequest request, @PathVariable String userAccount,
                                            @RequestBody RoleDraft draft) {
         Account actor = SessionInterceptor.currentAccount(request);
-        return ResponseEntity.ok(IdentityConvert.user(accounts.changeRole(id, Role.valueOf(draft.getRole()), actor.getRole(), actor.getId())));
+        return ResponseEntity.ok(IdentityConvert.user(accounts.changeRole(userAccount, Role.valueOf(draft.getRole()),
+                actor.getRole(), actor.getUserAccount())));
     }
     @Operation(operationId = "disableUser", summary = "停用账号",
             description = "吊销会话并移除告警收件人；保留组织成员关系。")
     @ApiResponse(responseCode = "200", description = "已停用")
-    @PostMapping("/users/{id}/disable")
-    public ResponseEntity<UserResponse> disable(HttpServletRequest request, @PathVariable long id) {
+    @PostMapping("/users/{userAccount}/disable")
+    public ResponseEntity<UserResponse> disable(HttpServletRequest request, @PathVariable String userAccount) {
         requireAdmin(request);
-        return ResponseEntity.ok(IdentityConvert.user(accounts.disable(id, TimeProvider.now()).getAccount()));
+        return ResponseEntity.ok(IdentityConvert.user(accounts.disable(userAccount, TimeProvider.now()).getAccount()));
     }
     @Operation(operationId = "enableUser", summary = "启用账号",
             description = "恢复登录与组织成员继承；不恢复此前被移除的告警收件人。")
     @ApiResponse(responseCode = "200", description = "已启用")
-    @PostMapping("/users/{id}/enable")
-    public ResponseEntity<UserResponse> enable(HttpServletRequest request, @PathVariable long id) {
+    @PostMapping("/users/{userAccount}/enable")
+    public ResponseEntity<UserResponse> enable(HttpServletRequest request, @PathVariable String userAccount) {
         requireAdmin(request);
-        return ResponseEntity.ok(IdentityConvert.user(accounts.enable(id, TimeProvider.now()).getAccount()));
+        return ResponseEntity.ok(IdentityConvert.user(accounts.enable(userAccount, TimeProvider.now()).getAccount()));
     }
     private void requireAdmin(HttpServletRequest request) {
         Role role = SessionInterceptor.currentAccount(request).getRole();

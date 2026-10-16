@@ -14,14 +14,14 @@ class DashboardPortsSpec extends Specification {
         def adapter = new OrganizationAccessAdapter(organizations)
 
         when:
-        def member = adapter.isEffectiveMember(10L, 7L)
+        def member = adapter.isEffectiveMember('keith.ji', 7L)
         def leaf = adapter.isLeaf(7L)
-        def accessible = adapter.effectiveLeaves(10L)
+        def accessible = adapter.effectiveLeaves('keith.ji')
 
         then:
-        1 * organizations.isEffectiveMember(10L, 7L) >> true
+        1 * organizations.isEffectiveMember('keith.ji', 7L) >> true
         1 * organizations.isLeaf(7L) >> true
-        1 * organizations.effectiveLeaves(10L) >> ([7L] as Set)
+        1 * organizations.effectiveLeaves('keith.ji') >> ([7L] as Set)
         member && leaf && accessible == ([7L] as Set)
     }
 

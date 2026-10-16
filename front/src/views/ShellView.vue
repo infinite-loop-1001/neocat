@@ -121,8 +121,8 @@ function domainPath(domainKind: string): string {
 
 async function load() {
   try {
-    const account = await api<{ username: string; role: string }>("/me");
-    me.value = account.username;
+    const account = await api<{ userAccount: string; role: string }>("/me");
+    me.value = account.userAccount;
     role.value = account.role;
   } catch {
     await router.push("/login");

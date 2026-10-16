@@ -24,11 +24,11 @@ public class OrganizationAccessService implements OrganizationAccess {
         return Objects.nonNull(nodes.findById(orgId)) && CollectionUtils.isEmpty(nodes.childrenOf(orgId));
     }
     @Override
-    public boolean isEffectiveMember(long accountId, long orgId) {
-        return leaves.leavesOf(accountId).contains(orgId);
+    public boolean isEffectiveMember(String userAccount, long orgId) {
+        return leaves.leavesOf(userAccount).contains(orgId);
     }
     @Override
-    public Set<Long> effectiveLeaves(long accountId) {
-        return leaves.leavesOf(accountId);
+    public Set<Long> effectiveLeaves(String userAccount) {
+        return leaves.leavesOf(userAccount);
     }
 }

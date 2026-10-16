@@ -3,19 +3,19 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.neocat.organization.infra.jdbc.MembershipMapper">
     <insert id="add">
-        INSERT INTO nc_org_member (org_id, account_id) VALUES (#{orgId}, #{accountId})
-        ON DUPLICATE KEY UPDATE account_id = VALUES(account_id)
+        INSERT INTO nc_org_member (org_id, user_account) VALUES (#{orgId}, #{userAccount})
+        ON DUPLICATE KEY UPDATE user_account = VALUES(user_account)
     </insert>
     <delete id="remove">
-        DELETE FROM nc_org_member WHERE org_id = #{orgId} AND account_id = #{accountId}
+        DELETE FROM nc_org_member WHERE org_id = #{orgId} AND user_account = #{userAccount}
     </delete>
-    <select id="membersOf" resultType="java.lang.Long">
-        SELECT account_id FROM nc_org_member WHERE org_id = #{orgId}
+    <select id="membersOf" resultType="java.lang.String">
+        SELECT user_account FROM nc_org_member WHERE org_id = #{orgId}
     </select>
     <select id="orgsOf" resultType="java.lang.Long">
-        SELECT org_id FROM nc_org_member WHERE account_id = #{accountId}
+        SELECT org_id FROM nc_org_member WHERE user_account = #{userAccount}
     </select>
     <delete id="removeAllOf">
-        DELETE FROM nc_org_member WHERE account_id = #{accountId}
+        DELETE FROM nc_org_member WHERE user_account = #{userAccount}
     </delete>
 </mapper>

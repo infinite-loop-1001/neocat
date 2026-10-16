@@ -6,16 +6,19 @@ import org.springframework.modulith.NamedInterface;
 /**
  * 成员关系仓库（直接成员）。
  */
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 public interface MembershipRepository {
 
-    void add(long orgId, long accountId);
+    /** 加入直接成员关系；userAccount 为账号标识（登录名）。 */
+    void add(long orgId, String userAccount);
 
-    void remove(long orgId, long accountId);
+    void remove(long orgId, String userAccount);
 
-    Set<Long> membersOf(long orgId);
+    /** 该节点的直接成员账号标识集合。 */
+    Set<String> membersOf(long orgId);
 
-    Set<Long> orgsOf(long accountId);
+    /** 该账号直接加入的节点集合。 */
+    Set<Long> orgsOf(String userAccount);
 
-    void removeAllOf(long accountId);
+    void removeAllOf(String userAccount);
 }

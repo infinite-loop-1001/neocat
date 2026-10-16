@@ -139,3 +139,36 @@ return !Objects.equals(status, IngestStatus.REJECTED);
 正常未找到：返回 `@Nullable T` 并用 `Objects.isNull` / `Objects.nonNull` 消费。必需存在：明确抛出已有业务异常。集合返回空集合，不返回 null。Optional 不是避免制定未找到语义的替代品；框架的 Optional 可局部消费。
 
 现有明确的 equals、isEmpty、isBlank 无需为了风格改成复杂工具调用。工具限定 JDK、Apache，避免增加依赖或掩盖领域语义。
+
+## 监听外部领域事件的 Handler（强制）
+
+监听其他模块领域事件的类命名为 `***EventHandler`，放在所属业务模块 `application/handler` 包下；模块没有 `application` 层就创建（`controller → application → domain → infra`）。`infra/listener` 不再是这类类的归属地。
+
+- **抽象**：一个 Handler 收束「同类但内容不同」的事件，例如账号启用与禁用共用一个监听方法，而不是 `UserEnabledListener` / `UserDisabledListener` 各建一类。
+- **不转发**：直接消费外部事件本身，不为同一语义再造一层模块内事件类型。领域内部逻辑仍由领域服务承担；面向其他模块的编排（如维护告警收件人）可先留在 Handler，确认会被复用后再下沉。
+
+```java
+package com.neocat.alert.application.handler;
+
+// rules: 监听外部领域事件的类命名规范为 ***EventHandler
+@Component
+public class RecipientEventHandler {
+
+    private final AlertRuleRepository rules;
+
+    public RecipientEventHandler(AlertRuleRepository rules) {
+        this.rules = rules;
+    }
+
+    /** 账号启用/禁用：只做移除，启用不恢复收件关系（PRD 06 §9）。 */
+    @EventListener
+    public void on(AccountStatusChanged event) {
+        if (event.isEnabled()) {
+            return;
+        }
+        removeFrom(rules::findAll, event.getUserAccount());
+    }
+}
+```
+
+跨模块引用账号一律使用业务标识（登录名，形如 `keith.ji`）：事件字段、领域方法参数、HTTP 字段与路径都用 `userAccount`，不使用存储层自增主键。

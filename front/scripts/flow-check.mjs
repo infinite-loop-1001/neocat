@@ -57,11 +57,11 @@ async function userJourney() {
   ok("未登录被拒（401）");
 
   // 错误凭据使用统一错误码
-  await expectError(post("/login", { username: "root", password: "wrong" }), "BAD_CREDENTIALS", "错误密码");
+  await expectError(post("/login", { userAccount: "root", password: "wrong" }), "BAD_CREDENTIALS", "错误密码");
   ok("错误凭据返回统一错误（不暴露账号是否存在）");
 
   // 首登改密链路：bob 需要改密
-  const firstLogin = await post("/login", { username: "bob", password: DEV_PASSWORD });
+  const firstLogin = await post("/login", { userAccount: "bob", password: DEV_PASSWORD });
   assert(firstLogin.mustChangePassword === true, "bob 首次登录应要求改密");
   await expectError(get("/services"), "PASSWORD_CHANGE_REQUIRED", "强制改密会话访问业务接口");
   ok("强制改密会话被限制在改密流程");
@@ -319,7 +319,7 @@ function findAvailability(nodes, availability) {
 
 async function dashboardJourney() {
   resetMockState();
-  await post("/login", { username: "root", password: DEV_PASSWORD });
+  await post("/login", { userAccount: "root", password: DEV_PASSWORD });
 
   const mine = await get("/orgs/mine");
   assert(mine.length > 0, "应有可访问的叶子组织");
@@ -408,7 +408,7 @@ async function dashboardJourney() {
     combinator: "AND",
     windowPoints: 3,
     conditions: [{ stat: "FAILURE_RATE", comparator: "GT", threshold: 0.05 }],
-    recipients: [3],
+    recipients: ["bob"],
     channels: ["EMAIL"],
   });
   assert(rule.enabled === false, "保存后必须为关闭状态");
@@ -436,36 +436,36 @@ async function dashboardJourney() {
 
 async function adminJourney() {
   resetMockState();
-  await post("/login", { username: "root", password: DEV_PASSWORD });
+  await post("/login", { userAccount: "root", password: DEV_PASSWORD });
 
   // 账号管理
-  await expectError(post("/users", { username: "x", password: "short" }), "PASSWORD_TOO_SHORT", "短密码");
+  await expectError(post("/users", { userAccount: "x", password: "short" }), "PASSWORD_TOO_SHORT", "短密码");
   ok("创建账号要求密码至少 8 位");
 
-  const created = await post("/users", { username: "dave", password: "password123" });
+  const created = await post("/users", { userAccount: "dave", password: "password123" });
   assert(created.role === "USER", "管理员只能创建普通用户");
   assert(created.mustChangePassword === true, "新账号首次登录必须改密");
   ok("管理员创建普通账号且需首次改密");
 
-  await expectError(post("/users", { username: "dave", password: "password123" }), "USER_EXISTS", "重名");
+  await expectError(post("/users", { userAccount: "dave", password: "password123" }), "USER_EXISTS", "重名");
   ok("用户名唯一");
 
-  const promoted = await post(`/users/${created.id}/role`, { role: "ADMIN" });
+  const promoted = await post(`/users/${created.userAccount}/role`, { role: "ADMIN" });
   assert(promoted.role === "ADMIN", "超管可授予 ADMIN");
   ok("超管授予 ADMIN");
 
-  await post("/users/3/disable");
+  await post("/users/bob/disable");
   const rulesAfterDisable = await get("/alerts");
   assert(
-    rulesAfterDisable.every((r) => !r.recipients.includes(3)),
+    rulesAfterDisable.every((r) => !r.recipients.includes("bob")),
     "禁用账号应从告警收件人移除"
   );
   ok("禁用账号即从告警收件人移除");
 
-  await post("/users/3/enable");
+  await post("/users/bob/enable");
   const rulesAfterEnable = await get("/alerts");
   assert(
-    rulesAfterEnable.every((r) => !r.recipients.includes(3)),
+    rulesAfterEnable.every((r) => !r.recipients.includes("bob")),
     "启用账号不恢复告警收件关系"
   );
   ok("启用账号不恢复收件关系");

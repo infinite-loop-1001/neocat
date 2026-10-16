@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 组织生命周期用例（PRD 01 §5.2 / §5.3）。
  */
 @Service
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 public class OrgLifecycleService {
 
     private final OrgNodeRepository nodes;
@@ -98,23 +98,23 @@ public class OrgLifecycleService {
         }
 
         // 收集受影响账号后再清理，保证「所有成员立即失去该叶子权限」
-        Set<Long> affected = new HashSet<>();
+        Set<String> affected = new HashSet<>();
         affected.addAll(effectiveLeaves.membersOf(orgId));
         affected.addAll(memberships.membersOf(orgId));
 
         resources.deleteAllOf(orgId);
-        for (Long accountId : affected) {
-            memberships.remove(orgId, accountId);
+        for (String userAccount : affected) {
+            memberships.remove(orgId, userAccount);
         }
         effectiveLeaves.removeOrg(orgId);
         // 先摘除节点，再重算受影响用户：处理「通过其他路径仍可达其他叶子」的情形
         nodes.delete(orgId);
-        for (Long accountId : affected) {
+        for (String userAccount : affected) {
             Set<Long> recomputed = new HashSet<>();
-            for (Long otherOrg : memberships.orgsOf(accountId)) {
+            for (Long otherOrg : memberships.orgsOf(userAccount)) {
                 recomputed.addAll(leavesOf(otherOrg));
             }
-            effectiveLeaves.replaceAll(accountId, recomputed);
+            effectiveLeaves.replaceAll(userAccount, recomputed);
         }
     }
     public boolean isLeaf(long orgId) {

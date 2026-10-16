@@ -57,7 +57,7 @@ public class OrgAdminController {
     @ApiResponse(responseCode = "200", description = "叶子组织 ID 列表")
     @GetMapping("/orgs/mine")
     public ResponseEntity<List<Long>> myLeaves(HttpServletRequest request) {
-        return ResponseEntity.ok(List.copyOf(membership.effectiveLeaves(RequestActor.current(request).getId())));
+        return ResponseEntity.ok(List.copyOf(membership.effectiveLeaves(RequestActor.current(request).getUserAccount())));
     }
 
     @Operation(operationId = "createOrg", summary = "新增组织节点",
@@ -88,18 +88,18 @@ public class OrgAdminController {
     public ResponseEntity<Success> addMember(HttpServletRequest request, @PathVariable long id,
                                              @RequestBody MemberDraft draft) {
         requireAdmin(request);
-        membership.addMember(id, draft.getUserId());
+        membership.addMember(id, draft.getUserAccount());
         return ResponseEntity.ok(new Success(true));
     }
 
     @Operation(operationId = "removeOrgMember", summary = "移除组织节点成员",
             description = "同时撤销其由该节点继承的叶子大盘与组织告警权限。")
     @ApiResponse(responseCode = "200", description = "已移除：{ ok: true }")
-    @DeleteMapping("/orgs/{id}/members/{userId}")
+    @DeleteMapping("/orgs/{id}/members/{userAccount}")
     public ResponseEntity<Success> removeMember(HttpServletRequest request, @PathVariable long id,
-                                                @PathVariable long userId) {
+                                                @PathVariable String userAccount) {
         requireAdmin(request);
-        membership.removeMember(id, userId);
+        membership.removeMember(id, userAccount);
         return ResponseEntity.ok(new Success(true));
     }
 

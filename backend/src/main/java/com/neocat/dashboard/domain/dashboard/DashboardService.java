@@ -60,11 +60,11 @@ public class DashboardService {
     }
     /** 创建大盘：组织必须是叶子，且调用者必须是其有效成员。 */
     @MySqlLocked("metadata")
-    public Dashboard create(long accountId, long orgId, String name) {
+    public Dashboard create(String userAccount, long orgId, String name) {
         if (!orgAccess.isLeaf(orgId)) {
             throw new ConflictException(NOT_LEAF);
         }
-        requireMember(accountId, orgId);
+        requireMember(userAccount, orgId);
         return dashboards.save(new Dashboard(0, orgId, name, 0));
     }
     /**
@@ -73,8 +73,8 @@ public class DashboardService {
      * <p>非成员返回**空列表**而非报错：入口本就不应出现，列表为空即可，
      * 无需向前端泄露该组织是否存在大盘。
      */
-    public List<Dashboard> list(long accountId, long orgId) {
-        if (!orgAccess.isLeaf(orgId) || !orgAccess.isEffectiveMember(accountId, orgId)) {
+    public List<Dashboard> list(String userAccount, long orgId) {
+        if (!orgAccess.isLeaf(orgId) || !orgAccess.isEffectiveMember(userAccount, orgId)) {
             return Lists.newArrayList();
         }
         return dashboards.byOrg(orgId);
@@ -84,9 +84,9 @@ public class DashboardService {
      *
      * <p>只返回其有效成员叶子组织上的大盘：非成员看不到入口（PRD 05 §1）。
      */
-    public List<Dashboard> listAll(long accountId) {
+    public List<Dashboard> listAll(String userAccount) {
         List<Dashboard> result = new ArrayList<>();
-        for (Long orgId : orgAccess.effectiveLeaves(accountId)) {
+        for (Long orgId : orgAccess.effectiveLeaves(userAccount)) {
             result.addAll(dashboards.byOrg(orgId));
         }
         return List.copyOf(result);
@@ -97,21 +97,21 @@ public class DashboardService {
      * <p>顺序：先取大盘（不存在 → DASHBOARD_NOT_FOUND），再校验其组织的成员资格（非成员 → NOT_ORG_MEMBER）。
      * 这样既能区分「不存在」与「无权限」，又不会让非成员读到大盘内容。
      */
-    public Dashboard requireAccessible(long accountId, long dashboardId) {
+    public Dashboard requireAccessible(String userAccount, long dashboardId) {
         Dashboard dashboard = Optional.ofNullable(dashboards.findById(dashboardId))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, dashboardId));
-        requireMember(accountId, dashboard.getOrgId());
+        requireMember(userAccount, dashboard.getOrgId());
         return dashboard;
     }
     @MySqlLocked("metadata")
-    public Dashboard rename(long accountId, long dashboardId, String newName) {
-        Dashboard dashboard = requireAccessible(accountId, dashboardId);
+    public Dashboard rename(String userAccount, long dashboardId, String newName) {
+        Dashboard dashboard = requireAccessible(userAccount, dashboardId);
         return dashboards.save(new Dashboard(dashboard.getId(), dashboard.getOrgId(), newName, dashboard.getOrderNo()));
     }
     @Transactional
     @MySqlLocked("metadata")
-    public void delete(long accountId, long dashboardId) {
-        Dashboard dashboard = requireAccessible(accountId, dashboardId);
+    public void delete(String userAccount, long dashboardId) {
+        Dashboard dashboard = requireAccessible(userAccount, dashboardId);
         List<Card> removed = dashboards.cardsOf(dashboard.getId());
         dashboards.delete(dashboard.getId());
         if (Objects.nonNull(cardEvents)) {
@@ -134,8 +134,8 @@ public class DashboardService {
      * <p>注意：这里**不接收角色参数**。管理员的系统角色无法在本方法中体现，
      * 因此无法通过参数传递获得旁路。
      */
-    private void requireMember(long accountId, long orgId) {
-        if (!orgAccess.isEffectiveMember(accountId, orgId)) {
+    private void requireMember(String userAccount, long orgId) {
+        if (!orgAccess.isEffectiveMember(userAccount, orgId)) {
             throw new AuthorizationException(NOT_ORG_MEMBER);
         }
     }

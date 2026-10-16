@@ -33,10 +33,10 @@ class FirstLoginSpec extends Specification {
         given:
         def sessions = Stub(SessionRepository) {
             isValid('sid', NOW) >> true
-            findSession('sid') >> new Session('sid', 7L, NOW.plusSeconds(1800))
+            findSession('sid') >> new Session('sid', 'alice', NOW.plusSeconds(1800))
         }
         def accounts = Stub(AccountRepository) {
-            findById(7L) >> account(true)
+            findByUserAccount('alice') >> account(true)
         }
         def guard = new SessionGuard(accounts, sessions)
 
@@ -50,30 +50,30 @@ class FirstLoginSpec extends Specification {
 
     def 'a recent service with actual data becomes the login target'() {
         when:
-        def target = service.resolveLoginTarget(7L, availability)
+        def target = service.resolveLoginTarget('alice', availability)
 
         then:
-        1 * history.recentServices(7L, 10) >> ['order']
+        1 * history.recentServices('alice', 10) >> ['order']
         1 * availability.hasData('order') >> true
         target.getTargetService() == 'order'
     }
 
     def 'without recent history or service data the login target is the service list'() {
         when:
-        def target = service.resolveLoginTarget(7L, availability)
+        def target = service.resolveLoginTarget('alice', availability)
 
         then:
-        1 * history.recentServices(7L, 10) >> ['order']
+        1 * history.recentServices('alice', 10) >> ['order']
         1 * availability.hasData('order') >> false
         target.isServiceList()
     }
 
     def 'among recent services the first with data wins'() {
         when:
-        def target = service.resolveLoginTarget(7L, availability)
+        def target = service.resolveLoginTarget('alice', availability)
 
         then:
-        1 * history.recentServices(7L, 10) >> ['order', 'pay']
+        1 * history.recentServices('alice', 10) >> ['order', 'pay']
         1 * availability.hasData('order') >> false
         1 * availability.hasData('pay') >> true
         target.getTargetService() == 'pay'
@@ -81,18 +81,18 @@ class FirstLoginSpec extends Specification {
 
     def 'a service visit is persisted for next login, not cached in the service'() {
         when:
-        service.recordAccess(7L, 'order', NOW)
+        service.recordAccess('alice', 'order', NOW)
 
         then:
-        1 * history.record(7L, 'order', NOW)
+        1 * history.record('alice', 'order', NOW)
     }
 
     def 'successful first password change removes the forced-change flag'() {
         when:
-        def updated = service.changePassword(7L, 'oldpass12', 'newpass12', NOW)
+        def updated = service.changePassword('alice', 'oldpass12', 'newpass12', NOW)
 
         then:
-        1 * accounts.findById(7L) >> account(true)
+        1 * accounts.findByUserAccount('alice') >> account(true)
         1 * passwords.matches('oldpass12', 'hash') >> true
         1 * passwords.hash('newpass12') >> 'new-hash'
         1 * accounts.save({ !it.isMustChangePassword() && it.getPasswordHash() == 'new-hash' }) >>

@@ -23,8 +23,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="account in accounts" :key="account.id">
-          <td class="strong">{{ account.username }}</td>
+        <tr v-for="account in accounts" :key="account.userAccount">
+          <td class="strong">{{ account.userAccount }}</td>
           <td>
             <span class="status" :class="account.role === 'USER' ? '' : 'success'">{{ roleLabel(account.role) }}</span>
           </td>
@@ -35,7 +35,7 @@
           </td>
           <td>{{ account.mustChangePassword ? "需要" : "否" }}</td>
           <td class="actions">
-            <button class="btn btn-ghost" type="button" @click="resetPassword(account.id)">重置密码</button>
+            <button class="btn btn-ghost" type="button" @click="resetPassword(account.userAccount)">重置密码</button>
             <button
               v-if="isSuperAdmin && account.role !== 'SUPER_ADMIN'"
               class="btn btn-ghost"
@@ -97,7 +97,7 @@ async function load() {
 async function create() {
   error.value = "";
   try {
-    await api("/users", { method: "POST", body: { username: newUsername.value, password: newPassword.value } });
+    await api("/users", { method: "POST", body: { userAccount: newUsername.value, password: newPassword.value } });
     newUsername.value = "";
     newPassword.value = "";
     await load();
@@ -106,12 +106,12 @@ async function create() {
   }
 }
 
-async function resetPassword(id: number) {
+async function resetPassword(userAccount: string) {
   error.value = "";
   const password = window.prompt("请输入新的临时密码（至少 8 位）");
   if (!password) return;
   try {
-    await api(`/users/${id}/password/reset`, { method: "POST", body: { password } });
+    await api(`/users/${userAccount}/password/reset`, { method: "POST", body: { password } });
     await load();
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : "重置失败";
@@ -121,7 +121,7 @@ async function resetPassword(id: number) {
 async function toggleRole(account: Account) {
   error.value = "";
   try {
-    await api(`/users/${account.id}/role`, {
+    await api(`/users/${account.userAccount}/role`, {
       method: "POST",
       body: { role: account.role === "ADMIN" ? "USER" : "ADMIN" },
     });
@@ -133,7 +133,7 @@ async function toggleRole(account: Account) {
 
 async function toggleStatus(account: Account) {
   const action = account.status === "ENABLED" ? "disable" : "enable";
-  await api(`/users/${account.id}/${action}`, { method: "POST" });
+  await api(`/users/${account.userAccount}/${action}`, { method: "POST" });
   await load();
 }
 

@@ -2,6 +2,7 @@ package com.neocat.alert.infra.jdbc
 
 import com.neocat.alert.domain.entity.AlertRule
 import com.neocat.alert.domain.entity.vo.rule.AlertChannel
+import com.neocat.alert.domain.entity.vo.cursor.AlertEvalCursor
 import com.neocat.alert.domain.entity.vo.rule.AlertScope
 import com.neocat.alert.domain.entity.vo.rule.AlertTarget
 import com.neocat.alert.domain.entity.vo.rule.AlertTargetKind
@@ -9,8 +10,12 @@ import com.neocat.alert.domain.entity.vo.rule.Combinator
 import com.neocat.alert.domain.entity.vo.rule.Comparator
 import com.neocat.alert.domain.entity.vo.rule.Condition
 import com.neocat.alert.infra.jdbc.row.AlertRuleRow
+import com.neocat.alert.infra.jdbc.row.AlertEvalCursorRow
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
+
+import java.sql.Timestamp
+import java.time.Instant
 
 class AlertRuleRepositoryAdapterSpec extends Specification {
     def 'persisted target retains its report kind, description and metric label selector'() {
@@ -21,7 +26,7 @@ class AlertRuleRepositoryAdapterSpec extends Specification {
                 'METRIC', 'order.amount', '', 'city=上海;', [])
         def rule = AlertRule.draft(AlertScope.SERVICE, null, 'threshold', 'business note',
                 target, Combinator.AND, 1,
-                [new Condition(Stat.HITS, Comparator.GT, 1d)], [7L], [AlertChannel.EMAIL])
+                [new Condition(Stat.HITS, Comparator.GT, 1d)], ['keith.ji'], [AlertChannel.EMAIL])
 
         when:
         def stored = adapter.save(rule)
@@ -32,7 +37,7 @@ class AlertRuleRepositoryAdapterSpec extends Specification {
             && row.targetStat == 'HITS' && row.channels == 'EMAIL' && row.targetCardId == null }) >>
                 { args -> args[0].id = 10L; 1 }
         1 * mapper.insertCondition(10L, 'HITS', 'GT', 1d)
-        1 * mapper.insertRecipient(10L, 7L, 'EMAIL')
+        1 * mapper.insertRecipient(10L, 'keith.ji', 'EMAIL')
         stored.getId() == 10L
     }
 
@@ -138,7 +143,7 @@ class AlertRuleRepositoryAdapterSpec extends Specification {
         0 * mapper.insertRecipient(_, _, _)
     }
 
-    def 'deleting a rule explicitly cascades conditions, recipients and window points first'() {
+    def 'deleting a rule explicitly cascades conditions, recipients and the evaluation cursor first'() {
         given:
         def mapper = Mock(AlertMapper)
         def adapter = new AlertRuleRepositoryAdapter(mapper)
@@ -154,7 +159,58 @@ class AlertRuleRepositoryAdapterSpec extends Specification {
         1 * mapper.selectRule(9L) >> row
         1 * mapper.deleteConditions(9L)
         1 * mapper.deleteRecipients(9L)
-        1 * mapper.deleteWindowPoints(9L)
+        1 * mapper.deleteAlertEvalCursor(9L)
         1 * mapper.deleteRule(9L)
+    }
+
+    def 'clearing an evaluation cursor drops every window point of the rule'() {
+        given:
+        def mapper = Mock(AlertMapper)
+        def adapter = new AlertRuleRepositoryAdapter(mapper)
+
+        when:
+        adapter.clearAlertEvalCursor(9L)
+
+        then:
+        1 * mapper.deleteAlertEvalCursor(9L)
+    }
+
+    def 'saving a cursor replaces the previous row and keeps an unjudged baseline empty'() {
+        given:
+        def mapper = Mock(AlertMapper)
+        def adapter = new AlertRuleRepositoryAdapter(mapper)
+        def baseline = Instant.parse('2026-10-17T01:00:00Z')
+
+        when:
+        adapter.saveAlertEvalCursor(AlertEvalCursor.empty(9L, baseline.toEpochMilli()))
+
+        then:
+        1 * mapper.deleteAlertEvalCursor(9L)
+        1 * mapper.insertAlertEvalCursor({
+            it.ruleId == 9L && it.baselineAt == Timestamp.from(baseline) && it.lastEvaluatedMinute == null
+        })
+    }
+
+    def 'loading a cursor restores the baseline and the last judged minute'() {
+        given:
+        def mapper = Mock(AlertMapper)
+        def adapter = new AlertRuleRepositoryAdapter(mapper)
+        def baseline = Instant.parse('2026-10-17T01:00:00Z')
+        def judged = baseline.plusSeconds(60)
+        def row = new AlertEvalCursorRow()
+        row.id = 3L
+        row.ruleId = 9L
+        row.baselineAt = Timestamp.from(baseline)
+        row.lastEvaluatedMinute = Timestamp.from(judged)
+
+        when:
+        def cursor = adapter.findAlertEvalCursor(9L)
+
+        then:
+        1 * mapper.selectAlertEvalCursor(9L) >> row
+        cursor.id == 3L
+        cursor.ruleId == 9L
+        cursor.baselineAt == baseline.toEpochMilli()
+        cursor.lastEvaluatedMinute == judged.toEpochMilli()
     }
 }

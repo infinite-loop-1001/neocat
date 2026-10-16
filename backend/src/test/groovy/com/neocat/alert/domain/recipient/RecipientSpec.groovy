@@ -20,90 +20,42 @@ class RecipientSpec extends Specification {
     RecipientGateway gateway = Mock()
     RecipientService service = new RecipientService(repository, gateway)
 
-    static AlertRule rule(long id, AlertScope scope, Long orgId, List<Long> recipients,
-                          boolean enabled = true) {
+    static AlertRule rule(long id, AlertScope scope, Long orgId, List<String> userAccounts) {
         new AlertRule(id, scope, orgId, '订单失败率', '',
                 AlertTarget.rawMetric('order', 'TRANSACTION', 'URL', '/a'),
                 Combinator.AND, 3, [new Condition(Stat.HITS, Comparator.GT, 1d)],
-                recipients, [AlertChannel.EMAIL], enabled, false, enabled ? T : null)
+                userAccounts, [AlertChannel.EMAIL], true, false)
     }
 
     def 'service alert accepts enabled accounts without organization membership'() {
         when:
-        service.validateSelection(rule(1L, AlertScope.SERVICE, null, [1L, 2L]), [1L, 2L])
+        service.validateSelection(rule(1L, AlertScope.SERVICE, null, ['keith.ji', 'alice']), ['keith.ji', 'alice'])
 
         then:
-        1 * gateway.isEnabled(1L) >> true
-        1 * gateway.isEnabled(2L) >> true
+        1 * gateway.isEnabled('keith.ji') >> true
+        1 * gateway.isEnabled('alice') >> true
         0 * gateway.isEffectiveMember(_, _)
         noExceptionThrown()
     }
 
     def 'organization alert accepts only enabled effective leaf members'() {
         when:
-        service.validateSelection(rule(1L, AlertScope.ORGANIZATION, 7L, []), [2L])
+        service.validateSelection(rule(1L, AlertScope.ORGANIZATION, 7L, []), ['alice'])
 
         then:
-        1 * gateway.isEnabled(2L) >> true
-        1 * gateway.isEffectiveMember(2L, 7L) >> false
+        1 * gateway.isEnabled('alice') >> true
+        1 * gateway.isEffectiveMember('alice', 7L) >> false
         thrown(IllegalArgumentException)
     }
 
     def 'disabled accounts cannot be selected even when they are members'() {
         when:
-        service.validateSelection(rule(1L, AlertScope.ORGANIZATION, 7L, []), [2L])
+        service.validateSelection(rule(1L, AlertScope.ORGANIZATION, 7L, []), ['alice'])
 
         then:
-        1 * gateway.isEnabled(2L) >> false
+        1 * gateway.isEnabled('alice') >> false
         0 * gateway.isEffectiveMember(_, _)
         thrown(IllegalArgumentException)
-    }
-
-    def 'disabling an account removes it from all rules without switching the rules off'() {
-        given:
-        def matching = rule(1L, AlertScope.SERVICE, null, [1L, 2L])
-        def unrelated = rule(2L, AlertScope.ORGANIZATION, 7L, [3L])
-
-        when:
-        def changed = service.onEvent(new UserDisabled(1L))
-
-        then:
-        1 * repository.findAll() >> [matching, unrelated]
-        1 * repository.save({ it.getId() == 1L && it.getRecipients() == [2L]
-                && it.isEnabled() && it.getStateSince() == T }) >> { args -> args[0] }
-        changed*.getId() == [1L]
-    }
-
-    def 'enabling a user does not silently restore any recipient relation'() {
-        when:
-        def changed = service.onEvent(new UserEnabled(1L))
-
-        then:
-        changed.isEmpty()
-        0 * repository._
-    }
-
-    def 'losing a leaf membership only removes recipients of that leaf'() {
-        given:
-        def matching = rule(1L, AlertScope.ORGANIZATION, 7L, [1L, 2L])
-
-        when:
-        def changed = service.onEvent(new OrgMembershipChanged(1L, 7L, false))
-
-        then:
-        1 * repository.byOrg(7L) >> [matching]
-        1 * repository.save({ it.getOrgId() == 7L && it.getRecipients() == [2L] }) >> { args -> args[0] }
-        0 * repository.findAll()
-        changed.size() == 1
-    }
-
-    def 'gaining membership does not opt an account into notifications'() {
-        when:
-        def changed = service.onEvent(new OrgMembershipChanged(1L, 7L, true))
-
-        then:
-        changed.isEmpty()
-        0 * repository._
     }
 
     def 'adding recipients deduplicates them and resets the window baseline'() {
@@ -111,50 +63,39 @@ class RecipientSpec extends Specification {
         def original = rule(4L, AlertScope.SERVICE, null, [])
 
         when:
-        def updated = service.updateRecipients(4L, [3L, 3L], T + 60_000L)
+        def updated = service.updateRecipients(4L, ['keith.ji', 'keith.ji'], T + 60_000L)
 
         then:
         1 * repository.findById(4L) >> original
-        1 * repository.save({ it.getRecipients() == [3L] && it.isEnabled() &&
+        1 * repository.save({ it.getRecipients() == ['keith.ji'] && it.isEnabled() &&
                 it.getConditions() == original.getConditions() }) >> { args -> args[0] }
-        1 * repository.clearWindowState(4L)
-        1 * repository.saveWindowState(AlertEvalCursor.empty(4L, T + 60_000L))
-        updated.getRecipients() == [3L]
+        1 * repository.clearAlertEvalCursor(4L)
+        1 * repository.saveAlertEvalCursor(AlertEvalCursor.empty(4L, T + 60_000L))
+        updated.getRecipients() == ['keith.ji']
     }
 
-    def 'effective recipients exclude disabled users and former organization members'() {
+    def 'effective recipients exclude members who lost the leaf, keeping enabled ones'() {
         given:
-        def original = rule(4L, AlertScope.ORGANIZATION, 7L, [1L, 2L, 3L])
+        def original = rule(4L, AlertScope.ORGANIZATION, 7L, ['keith.ji', 'alice'])
 
         when:
         def effective = service.effectiveRecipients(original)
 
         then:
-        1 * gateway.isEnabled(1L) >> true
-        1 * gateway.isEffectiveMember(1L, 7L) >> true
-        1 * gateway.isEnabled(2L) >> true
-        1 * gateway.isEffectiveMember(2L, 7L) >> false
-        1 * gateway.isEnabled(3L) >> false
-        effective == [1L]
+        1 * gateway.isEffectiveMember('keith.ji', 7L) >> true
+        1 * gateway.isEffectiveMember('alice', 7L) >> false
+        effective == ['keith.ji']
     }
 
-    def 'org deleted event disables its rules but retains their configuration'() {
+    def 'service alert effective recipients keep every listed account'() {
         given:
-        def original = rule(4L, AlertScope.ORGANIZATION, 7L, [1L])
+        def original = rule(5L, AlertScope.SERVICE, null, ['keith.ji', 'bob'])
 
         when:
-        def changed = service.onEvent(new OrgDeleted(7L))
+        def effective = service.effectiveRecipients(original)
 
         then:
-        1 * repository.byOrg(7L) >> [original]
-        1 * repository.save({ it.isInvalid() && !it.isEnabled() && it.getName() == original.getName() }) >>
-                { args -> args[0] }
-        changed.size() == 1
-    }
-
-    def 'all recipient event types remain representable'() {
-        expect:
-        RecipientEvent.permittedSubclasses*.simpleName as Set ==
-                ['UserDisabled', 'UserEnabled', 'OrgMembershipChanged', 'OrgDeleted'] as Set
+        0 * gateway._
+        effective == ['keith.ji', 'bob']
     }
 }

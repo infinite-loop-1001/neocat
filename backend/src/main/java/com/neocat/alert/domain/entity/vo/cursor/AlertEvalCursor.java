@@ -39,10 +39,21 @@ public class AlertEvalCursor {
     private Long lastEvaluatedMinute;
 
     public static AlertEvalCursor of(Long ruleId, Long baselineAt, Long curMinute) {
+        AlertEvalCursor evalCursor = empty(ruleId, baselineAt);
+        evalCursor.setLastEvaluatedMinute(curMinute);
+        return evalCursor;
+    }
+
+    /**
+     * 新建窗口游标：基线为启用/编辑/补收件人的时刻，尚无任何已判定分钟点。
+     *
+     * <p>{@code lastEvaluatedMinute} 保持为空，表示「基线刚建立」，与「已判定到某分钟」
+     * 是两种不同状态，不能用 0 或基线值冒充。
+     */
+    public static AlertEvalCursor empty(Long ruleId, Long baselineAt) {
         AlertEvalCursor evalCursor = new AlertEvalCursor();
         evalCursor.setRuleId(ruleId);
         evalCursor.setBaselineAt(baselineAt);
-        evalCursor.setLastEvaluatedMinute(curMinute);
         return evalCursor;
     }
 

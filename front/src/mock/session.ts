@@ -9,7 +9,7 @@
  */
 
 interface SessionData {
-  username: string;
+  userAccount: string;
   role: string;
   mustChangePassword: boolean;
 }

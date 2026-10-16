@@ -16,11 +16,11 @@ public class RecipientEligibilityAdapter implements RecipientGateway {
         this.organizations = organizations;
     }
     @Override
-    public boolean isEnabled(long accountId) {
-        return accounts.enabled(accountId);
+    public boolean isEnabled(String userAccount) {
+        return accounts.enabled(userAccount);
     }
     @Override
-    public boolean isEffectiveMember(long accountId, long orgId) {
-        return organizations.isEffectiveMember(accountId, orgId);
+    public boolean isEffectiveMember(String userAccount, long orgId) {
+        return organizations.isEffectiveMember(userAccount, orgId);
     }
 }

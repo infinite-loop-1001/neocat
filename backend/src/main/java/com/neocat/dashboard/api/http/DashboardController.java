@@ -51,7 +51,7 @@ public class DashboardController {
                                                         @RequestParam(required = false) Long orgId) {
         RequestActor account = RequestActor.current(request);
         List<Dashboard> found = Objects.isNull(orgId) ?
-                dashboards.listAll(account.getId()) : dashboards.list(account.getId(), orgId);
+                dashboards.listAll(account.getUserAccount()) : dashboards.list(account.getUserAccount(), orgId);
         return ResponseEntity.ok(found.stream().map(convert::dashboard).toList());
     }
 
@@ -62,7 +62,7 @@ public class DashboardController {
     @PostMapping("/dashboards")
     public ResponseEntity<DashboardResponse> create(HttpServletRequest request, @RequestBody DashboardDraft draft) {
         return ResponseEntity.status(201).body(convert.dashboard(
-                dashboards.create(RequestActor.current(request).getId(), draft.getOrgId(), draft.getName())));
+                dashboards.create(RequestActor.current(request).getUserAccount(), draft.getOrgId(), draft.getName())));
     }
 
     @Operation(operationId = "renameDashboard", summary = "重命名大盘")
@@ -70,7 +70,7 @@ public class DashboardController {
     @PostMapping("/dashboards/{id}/rename")
     public ResponseEntity<DashboardResponse> rename(HttpServletRequest request, @PathVariable long id,
                                                     @RequestBody DashboardDraft draft) {
-        return ResponseEntity.ok(convert.dashboard(dashboards.rename(RequestActor.current(request).getId(), id, draft.getName())));
+        return ResponseEntity.ok(convert.dashboard(dashboards.rename(RequestActor.current(request).getUserAccount(), id, draft.getName())));
     }
 
     @Operation(operationId = "deleteDashboard", summary = "删除大盘及其卡片",
@@ -78,7 +78,7 @@ public class DashboardController {
     @ApiResponse(responseCode = "200", description = "已删除：{ ok: true }")
     @DeleteMapping("/dashboards/{id}")
     public ResponseEntity<Success> delete(HttpServletRequest request, @PathVariable long id) {
-        dashboards.delete(RequestActor.current(request).getId(), id);
+        dashboards.delete(RequestActor.current(request).getUserAccount(), id);
         return ResponseEntity.ok(new Success(true));
     }
 
@@ -87,7 +87,7 @@ public class DashboardController {
     @GetMapping("/cards")
     public ResponseEntity<List<CardResponse>> cards(HttpServletRequest request,
             @Parameter(description = "大盘 ID", required = true) @RequestParam long dashboardId) {
-        return ResponseEntity.ok(cards.cardsOf(RequestActor.current(request).getId(), dashboardId).stream()
+        return ResponseEntity.ok(cards.cardsOf(RequestActor.current(request).getUserAccount(), dashboardId).stream()
                 .map(convert::card).toList());
     }
 
@@ -98,7 +98,7 @@ public class DashboardController {
     @PostMapping("/dashboards/{id}/cards")
     public ResponseEntity<CardResponse> createCard(HttpServletRequest request, @PathVariable long id,
                                                    @RequestBody CardDraft draft) {
-        return ResponseEntity.status(201).body(convert.card(cards.createCard(RequestActor.current(request).getId(),
+        return ResponseEntity.status(201).body(convert.card(cards.createCard(RequestActor.current(request).getUserAccount(),
                 id, convert.card(draft, id))));
     }
 
@@ -108,7 +108,7 @@ public class DashboardController {
     @PostMapping("/cards/{cardId}")
     public ResponseEntity<CardResponse> updateCard(HttpServletRequest request, @PathVariable long cardId,
                                                    @RequestBody CardDraft draft) {
-        return ResponseEntity.ok(convert.card(cards.updateCard(RequestActor.current(request).getId(),
+        return ResponseEntity.ok(convert.card(cards.updateCard(RequestActor.current(request).getUserAccount(),
                 cardId, convert.card(draft, 0))));
     }
 
@@ -117,7 +117,7 @@ public class DashboardController {
     @ApiResponse(responseCode = "200", description = "已删除：{ ok: true }")
     @DeleteMapping("/cards/{cardId}")
     public ResponseEntity<Success> deleteCard(HttpServletRequest request, @PathVariable long cardId) {
-        cards.deleteCard(RequestActor.current(request).getId(), cardId);
+        cards.deleteCard(RequestActor.current(request).getUserAccount(), cardId);
         return ResponseEntity.ok(new Success(true));
     }
 
@@ -129,7 +129,7 @@ public class DashboardController {
     public ResponseEntity<SeriesResponse> cardSeries(HttpServletRequest request,
             @Parameter(description = "卡片 ID", required = true) @PathVariable long cardId,
             @Parameter(description = "时间范围") @RequestParam(defaultValue = "RECENT_24H") String range) {
-        return ResponseEntity.ok(convert.series(cards.series(RequestActor.current(request).getId(), cardId, range)));
+        return ResponseEntity.ok(convert.series(cards.series(RequestActor.current(request).getUserAccount(), cardId, range)));
     }
 
     @Operation(operationId = "listAlertableTargets", summary = "查询组织告警可选目标",
@@ -138,7 +138,7 @@ public class DashboardController {
     @GetMapping("/dashboards/targets")
     public ResponseEntity<List<TargetResponse>> targets(HttpServletRequest request,
             @Parameter(description = "叶子组织 ID", required = true) @RequestParam long orgId) {
-        return ResponseEntity.ok(cards.alertableTargets(RequestActor.current(request).getId(), orgId).stream()
+        return ResponseEntity.ok(cards.alertableTargets(RequestActor.current(request).getUserAccount(), orgId).stream()
                 .map(convert::target).toList());
     }
 }

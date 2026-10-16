@@ -7,7 +7,7 @@ test("卡片序列输出 isUndefined 数组，不输出旧 undefined 键，缺�
   resetMockState();
   await mockRequest("/api/login", {
     method: "POST",
-    body: JSON.stringify({ username: "alice", password: DEV_PASSWORD }),
+    body: JSON.stringify({ userAccount: "alice", password: DEV_PASSWORD }),
   });
   const boards = await mockRequest("/api/dashboards", { method: "GET" });
   const cards = await mockRequest(`/api/cards?dashboardId=${boards[0].id}`, { method: "GET" });

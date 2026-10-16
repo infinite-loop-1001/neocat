@@ -13,12 +13,12 @@ import org.springframework.modulith.NamedInterface;
 @NamedInterface("dashboard")
 public interface OrgAccessGateway {
 
-    /** 是否为该组织的有效成员（直系或祖先继承）。 */
-    boolean isEffectiveMember(long accountId, long orgId);
+    /** 账号（业务标识）是否为该组织的有效成员（直系或祖先继承）。 */
+    boolean isEffectiveMember(String userAccount, long orgId);
 
     /** 该组织是否为叶子。 */
     boolean isLeaf(long orgId);
 
     /** 该账号有权限的全部叶子组织（直系 + 祖先继承）。 */
-    Set<Long> effectiveLeaves(long accountId);
+    Set<Long> effectiveLeaves(String userAccount);
 }

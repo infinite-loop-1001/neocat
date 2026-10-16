@@ -64,8 +64,8 @@ CREATE TABLE nc_channel_config
 
 CREATE TABLE nc_account
 (
-    id                   BIGINT       NOT NULL AUTO_INCREMENT,
-    username             VARCHAR(64)  NOT NULL COMMENT '用户名唯一，一期不可修改',
+    id                   BIGINT       NOT NULL AUTO_INCREMENT COMMENT '行主键；业务引用账号一律用 user_account',
+    user_account         VARCHAR(64)  NOT NULL COMMENT '账号标识（登录名，形如 keith.ji），全局唯一，一期不可修改',
     password_hash        VARCHAR(100) NOT NULL COMMENT 'BCrypt',
     role                 VARCHAR(16)  NOT NULL DEFAULT 'USER' COMMENT 'USER / ADMIN / SUPER_ADMIN',
     status               VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED / DISABLED',
@@ -73,31 +73,31 @@ CREATE TABLE nc_account
     created_at           DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at           DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    UNIQUE KEY uk_nc_account_username (username),
+    UNIQUE KEY uk_nc_account_user_account (user_account),
     KEY idx_nc_account_status (status)
 ) ENGINE = InnoDB COMMENT = '账号（一期不支持删除账号与改用户名）';
 
 CREATE TABLE nc_session
 (
     id           CHAR(36)    NOT NULL COMMENT '会话 ID（Cookie: NC_SESSION）',
-    account_id   BIGINT      NOT NULL,
+    user_account VARCHAR(64) NOT NULL COMMENT '账号标识（登录名）',
     expires_at   DATETIME(3) NOT NULL COMMENT '滑动 30 分钟，每次有效请求续期',
     last_seen_at DATETIME(3) NOT NULL,
     created_at   DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    KEY idx_nc_session_account (account_id),
+    KEY idx_nc_session_user_account (user_account),
     KEY idx_nc_session_expires (expires_at)
 ) ENGINE = InnoDB COMMENT = '登录会话（允许多会话并存；登出只注销当前会话）';
 
 CREATE TABLE nc_access_history
 (
     id           BIGINT       NOT NULL AUTO_INCREMENT,
-    account_id   BIGINT       NOT NULL,
+    user_account VARCHAR(64)  NOT NULL COMMENT '账号标识（登录名）',
     service_name VARCHAR(256) NOT NULL,
     accessed_at  DATETIME(3)  NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_nc_access_history_account_service (account_id, service_name),
-    KEY idx_nc_access_history_time (account_id, accessed_at DESC)
+    UNIQUE KEY uk_nc_access_history_account_service (user_account, service_name),
+    KEY idx_nc_access_history_time (user_account, accessed_at DESC)
 ) ENGINE = InnoDB COMMENT = '最近访问服务：决定登录后落到某服务 Transaction 还是服务列表';
 
 -- ============================================================================
@@ -117,24 +117,24 @@ CREATE TABLE nc_org_node
 
 CREATE TABLE nc_org_member
 (
-    id         BIGINT      NOT NULL AUTO_INCREMENT,
-    org_id     BIGINT      NOT NULL,
-    account_id BIGINT      NOT NULL,
+    id           BIGINT      NOT NULL AUTO_INCREMENT,
+    org_id       BIGINT      NOT NULL,
+    user_account VARCHAR(64) NOT NULL COMMENT '账号标识（登录名）',
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    UNIQUE KEY uk_nc_org_member_org_account (org_id, account_id),
-    KEY idx_nc_org_member_account (account_id)
+    UNIQUE KEY uk_nc_org_member_org_account (org_id, user_account),
+    KEY idx_nc_org_member_account (user_account)
 ) ENGINE = InnoDB COMMENT = '组织直接成员（有效叶子 = 直系 + 祖先继承）';
 
 -- 派生表：任何成员关系变更后即时重算（祖先继承展开），避免查询期递归
 CREATE TABLE nc_effective_leaf
 (
-    id          BIGINT      NOT NULL AUTO_INCREMENT,
-    account_id  BIGINT      NOT NULL,
-    org_id      BIGINT      NOT NULL COMMENT '该用户有权限的叶子组织',
+    id           BIGINT      NOT NULL AUTO_INCREMENT,
+    user_account VARCHAR(64) NOT NULL COMMENT '账号标识（登录名）',
+    org_id       BIGINT      NOT NULL COMMENT '该用户有权限的叶子组织',
     computed_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    UNIQUE KEY uk_nc_effective_leaf_account_org (account_id, org_id),
+    UNIQUE KEY uk_nc_effective_leaf_account_org (user_account, org_id),
     KEY idx_nc_effective_leaf_org (org_id)
 ) ENGINE = InnoDB COMMENT = '有效叶子权限快照（成员变更即时重算；删除叶子即时失效）';
 
@@ -262,24 +262,24 @@ CREATE TABLE nc_alert_condition
 
 CREATE TABLE nc_alert_recipient
 (
-    id         BIGINT      NOT NULL AUTO_INCREMENT,
-    rule_id    BIGINT      NOT NULL,
-    account_id BIGINT      NOT NULL,
-    channel    VARCHAR(16) NOT NULL COMMENT 'EMAIL / DINGTALK / FEISHU',
+    id           BIGINT      NOT NULL AUTO_INCREMENT,
+    rule_id      BIGINT      NOT NULL,
+    user_account VARCHAR(64) NOT NULL COMMENT '账号标识（登录名）',
+    channel      VARCHAR(16) NOT NULL COMMENT 'EMAIL / DINGTALK / FEISHU',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_nc_alert_recipient_rule_account_channel (rule_id, account_id, channel),
-    KEY idx_nc_alert_recipient_account (account_id)
+    UNIQUE KEY uk_nc_alert_recipient_rule_account_channel (rule_id, user_account, channel),
+    KEY idx_nc_alert_recipient_account (user_account)
 ) ENGINE = InnoDB COMMENT = '收件人与通道；账号禁用/失去成员资格时自动移除，规则本身不自动关闭';
 
-CREATE TABLE nc_alert_window_state
+CREATE TABLE nc_alert_eval_cursor
 (
     id           BIGINT      NOT NULL AUTO_INCREMENT,
     rule_id      BIGINT      NOT NULL,
-    point_minute DATETIME(3) NOT NULL COMMENT '完整分钟点（平台时区对齐）',
-    satisfied    TINYINT(1)  NOT NULL COMMENT '该点条件组合结果；缺数点不写入（视为打断）',
+    baseline_at  DATETIME(3) NOT NULL COMMENT '窗口基线（启用/编辑/补收件人时刻，毫秒）',
+    last_evaluated_minute DATETIME(3) NULL COMMENT '最后一次已判定的完整分钟点；空表示基线刚建立、尚未判定',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_nc_alert_window_state_rule_minute (rule_id, point_minute)
-) ENGINE = InnoDB COMMENT = '滑动窗口状态；启用/编辑/补人时清空，从零重建';
+    UNIQUE KEY uk_nc_alert_eval_cursor_rule (rule_id)
+) ENGINE = InnoDB COMMENT = '告警判定游标；一条规则一行，启用/编辑/补人时清空后从新基线重建';
 
 -- ============================================================================
 -- 6. 组织资源同步投影与初始化数据
@@ -385,4 +385,4 @@ ON DUPLICATE KEY
 -- SELECT * FROM nc_channel_config;
 -- SELECT COUNT(*) AS org_count FROM nc_org_node;        -- 期望 0
 -- SELECT COUNT(*) AS account_count FROM nc_account;     -- 期望 1（超管）
--- SELECT username, role, status, must_change_password FROM nc_account;
+-- SELECT user_account, role, status, must_change_password FROM nc_account;

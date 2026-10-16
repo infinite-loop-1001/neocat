@@ -274,7 +274,7 @@ async function save() {
             threshold: draft.value.threshold,
           },
         ],
-        recipients: [3],
+        recipients: ["bob"],
         channels: draft.value.channels,
       },
     });

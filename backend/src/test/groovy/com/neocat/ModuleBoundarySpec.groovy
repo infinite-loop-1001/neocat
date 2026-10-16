@@ -51,7 +51,7 @@ class ModuleBoundarySpec extends Specification {
 
         then: "10 个业务模块 + common 共享模块，无集中 web 模块"
         names.containsAll([
-                "identity", "isOrganization", "platform", "catalog", "ingest",
+                "identity", "organization", "platform", "catalog", "ingest",
                 "analysis", "trace", "query", "dashboard", "alert"
         ])
         names.contains("common")
@@ -90,8 +90,8 @@ class ModuleBoundarySpec extends Specification {
     }
 
     def "依赖图与设计文档一致：基础域只依赖 common"() {
-        expect: "isOrganization / platform / catalog / trace 不引用其他业务模块"
-        ["isOrganization", "platform", "catalog", "trace"].each { name ->
+        expect: "organization / platform / catalog / trace 不引用其他业务模块"
+        ["organization", "platform", "catalog", "trace"].each { name ->
             def deps = dependenciesOf(name)
             assert deps.every { it == "common" }:
                     "$name 的依赖超出预期：$deps"
@@ -150,7 +150,7 @@ class ModuleBoundarySpec extends Specification {
     def "HTTP 控制器归属于业务模块而非共享模块"() {
         given:
         def root = new File('src/main/java/com/neocat')
-        def business = ['identity', 'isOrganization', 'platform', 'catalog', 'ingest',
+        def business = ['identity', 'organization', 'platform', 'catalog', 'ingest',
                         'analysis', 'trace', 'query', 'dashboard', 'alert'] as Set
 
         expect:
@@ -164,7 +164,7 @@ class ModuleBoundarySpec extends Specification {
     def "生产模块不跨模块引用基础设施或 HTTP 入口"() {
         given:
         def root = new File('src/main/java/com/neocat')
-        def business = ['identity', 'isOrganization', 'platform', 'catalog', 'ingest',
+        def business = ['identity', 'organization', 'platform', 'catalog', 'ingest',
                         'analysis', 'trace', 'query', 'dashboard', 'alert'] as Set
 
         expect:

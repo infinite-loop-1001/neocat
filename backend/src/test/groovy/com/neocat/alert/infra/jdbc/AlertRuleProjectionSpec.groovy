@@ -21,7 +21,7 @@ class AlertRuleProjectionSpec extends Specification {
         def rule = AlertRule.draft(AlertScope.ORGANIZATION, 7L, '告警', '',
                 AlertTarget.rawMetric('order', 'TRANSACTION', 'URL', '/a'),
                 Combinator.AND, 1, [new Condition(Stat.HITS, Comparator.GT, 1d)],
-                [1L], [AlertChannel.EMAIL])
+                ['keith.ji'], [AlertChannel.EMAIL])
 
         when:
         def saved = repository.save(rule)
@@ -29,7 +29,7 @@ class AlertRuleProjectionSpec extends Specification {
         then:
         1 * mapper.insertRule({ row -> row.orgId == 7L }) >> { args -> args[0].id = 42L; 1 }
         1 * mapper.insertCondition(42L, 'HITS', 'GT', 1d)
-        1 * mapper.insertRecipient(42L, 1L, 'EMAIL')
+        1 * mapper.insertRecipient(42L, 'keith.ji', 'EMAIL')
         1 * index.alertRule(7L, 42L)
         saved.getId() == 42L
     }

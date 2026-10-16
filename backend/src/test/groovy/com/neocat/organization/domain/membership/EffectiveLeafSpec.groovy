@@ -27,12 +27,12 @@ class EffectiveLeafSpec extends Specification {
         nodes.findAll() >> tree()
 
         when:
-        service.addMember(3L, 100L)
+        service.addMember(3L, 'keith.ji')
 
         then:
-        1 * memberships.add(3L, 100L)
-        1 * memberships.orgsOf(100L) >> ([3L] as Set)
-        1 * leaves.replaceAll(100L, [3L] as Set)
+        1 * memberships.add(3L, 'keith.ji')
+        1 * memberships.orgsOf('keith.ji') >> ([3L] as Set)
+        1 * leaves.replaceAll('keith.ji', [3L] as Set)
     }
 
     def 'adding a member to an ancestor grants all descendant leaves'() {
@@ -41,12 +41,12 @@ class EffectiveLeafSpec extends Specification {
         nodes.findAll() >> tree()
 
         when:
-        service.addMember(1L, 100L)
+        service.addMember(1L, 'keith.ji')
 
         then:
-        1 * memberships.add(1L, 100L)
-        1 * memberships.orgsOf(100L) >> ([1L] as Set)
-        1 * leaves.replaceAll(100L, [3L, 4L] as Set)
+        1 * memberships.add(1L, 'keith.ji')
+        1 * memberships.orgsOf('keith.ji') >> ([1L] as Set)
+        1 * leaves.replaceAll('keith.ji', [3L, 4L] as Set)
     }
 
     def 'multiple membership paths to the same leaf are deduplicated after revocation'() {
@@ -54,22 +54,22 @@ class EffectiveLeafSpec extends Specification {
         nodes.findAll() >> tree()
 
         when:
-        service.removeMember(2L, 100L)
+        service.removeMember(2L, 'keith.ji')
 
         then:
-        1 * memberships.remove(2L, 100L)
-        1 * memberships.orgsOf(100L) >> ([3L, 1L] as Set)
-        1 * leaves.replaceAll(100L, [3L, 4L] as Set)
+        1 * memberships.remove(2L, 'keith.ji')
+        1 * memberships.orgsOf('keith.ji') >> ([3L, 1L] as Set)
+        1 * leaves.replaceAll('keith.ji', [3L, 4L] as Set)
     }
 
     def 'removing the last membership revokes every leaf immediately'() {
         when:
-        service.removeMember(3L, 100L)
+        service.removeMember(3L, 'keith.ji')
 
         then:
-        1 * memberships.remove(3L, 100L)
-        1 * memberships.orgsOf(100L) >> ([] as Set)
-        1 * leaves.replaceAll(100L, [] as Set)
+        1 * memberships.remove(3L, 'keith.ji')
+        1 * memberships.orgsOf('keith.ji') >> ([] as Set)
+        1 * leaves.replaceAll('keith.ji', [] as Set)
     }
 
     def 'turning a former leaf into a parent moves its effective permission to the new leaf'() {
@@ -77,22 +77,22 @@ class EffectiveLeafSpec extends Specification {
         nodes.findAll() >> (tree() + new OrgNode(5L, '支付小组', 3L))
 
         when:
-        service.recompute(100L)
+        service.recompute('keith.ji')
 
         then:
-        1 * memberships.orgsOf(100L) >> ([3L] as Set)
-        1 * leaves.replaceAll(100L, [5L] as Set)
+        1 * memberships.orgsOf('keith.ji') >> ([3L] as Set)
+        1 * leaves.replaceAll('keith.ji', [5L] as Set)
     }
 
     def 'direct member counts and effective leaf membership use distinct repositories'() {
         when:
         def direct = service.effectiveMembers(3L)
-        def effective = service.isEffectiveMember(100L, 3L)
+        def effective = service.isEffectiveMember('keith.ji', 3L)
 
         then:
-        1 * memberships.membersOf(3L) >> ([200L] as Set)
-        1 * leaves.leavesOf(100L) >> ([3L] as Set)
-        direct == [200L] as Set
+        1 * memberships.membersOf(3L) >> (['alice'] as Set)
+        1 * leaves.leavesOf('keith.ji') >> ([3L] as Set)
+        direct == ['alice'] as Set
         effective
     }
 
@@ -101,7 +101,7 @@ class EffectiveLeafSpec extends Specification {
         nodes.findById(9999L) >> null
 
         when:
-        service.addMember(9999L, 100L)
+        service.addMember(9999L, 'keith.ji')
 
         then:
         0 * memberships.add(_, _)
@@ -116,14 +116,14 @@ class EffectiveLeafSpec extends Specification {
         nodes.findAll() >> tree()
 
         when:
-        service.removeMember(2L, 100L)
+        service.removeMember(2L, 'keith.ji')
 
         then:
-        1 * memberships.remove(2L, 100L)
-        1 * leaves.leavesOf(100L) >> ([3L, 4L] as Set)
-        1 * memberships.orgsOf(100L) >> ([3L] as Set)
-        1 * leaves.replaceAll(100L, [3L] as Set)
-        1 * publisher.publishEvent(new EffectiveMembershipChanged(100L, 4L, false))
-        0 * publisher.publishEvent(new EffectiveMembershipChanged(100L, 3L, false))
+        1 * memberships.remove(2L, 'keith.ji')
+        1 * leaves.leavesOf('keith.ji') >> ([3L, 4L] as Set)
+        1 * memberships.orgsOf('keith.ji') >> ([3L] as Set)
+        1 * leaves.replaceAll('keith.ji', [3L] as Set)
+        1 * publisher.publishEvent(new EffectiveMembershipChanged('keith.ji', 4L, false))
+        0 * publisher.publishEvent(new EffectiveMembershipChanged('keith.ji', 3L, false))
     }
 }

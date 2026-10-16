@@ -14,15 +14,15 @@ public class OrganizationAccessAdapter implements OrgAccessGateway {
         this.organizations = organizations;
     }
     @Override
-    public boolean isEffectiveMember(long accountId, long orgId) {
-        return organizations.isEffectiveMember(accountId, orgId);
+    public boolean isEffectiveMember(String userAccount, long orgId) {
+        return organizations.isEffectiveMember(userAccount, orgId);
     }
     @Override
     public boolean isLeaf(long orgId) {
         return organizations.isLeaf(orgId);
     }
     @Override
-    public Set<Long> effectiveLeaves(long accountId) {
-        return organizations.effectiveLeaves(accountId);
+    public Set<Long> effectiveLeaves(String userAccount) {
+        return organizations.effectiveLeaves(userAccount);
     }
 }

@@ -130,7 +130,7 @@ test("真实 transport 不发送场景参数、不回退 mock；mock transport �
 
 test("mock 路由真正返回场景，标签及未知指标错误仍保留", async () => {
   resetMockState();
-  await mockRequest("/api/login", { method: "POST", body: JSON.stringify({ username: "root", password: "NeoCat@2026" }) });
+  await mockRequest("/api/login", { method: "POST", body: JSON.stringify({ userAccount: "root", password: "NeoCat@2026" }) });
   for (const scenario of ["all-null", "empty-points", "partial"]) {
     const params = new URLSearchParams({ service: "order", metric: "order.amount", range, mockMetric: scenario });
     const result = await mockRequest(`/api/reports/metric/count?${params}`, { method: "GET" });

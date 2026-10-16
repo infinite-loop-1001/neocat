@@ -59,17 +59,17 @@ class SessionInterceptorSpec extends Specification {
         response = Mock()
     }
 
-    def account(String username, boolean mustChangePassword = false) {
-        return new Account(7L, username, 'h', Role.USER, AccountStatus.ENABLED, mustChangePassword, NOW)
+    def account(String userAccount, boolean mustChangePassword = false) {
+        return new Account(7L, userAccount, 'h', Role.USER, AccountStatus.ENABLED, mustChangePassword, NOW)
     }
 
     def stubSession(Account user, Instant expiresAt = NOW.plusSeconds(1800)) {
-        def session = new Session('session-7', user.getId(), expiresAt)
+        def session = new Session('session-7', user.getUserAccount(), expiresAt)
         sessions = Stub(SessionRepository) {
             isValid('session-7', _) >> { String id, Instant time -> time.isBefore(expiresAt) }
             findSession('session-7') >> session
         }
-        accounts = Stub(AccountRepository) { findById(user.getId()) >> user }
+        accounts = Stub(AccountRepository) { findByUserAccount(user.getUserAccount()) >> user }
         TimeProvider.clock = Clock.fixed(NOW, ZoneOffset.UTC)
         interceptor = new SessionInterceptor(new SessionGuard(accounts, sessions))
         return session
@@ -157,7 +157,7 @@ class SessionInterceptorSpec extends Specification {
 
         then: "放行且账号被放入请求属性"
         allowed
-        1 * request.setAttribute(SessionInterceptor.ACCOUNT_ATTRIBUTE, { it instanceof Account && it.getUsername() == "alice" })
+        1 * request.setAttribute(SessionInterceptor.ACCOUNT_ATTRIBUTE, { it instanceof Account && it.getUserAccount() == "alice" })
     }
 
     def "会话过期后访问被拒绝"() {

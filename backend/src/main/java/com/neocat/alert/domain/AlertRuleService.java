@@ -33,17 +33,6 @@ public class AlertRuleService {
     /** 窗口长度上限：24 小时，避免长时间窗口导致告警实际不可用。 */
     private static final int MAX_WINDOW_POINTS = 1440;
 
-    private final Notifier notifier;
-
-    public AlertRuleService() {
-        this(Notifier.noop());
-    }
-
-    // fixme: 不要 autowire, 直接使用构造函数注入
-    @Autowired
-    public AlertRuleService(Notifier notifier) {
-        this.notifier = notifier;
-    }
     /**
      * 保存规则。
      *

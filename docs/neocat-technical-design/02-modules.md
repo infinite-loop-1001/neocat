@@ -12,8 +12,8 @@
 
 | 对象 | 关键字段 | 规则 |
 |---|---|---|
-| `Account` | id, username, passwordHash, role, status, mustChangePassword, createdAt | username 唯一且不可改；role ∈ {USER, ADMIN, SUPER_ADMIN} |
-| `Session` | id, accountId, expiresAt, lastSeenAt | 滑动 30 分钟；多会话并存 |
+| `Account` | id（仅存储主键）, userAccount, passwordHash, role, status, mustChangePassword, createdAt | userAccount（登录名，形如 keith.ji）唯一且不可改，业务一律用它引用账号；role ∈ {USER, ADMIN, SUPER_ADMIN} |
+| `Session` | id, userAccount, expiresAt, lastSeenAt | 滑动 30 分钟；多会话并存 |
 | `PasswordPolicy` | minLength=8 | 新旧密码不可相同 |
 
 ### 1.2 用例与规则
@@ -23,8 +23,8 @@
 | `createAccount` | 调用者 ∈ {ADMIN, SUPER_ADMIN}；创建者只能是 USER；密码 ≥ 8；置 `mustChangePassword=true` |
 | `grantAdmin / revokeAdmin` | 仅 SUPER_ADMIN；不允许修改自己；不能经 createAccount 绕过 |
 | `resetPassword` | 管理员可重置任意 USER/ADMIN；≥ 8 位；置 `mustChangePassword=true`；**吊销该账号全部会话** |
-| `disableAccount` | 吊销全部会话；发 `UserDisabledEvent`；保留组织直接成员关系 |
-| `enableAccount` | 发 `UserEnabledEvent`；**不恢复**告警收件关系 |
+| `disableAccount` | 吊销全部会话；发 `AccountStatusChanged(enabled=false)`；保留组织直接成员关系 |
+| `enableAccount` | 发 `AccountStatusChanged(enabled=true)`；**不恢复**告警收件关系 |
 | `login` | 账号存在且 enabled 且密码匹配；失败统一返回 `BAD_CREDENTIALS`（不暴露账号是否存在）；成功后查最近访问服务 |
 | `changePassword`（首登/重置后） | 仅允许此路径；新旧不同；清除标记；进入最近服务 Transaction 或服务列表 |
 | `touch(sessionId)` | 每次有效请求续期至 now+30min |
@@ -38,24 +38,23 @@
 isValid(sessionId):
   s = repo.find(sessionId)
   if s == null: return UNAUTHENTICATED
-  a = account(s.accountId)
+  a = account(s.userAccount)
   if a.status != ENABLED: repo.delete(sessionId); return UNAUTHENTICATED
   if s.expiresAt <= now: repo.delete(sessionId); return UNAUTHENTICATED
   if a.mustChangePassword and request not in {changePassword, logout, me}: return PASSWORD_CHANGE_REQUIRED
   repo.touch(sessionId, now+30min); return OK
 ```
 
-**最近访问服务**：`nc_access_history(accountId, serviceName, accessedAt)`，登录成功进入 `Transaction`；若该服务在当前查询范围内无数据，则进入服务列表。
+**最近访问服务**：`nc_access_history(userAccount, serviceName, accessedAt)`，登录成功进入 `Transaction`；若该服务在当前查询范围内无数据，则进入服务列表。
 
 ### 1.4 对外接口
 
 ```java
 public interface IdentityApi {
-    AuthResult authenticate(String username, String rawPassword);
+    AuthResult authenticate(String userAccount, String rawPassword);
     SessionInfo validate(String sessionId);
-    Optional<AccountView> findAccount(long id);
-    List<AccountView> findEnabledAccounts(Collection<Long> ids);   // alert 校验收件人
-    boolean isEnabled(long userId);
+    AccountView findByUserAccount(String userAccount);
+    boolean isEnabled(String userAccount);        // alert 校验收件人
 }
 ```
 
@@ -68,7 +67,7 @@ public interface IdentityApi {
 | 对象 | 字段 |
 |---|---|
 | `OrgNode` | id, name, parentId, leaf（派生） |
-| `Membership` | orgId, userId |
+| `Membership` | orgId, userAccount |
 
 ### 2.2 用例与规则
 
@@ -78,16 +77,16 @@ public interface IdentityApi {
 | `renameNode` | 同父下唯一 |
 | `addMember / removeMember` | 任意节点可加人；变更后**立即重算**受影响用户的有效叶子集合 |
 | `deleteNode` | 有子节点 → `HAS_CHILDREN`；叶子删除前返回影响预览；二次确认需提交组织名；确认后原子级联删除大盘/卡片/组织告警 |
-| `listEffectiveLeaves(userId)` | 直系 + 祖先继承 |
+| `listEffectiveLeaves(userAccount)` | 直系 + 祖先继承 |
 
 ### 2.3 关键算法
 
 **有效叶子集合（每次成员变更后重算，落 `nc_effective_leaf`）**
 
 ```text
-effectiveLeaves(userId):
+effectiveLeaves(userAccount):
   result = {}
-  for node in nodesUserDirectlyIn(userId):
+  for node in nodesUserDirectlyIn(userAccount):
     if isLeaf(node): result += node
     else: result += descendants(node) where isLeaf
   return result          // 同一叶子可能多路径到达，去重
@@ -104,9 +103,9 @@ public interface OrganizationApi {
     List<OrgNodeView> tree();
     Optional<OrgNodeView> node(long orgId);
     boolean isLeaf(long orgId);
-    boolean isEffectiveMember(long userId, long orgId);
-    Set<Long> effectiveLeaves(long userId);
-    Set<Long> effectiveMembers(long orgId);      // alert 选收件人
+    boolean isEffectiveMember(String userAccount, long orgId);
+    Set<Long> effectiveLeaves(String userAccount);
+    Set<String> effectiveMembers(long orgId);     // alert 选收件人
     DeletionPreview previewDeletion(long orgId);
     void deleteCascade(long orgId, String confirmName);
 }
@@ -585,7 +584,7 @@ public interface DashboardApi {
 |---|---|---|
 | `AlertRule` | id, scope(SERVICE\|ORGANIZATION), orgId, name, description, target(AlertableTarget), combinator(AND\|OR), windowPoints X, enabled, stateAt | 一条规则 = 一个目标序列 |
 | `Condition` | ruleId, stat, comparator(GT\|LT\|GTE\|LTE\|EQ\|NEQ), threshold | 多条共用 X 与同一目标 |
-| `Recipient` | ruleId, userId | 组织告警仅限该叶子有效成员 |
+| `Recipient` | ruleId, userAccount | 组织告警仅限该叶子有效成员 |
 | `RuleTargetRef` | ruleId, cardId? / rawStat | 组织告警可引用原始统计项或卡片结果 |
 | `WindowState` | ruleId, points[]（启用后写满 X 个点） | 启用/编辑/补人均清零 |
 | `Channel` | EMAIL / DINGTALK / FEISHU | 未配置的通道不可选 |
@@ -651,15 +650,15 @@ edit(rule, draft):
 **收件人与账号/组织变化（链路 32）**
 
 ```text
-on UserDisabledEvent(user): removeRecipient(user, allRules);   // 规则不关闭
-on UserEnabledEvent(user):  /* 不恢复收件关系 */
-on OrgMembershipChangedEvent(user, org, granted=false):
+on AccountStatusChanged(user, enabled=false): removeRecipient(user, allRules);   // 规则不关闭
+on AccountStatusChanged(user, enabled=true):  /* 不恢复收件关系 */
+on EffectiveMembershipChanged(user, org, granted=false):
     for rule in orgRules(org): if !stillEffectiveMember(user, org): removeRecipient
-on UserDisabledEvent / removeRecipient:
+on removeRecipient:
     if rule.recipients.isEmpty(): 保持 enabled，继续评估，但不发送
 on addRecipient(rule, users):
     state[rule] = empty          // 从补充时刻重新建立 X 点窗口
-on UserRoleChangedEvent / OrgMembershipChanged(granted=true):
+on EffectiveMembershipChanged(granted=true):
     不改变已有关闭状态（仅"补人"触发窗口重建）
 ```
 

@@ -89,8 +89,8 @@ public class CardService {
     }
     /** 新建卡片：校验目标与公式单位。 */
     @MySqlLocked("metadata")
-    public Card createCard(long accountId, long dashboardId, Card draft) {
-        Dashboard dashboard = requireDashboard(accountId, dashboardId);
+    public Card createCard(String userAccount, long dashboardId, Card draft) {
+        Dashboard dashboard = requireDashboard(userAccount, dashboardId);
         validate(draft);
         Card toSave = Card.withoutThresholds(0, dashboard.getId(), draft.getService(), draft.getTargetKind(), draft.getTargetType(),
                 draft.getTargetName(), draft.getMetricLabels(), draft.getInstanceScope(), draft.getFormula(),
@@ -105,8 +105,8 @@ public class CardService {
      */
     @Transactional
     @MySqlLocked("metadata")
-    public Card updateCard(long accountId, long cardId, Card draft) {
-        Card existing = requireCard(accountId, cardId);
+    public Card updateCard(String userAccount, long cardId, Card draft) {
+        Card existing = requireCard(userAccount, cardId);
         validate(draft);
 
         Card updated = Card.withoutThresholds(existing.getId(), existing.getDashboardId(), draft.getService(), draft.getTargetKind(),
@@ -125,8 +125,8 @@ public class CardService {
     /** 删除卡片：发布 {@link com.neocat.dashboard.domain.event.CardDeleted}。 */
     @Transactional
     @MySqlLocked("metadata")
-    public void deleteCard(long accountId, long cardId) {
-        Card existing = requireCard(accountId, cardId);
+    public void deleteCard(String userAccount, long cardId) {
+        Card existing = requireCard(userAccount, cardId);
         dashboards.deleteCard(cardId);
         events.publish(new CardDeleted(
                 existing.getId(), existing.getDashboardId(), orgIdOf(existing),
@@ -134,8 +134,8 @@ public class CardService {
     }
     /** 调整卡片顺序：不发布任何事件，因而不影响任何规则。 */
     @MySqlLocked("metadata")
-    public void reorder(long accountId, long dashboardId, List<Long> cardIds) {
-        Dashboard dashboard = requireDashboard(accountId, dashboardId);
+    public void reorder(String userAccount, long dashboardId, List<Long> cardIds) {
+        Dashboard dashboard = requireDashboard(userAccount, dashboardId);
         if (CollectionUtils.isEmpty(cardIds)) {
             return;
         }
@@ -154,10 +154,10 @@ public class CardService {
     /**
      * 组织的卡片列表（需成员资格）。
      */
-    public List<Card> cardsOf(long accountId, long dashboardId) {
+    public List<Card> cardsOf(String userAccount, long dashboardId) {
         Dashboard dashboard = Optional.ofNullable(dashboards.findById(dashboardId))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, dashboardId));
-        requireMember(accountId, dashboard.getOrgId());
+        requireMember(userAccount, dashboard.getOrgId());
         return dashboards.cardsOf(dashboardId);
     }
     /**
@@ -165,12 +165,12 @@ public class CardService {
      *
      * <p>要求成员资格；非成员按不可见处理。
      */
-    public Map<String, Object> series(long accountId, long cardId, String range) {
+    public Map<String, Object> series(String userAccount, long cardId, String range) {
         Card card = Optional.ofNullable(dashboards.findCard(cardId))
                 .orElseThrow(() -> new ResourceNotFoundException(CARD_NOT_FOUND, cardId));
         Dashboard dashboard = Optional.ofNullable(dashboards.findById(card.getDashboardId()))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, card.getDashboardId()));
-        requireMember(accountId, dashboard.getOrgId());
+        requireMember(userAccount, dashboard.getOrgId());
         if (Objects.isNull(seriesService)) {
             throw new BusinessRuleException(CARD_EVALUATION_UNAVAILABLE);
         }
@@ -200,8 +200,8 @@ public class CardService {
      * 组织告警可选目标并集（PRD 05 §9）：
      * 该叶子全部大盘已引用的**原始统计项** ∪ 卡片**计算结果**。
      */
-    public List<AlertableTarget> alertableTargets(long accountId, long orgId) {
-        if (!orgAccess.isEffectiveMember(accountId, orgId)) {
+    public List<AlertableTarget> alertableTargets(String userAccount, long orgId) {
+        if (!orgAccess.isEffectiveMember(userAccount, orgId)) {
             throw new AuthorizationException(NOT_ORG_MEMBER);
         }
         List<AlertableTarget> targets = new ArrayList<>();
@@ -273,25 +273,25 @@ public class CardService {
         }
     }
     /** 要求调用者是该组织的有效成员；管理员没有旁路（PRD 05 §1）。 */
-    private void requireMember(long accountId, long orgId) {
-        if (!orgAccess.isEffectiveMember(accountId, orgId)) {
+    private void requireMember(String userAccount, long orgId) {
+        if (!orgAccess.isEffectiveMember(userAccount, orgId)) {
             throw new AuthorizationException(NOT_ORG_MEMBER);
         }
     }
-    private Dashboard requireDashboard(long accountId, long dashboardId) {
+    private Dashboard requireDashboard(String userAccount, long dashboardId) {
         Dashboard dashboard = Optional.ofNullable(dashboards.findById(dashboardId))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, dashboardId));
-        if (!orgAccess.isEffectiveMember(accountId, dashboard.getOrgId())) {
+        if (!orgAccess.isEffectiveMember(userAccount, dashboard.getOrgId())) {
             throw new AuthorizationException(NOT_ORG_MEMBER);
         }
         return dashboard;
     }
-    private Card requireCard(long accountId, long cardId) {
+    private Card requireCard(String userAccount, long cardId) {
         Card card = Optional.ofNullable(dashboards.findCard(cardId))
                 .orElseThrow(() -> new ResourceNotFoundException(CARD_NOT_FOUND, cardId));
         Dashboard dashboard = Optional.ofNullable(dashboards.findById(card.getDashboardId()))
                 .orElseThrow(() -> new ResourceNotFoundException(DASHBOARD_NOT_FOUND, card.getDashboardId()));
-        if (!orgAccess.isEffectiveMember(accountId, dashboard.getOrgId())) {
+        if (!orgAccess.isEffectiveMember(userAccount, dashboard.getOrgId())) {
             throw new AuthorizationException(NOT_ORG_MEMBER);
         }
         return card;

@@ -11,7 +11,7 @@ import java.time.Instant;
 public class AccountRow {
     private Long id;
 
-    private String username;
+    private String userAccount;
 
     private String passwordHash;
 

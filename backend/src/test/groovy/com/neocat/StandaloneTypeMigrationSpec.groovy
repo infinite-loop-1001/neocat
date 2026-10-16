@@ -1,6 +1,5 @@
 package com.neocat
 
-import com.neocat.alert.domain.recipient.RecipientEvent
 import com.neocat.common.time.range.RangeSpec
 import com.neocat.dashboard.domain.event.CardEvent
 import com.neocat.dashboard.domain.formula.Formula
@@ -15,12 +14,12 @@ class StandaloneTypeMigrationSpec extends Specification {
         values
     }
 
-    def '全部 116 个类型保持所属模块的独立顶层文件，旧嵌套类型不残留'() {
+    def '全部 112 个类型保持所属模块的独立顶层文件，旧嵌套类型不残留'() {
         given:
         def migrations = properties('/standalone-type-migrations.properties')
 
         expect:
-        migrations.size() == 116
+        migrations.size() == 112
         migrations.each { oldName, newName ->
             if (newName.startsWith('com.neocat.client.')) {
                 assert new File("../client-java/src/main/java/${newName.replace('.', '/')}.java").isFile()
@@ -48,7 +47,9 @@ class StandaloneTypeMigrationSpec extends Specification {
             assert type.enclosingClass == null
             assert type.simpleName == oldName.substring(oldName.lastIndexOf('.') + 1)
             assert oldName.tokenize('.')[0..2] == newName.tokenize('.')[0..2]
-            assert newName.startsWith(oldName.substring(0, oldName.lastIndexOf('.')) + '.')
+            def oldPackage = oldName.substring(0, oldName.lastIndexOf('.'))
+            def allowedPackages = [oldPackage + '.', oldPackage.replace('.engine', '.entity.vo') + '.']
+            assert allowedPackages.any { newName.startsWith(it) }
             assert new File("src/main/java/${newName.replace('.', '/')}.java").isFile()
             assert !new File("src/main/java/${oldName.replace('.', '/')}.java").exists()
             assert type.classLoader.getResource(oldName.replace('.', '/') + '.class') == null
@@ -82,7 +83,7 @@ class StandaloneTypeMigrationSpec extends Specification {
         baseline.each { key, value ->
             def names = (value.isEmpty() ? [] as Set : value.split(',') as Set).intersect(movedNames)
             if (!names.isEmpty()) {
-                def actualKey = key == 'organization::organization' ? 'organization::isOrganization' : key
+                def actualKey = key
                 expectedMoved[actualKey] = names
             }
         }
@@ -96,6 +97,5 @@ class StandaloneTypeMigrationSpec extends Specification {
         Formula.permittedSubclasses*.simpleName as Set == ['Ref', 'Constant', 'Binary', 'Aggregate'] as Set
         RangeSpec.permittedSubclasses*.simpleName as Set == ['QuickRange', 'Hour', 'Day', 'Week', 'Month', 'Explicit'] as Set
         CardEvent.permittedSubclasses*.simpleName as Set == ['CardDeleted', 'CardTargetChanged'] as Set
-        RecipientEvent.permittedSubclasses*.simpleName as Set == ['UserDisabled', 'UserEnabled', 'OrgMembershipChanged', 'OrgDeleted'] as Set
     }
 }

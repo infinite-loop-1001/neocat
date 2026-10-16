@@ -1,4 +1,4 @@
-package com.neocat.alert.infra.listener
+package com.neocat.alert.application.handler
 
 
 import com.neocat.alert.domain.entity.AlertRule
@@ -14,15 +14,15 @@ import com.neocat.dashboard.api.internal.CardReferences
 import com.neocat.query.domain.stat.Stat
 import spock.lang.Specification
 
-class CardChangeListenerSpec extends Specification {
+class CardChangeEventHandlerSpec extends Specification {
     AlertRuleRepository rules = Mock()
     CardReferences references = Mock()
-    CardChangeListener listener = new CardChangeListener(rules, references)
+    CardChangeEventHandler handler = new CardChangeEventHandler(rules, references)
 
     static AlertRule rule(AlertTarget target, boolean enabled = true) {
         new AlertRule(4L, AlertScope.ORGANIZATION, 7L, '告警', '', target,
                 Combinator.AND, 1, [new Condition(Stat.HITS, Comparator.GT, 0d)],
-                [1L], [AlertChannel.EMAIL], enabled, false, enabled ? 100L : null)
+                ['keith.ji'], [AlertChannel.EMAIL], enabled, false)
     }
 
     def 'card formula change closes only that card rule, replacing its formula inputs'() {
@@ -32,13 +32,13 @@ class CardChangeListenerSpec extends Specification {
                 'failures / hits', ['FAILURES', 'HITS'], false)
 
         when:
-        listener.on(event)
+        handler.on(event)
 
         then:
         1 * rules.byOrg(7L) >> [current]
-        1 * rules.clearWindowState(4L)
+        1 * rules.clearAlertEvalCursor(4L)
         1 * rules.save({ it.getTarget().getFormulaStats() == [Stat.FAILURES, Stat.HITS]
-                && !it.isEnabled() && it.getStateSince() == null && !it.isInvalid() }) >> { args -> args[0] }
+                && !it.isEnabled() && !it.isInvalid() }) >> { args -> args[0] }
         0 * references._
     }
 
@@ -49,11 +49,11 @@ class CardChangeListenerSpec extends Specification {
                 null, ['HITS'], true)
 
         when:
-        listener.on(event)
+        handler.on(event)
 
         then:
         1 * rules.byOrg(7L) >> [current]
-        1 * rules.clearWindowState(4L)
+        1 * rules.clearAlertEvalCursor(4L)
         1 * rules.save({ it.isInvalid() && !it.isEnabled() && it.getTarget() == current.getTarget() }) >>
                 { args -> args[0] }
     }
@@ -65,13 +65,13 @@ class CardChangeListenerSpec extends Specification {
                 null, ['HITS'], true)
 
         when:
-        listener.on(event)
+        handler.on(event)
 
         then:
         1 * rules.byOrg(7L) >> [current]
         1 * references.referenced(7L, 'order', 'TRANSACTION', 'URL', '/a', null, 'HITS') >> true
         0 * rules.save(_)
-        0 * rules.clearWindowState(_)
+        0 * rules.clearAlertEvalCursor(_)
     }
 
     def 'raw stat rule is invalidated once its last card reference disappears'() {
@@ -81,12 +81,12 @@ class CardChangeListenerSpec extends Specification {
                 null, ['HITS'], true)
 
         when:
-        listener.on(event)
+        handler.on(event)
 
         then:
         1 * rules.byOrg(7L) >> [current]
         1 * references.referenced(7L, 'order', 'TRANSACTION', 'URL', '/a', null, 'HITS') >> false
-        1 * rules.clearWindowState(4L)
+        1 * rules.clearAlertEvalCursor(4L)
         1 * rules.save({ it.isInvalid() && !it.isEnabled() }) >> { args -> args[0] }
     }
 }

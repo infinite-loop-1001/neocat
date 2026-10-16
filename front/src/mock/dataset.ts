@@ -272,10 +272,10 @@ export const platform: PlatformProfile = {
 export const DEV_PASSWORD = "NeoCat@2026";
 
 export const accounts: Account[] = [
-  { id: 1, username: "root", password: DEV_PASSWORD, role: "SUPER_ADMIN", status: "ENABLED", mustChangePassword: false },
-  { id: 2, username: "alice", password: DEV_PASSWORD, role: "ADMIN", status: "ENABLED", mustChangePassword: false },
-  { id: 3, username: "bob", password: DEV_PASSWORD, role: "USER", status: "ENABLED", mustChangePassword: true },
-  { id: 4, username: "carol", password: DEV_PASSWORD, role: "USER", status: "DISABLED", mustChangePassword: false },
+  { userAccount: "root", password: DEV_PASSWORD, role: "SUPER_ADMIN", status: "ENABLED", mustChangePassword: false },
+  { userAccount: "alice", password: DEV_PASSWORD, role: "ADMIN", status: "ENABLED", mustChangePassword: false },
+  { userAccount: "bob", password: DEV_PASSWORD, role: "USER", status: "ENABLED", mustChangePassword: true },
+  { userAccount: "carol", password: DEV_PASSWORD, role: "USER", status: "DISABLED", mustChangePassword: false },
 ];
 
 export const orgs: OrgNode[] = [
@@ -696,7 +696,7 @@ export const alerts: AlertRule[] = [
     combinator: "AND",
     windowPoints: 3,
     conditions: [{ stat: "FAILURE_RATE", comparator: "GT", threshold: 0.05 }],
-    recipients: [3],
+    recipients: ["bob"],
     channels: ["EMAIL"],
     enabled: true,
     invalid: false,
@@ -720,7 +720,7 @@ export const alerts: AlertRule[] = [
       { stat: "FAILURE_RATE", comparator: "GT", threshold: 0.05 },
       { stat: "HITS", comparator: "LT", threshold: 10 },
     ],
-    recipients: [3],
+    recipients: ["bob"],
     channels: ["EMAIL", "DINGTALK"],
     enabled: false,
     invalid: false,

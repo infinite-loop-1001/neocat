@@ -60,7 +60,7 @@ public class SessionInterceptor implements HandlerInterceptor {
         }
 
         request.setAttribute(ACCOUNT_ATTRIBUTE, account);
-        request.setAttribute(RequestActor.ATTRIBUTE, new RequestActor(account.getId(), account.getRole().name()));
+        request.setAttribute(RequestActor.ATTRIBUTE, new RequestActor(account.getUserAccount(), account.getRole().name()));
         return true;
     }
     /** 读取当前账号；拦截器已保证存在。 */

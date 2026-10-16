@@ -8,7 +8,7 @@ import org.springframework.modulith.NamedInterface;
 /**
  * 受影响的大盘概况。
  */
-@NamedInterface("isOrganization")
+@NamedInterface("organization")
 @Getter
 @EqualsAndHashCode
 @ToString

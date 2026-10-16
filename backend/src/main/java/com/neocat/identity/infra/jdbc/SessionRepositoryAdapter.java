@@ -22,11 +22,11 @@ public class SessionRepositoryAdapter implements SessionRepository {
     }
 
     @Override
-    public Session create(long accountId, Instant at) {
+    public Session create(String userAccount, Instant at) {
         String id = UUID.randomUUID().toString();
         Instant expiresAt = at.plusSeconds(Session.SLIDING_SECONDS);
-        mapper.insert(id, accountId, Timestamp.from(at), Timestamp.from(expiresAt));
-        return new Session(id, accountId, expiresAt);
+        mapper.insert(id, userAccount, Timestamp.from(at), Timestamp.from(expiresAt));
+        return new Session(id, userAccount, expiresAt);
     }
 
     @Override
@@ -41,8 +41,8 @@ public class SessionRepositoryAdapter implements SessionRepository {
     }
 
     @Override
-    public void invalidateAllOf(long accountId) {
-        mapper.deleteByAccountId(accountId);
+    public void invalidateAllOf(String userAccount) {
+        mapper.deleteByUserAccount(userAccount);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class SessionRepositoryAdapter implements SessionRepository {
     @Override
     public Session findSession(String sessionId) {
         SessionRow row = mapper.selectById(sessionId);
-        return Objects.isNull(row) ? null : new Session(row.getId(), row.getAccountId(), row.getExpiresAt().toInstant());
+        return Objects.isNull(row) ? null : new Session(row.getId(), row.getUserAccount(), row.getExpiresAt().toInstant());
     }
 
 }

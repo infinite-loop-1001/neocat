@@ -13,17 +13,17 @@ public class MembershipRepositoryAdapter implements MembershipRepository {
         this.mapper = mapper;
     }
     @Override
-    public void add(long orgId, long accountId) { mapper.add(orgId, accountId); }
+    public void add(long orgId, String userAccount) { mapper.add(orgId, userAccount); }
 
     @Override
-    public void remove(long orgId, long accountId) { mapper.remove(orgId, accountId); }
+    public void remove(long orgId, String userAccount) { mapper.remove(orgId, userAccount); }
 
     @Override
-    public Set<Long> membersOf(long orgId) { return Set.copyOf(mapper.membersOf(orgId)); }
+    public Set<String> membersOf(long orgId) { return Set.copyOf(mapper.membersOf(orgId)); }
 
     @Override
-    public Set<Long> orgsOf(long accountId) { return Set.copyOf(mapper.orgsOf(accountId)); }
+    public Set<Long> orgsOf(String userAccount) { return Set.copyOf(mapper.orgsOf(userAccount)); }
 
     @Override
-    public void removeAllOf(long accountId) { mapper.removeAllOf(accountId); }
+    public void removeAllOf(String userAccount) { mapper.removeAllOf(userAccount); }
 }

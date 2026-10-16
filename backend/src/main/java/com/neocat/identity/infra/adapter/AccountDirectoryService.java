@@ -21,15 +21,16 @@ public class AccountDirectoryService implements AccountDirectory {
     }
 
     @Override
-    public boolean enabled(long accountId) {
-        var account = accounts.findById(accountId);
+    public boolean enabled(String userAccount) {
+        var account = accounts.findByUserAccount(userAccount);
         return Objects.nonNull(account) && account.enabled();
     }
     @Override
-    public long createInitialSuperAdmin(String username, String rawPassword) {
-        if (Objects.nonNull(accounts.findByUsername(username))) {
+    public String createInitialSuperAdmin(String userAccount, String rawPassword) {
+        if (Objects.nonNull(accounts.findByUserAccount(userAccount))) {
             throw new IllegalStateException("Initial super admin username already exists");
         }
-        return accounts.create(username, passwords.hash(rawPassword), Role.SUPER_ADMIN, true, TimeProvider.now()).getId();
+        return accounts.create(userAccount, passwords.hash(rawPassword), Role.SUPER_ADMIN, true, TimeProvider.now())
+                .getUserAccount();
     }
 }

@@ -10,7 +10,9 @@ import com.neocat.common.locking.MySqlLocked;
 import org.apache.commons.collections4.ListUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import org.apache.commons.collections4.CollectionUtils;
 import java.util.Objects;
 import java.util.NoSuchElementException;
@@ -18,16 +20,12 @@ import java.util.NoSuchElementException;
 /**
  * 收件人维护（PRD 06 §9）。
  *
- * <p>事件处理规则：
- * <table border="1">
- *   <caption>事件 → 收件人变化</caption>
- *   <tr><th>事件</th><th>动作</th></tr>
- *   <tr><td>账号禁用</td><td>从所有规则移除该账号；<b>规则不关闭</b></td></tr>
- *   <tr><td>账号启用</td><td><b>不做任何事</b>（不恢复收件关系）</td></tr>
- *   <tr><td>失去组织资格</td><td>从该组织的组织告警中移除；服务告警不受影响</td></tr>
- *   <tr><td>获得组织资格</td><td><b>不自动加入</b>（只做移除，不做自动加入）</td></tr>
- *   <tr><td>组织删除</td><td>该叶子规则置为失效但<b>保留配置</b></td></tr>
- * </table>
+ * <p>事件处理规则：账号禁用/失去组织资格只做**移除**，启用/获得资格**不自动加入**。
+ * 移除动作由 {@code RecipientEventHandler} 直接消费外部领域事件后完成；本类只保留收件人校验与窗口重建。
+ *
+ * <p>组织删除不在这里处理：叶子被删除时组织告警随大盘、卡片一并级联删除
+ * （PRD 01 §5.3、PRD 06 §12），由 {@code OrgDeletionEventHandler} 编排，
+ * 不是「失效但保留」。
  *
  * <p>「只做移除，不做自动加入」是有意为之：自动加入会让用户在不知情的情况下
  * 开始接收告警，而 PRD 06 §9 只要求移除，且 PRD 01 §3.4 明确「启用后不恢复收件人」。
@@ -50,49 +48,26 @@ public class RecipientService {
         this.recipientGateway = recipientGateway;
     }
 
-    // fixme: 这部分逻辑需要写到 EventHandler 里面, 并且根据不同的内部领域事件类型分开处理, 不要塞到一个方法里面
-    // rules: 处理内部领域事件涉及到领域内部逻辑时需要调用 DomainService, handler 只做逻辑的编排
-    /** 处理账号/组织事件，返回被修改的规则。 */
-    public List<AlertRule> onEvent(RecipientEvent event) {
-        if (Objects.isNull(event)) {
-            return Lists.newArrayList();
-        }
-        if (event instanceof UserDisabled disabled) {
-            return removeFromAll(disabled.getAccountId());
-        }
-        if (event instanceof UserEnabled) {
-            // 不恢复任何收件关系
-            return Lists.newArrayList();
-        }
-        if (event instanceof OrgMembershipChanged changed) {
-            return changed.isGranted() ? Lists.newArrayList() : removeFromOrg(changed.getOrgId(), changed.getAccountId());
-        }
-        if (event instanceof OrgDeleted deleted) {
-            return invalidateOrg(deleted.getOrgId());
-        }
-        return Lists.newArrayList();
-    }
-
     /**
      * 计算某规则当前的有效收件人。
      *
-     * <p>剔除禁用账号；组织告警还要求收件人仍是该叶子的有效成员。
-     * 规则本身不因收件人清空而关闭。
+     * <p>组织告警要求收件人仍是该叶子的有效成员；服务告警原样保留。
+     * 禁用账号在禁用时就已由 {@code RecipientEventHandler} 从规则中移除，
+     * 因此这里不再重复查询启用状态。
+     *
+     * <p>规则本身不因收件人清空而关闭。
      */
-    public List<Long> effectiveRecipients(AlertRule rule) {
+    public List<String> effectiveRecipients(AlertRule rule) {
         if (Objects.isNull(rule) || CollectionUtils.isEmpty(rule.getRecipients())) {
             return Lists.newArrayList();
         }
-        List<Long> result = new ArrayList<>();
-        for (Long accountId : rule.getRecipients()) {
-            if (!recipientGateway.isEnabled(accountId)) {
-                continue;
-            }
+        List<String> result = new ArrayList<>();
+        for (String userAccount : rule.getRecipients()) {
             if (rule.isOrganization() && Objects.nonNull(rule.getOrgId())
-                    && !recipientGateway.isEffectiveMember(accountId, rule.getOrgId())) {
+                    && !recipientGateway.isEffectiveMember(userAccount, rule.getOrgId())) {
                 continue;
             }
-            result.add(accountId);
+            result.add(userAccount);
         }
         return List.copyOf(result);
     }
@@ -101,71 +76,34 @@ public class RecipientService {
      * 补充收件人：**重建窗口基线**，不追溯旧异常（PRD 06 §9）。
      */
     @MySqlLocked("metadata")
-    public AlertRule updateRecipients(long ruleId, List<String> recipients, long addedAt) {
+    public AlertRule updateRecipients(long ruleId, List<String> userAccounts, long addedAt) {
         AlertRule rule = Optional.ofNullable(alertRuleRepository.findById(ruleId))
                 .orElseThrow(() -> new NoSuchElementException("规则不存在：" + ruleId));
-        List<String> sanitized = ListUtils.emptyIfNull(recipients).stream().distinct().toList();
+        List<String> sanitized = ListUtils.emptyIfNull(userAccounts).stream().distinct().toList();
 
         AlertRule updated = rule.withRecipients(sanitized);
         AlertRule saved = alertRuleRepository.save(updated);
 
         // 窗口重建：新基线为补充时刻，点集为空
         // fixme: 先修改 AlterRule 再和告警窗口通过领域事件交互
-        alertRuleRepository.clearWindowState(ruleId);
-        alertRuleRepository.saveWindowState(AlertEvalCursor.empty(ruleId, addedAt));
+        alertRuleRepository.clearAlertEvalCursor(ruleId);
+        alertRuleRepository.saveAlertEvalCursor(AlertEvalCursor.empty(ruleId, addedAt));
         return saved;
     }
     /** 校验收件人选择合法：账号必须启用；组织告警还必须是该叶子的有效成员。 */
-    public void validateSelection(AlertRule rule, List<Long> recipients) {
-        if (CollectionUtils.isEmpty(recipients)) {
+    public void validateSelection(AlertRule rule, List<String> userAccounts) {
+        if (CollectionUtils.isEmpty(userAccounts)) {
             return;
         }
-        // rules: 遍历容器的时候不要单独 for 循环做可能高耗时的业务逻辑 (如 rpc, 数据库操作), 尽量使用批量处理
-        for (Long accountId : recipients) {
-            if (!recipientGateway.isEnabled(accountId)) {
-                throw new IllegalArgumentException("收件人必须是启用状态的账号：" + accountId);
+        // fixme: 这里是逐个账号做 RPC, 后续应改成批量校验账号启用状态与成员资格
+        for (String userAccount : userAccounts) {
+            if (!recipientGateway.isEnabled(userAccount)) {
+                throw new IllegalArgumentException("收件人必须是启用状态的账号：" + userAccount);
             }
             if (rule.isOrganization() && Objects.nonNull(rule.getOrgId())
-                    && !recipientGateway.isEffectiveMember(accountId, rule.getOrgId())) {
-                throw new IllegalArgumentException("组织告警的收件人必须是该叶子的有效成员：" + accountId);
+                    && !recipientGateway.isEffectiveMember(userAccount, rule.getOrgId())) {
+                throw new IllegalArgumentException("组织告警的收件人必须是该叶子的有效成员：" + userAccount);
             }
         }
-    }
-
-    // ── 内部 ─────────────────────────────────────────────────
-
-    private List<AlertRule> removeFromAll(long accountId) {
-        List<AlertRule> changed = new ArrayList<>();
-        for (AlertRule rule : alertRuleRepository.findAll()) {
-            if (CollectionUtils.isEmpty(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
-                continue;
-            }
-            List<Long> remaining = rule.getRecipients().stream().filter(id -> id != accountId).toList();
-            changed.add(alertRuleRepository.save(rule.withRecipients(remaining)));
-        }
-        return changed;
-    }
-
-    private List<AlertRule> removeFromOrg(long orgId, long accountId) {
-        List<AlertRule> changed = new ArrayList<>();
-        for (AlertRule rule : alertRuleRepository.byOrg(orgId)) {
-            // fixme: 抽一个公共方法在当前类里
-            if (CollectionUtils.isEmpty(rule.getRecipients()) || !rule.getRecipients().contains(accountId)) {
-                continue;
-            }
-            List<Long> remaining = rule.getRecipients().stream().filter(id -> id != accountId).toList();
-            changed.add(alertRuleRepository.save(rule.withRecipients(remaining)));
-        }
-        return changed;
-    }
-    /** 组织删除：该叶子组织告警失效但保留配置。 */
-    private List<AlertRule> invalidateOrg(long orgId) {
-        List<AlertRule> changed = new ArrayList<>();
-        // rules: 遍历的容器需要遍历具体容器, 不要写类似 repository.byOrg(orgId) 这种的表达式
-        for (AlertRule rule : alertRuleRepository.byOrg(orgId)) {
-            // rules: 不要在循环里操作数据库, 尽量使用批量更新逻辑
-            changed.add(alertRuleRepository.save(rule.withInvalid(true).withEnabled(false)));
-        }
-        return changed;
     }
 }

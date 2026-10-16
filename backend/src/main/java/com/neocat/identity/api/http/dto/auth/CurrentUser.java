@@ -8,11 +8,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Getter
 @AllArgsConstructor
 public class CurrentUser {
-    @Schema(description = "账号 ID")
-    private final long id;
-
-    @Schema(description = "登录名")
-    private final String username;
+    @Schema(description = "账号标识（登录名，全局唯一，形如 keith.ji）")
+    private final String userAccount;
 
     @Schema(description = "角色：USER | ADMIN | SUPER_ADMIN")
     private final String role;

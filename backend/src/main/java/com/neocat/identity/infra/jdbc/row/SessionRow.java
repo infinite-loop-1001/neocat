@@ -9,7 +9,7 @@ public class SessionRow {
 
     private String id;
 
-    private long accountId;
+    private String userAccount;
 
     private Timestamp expiresAt;
 

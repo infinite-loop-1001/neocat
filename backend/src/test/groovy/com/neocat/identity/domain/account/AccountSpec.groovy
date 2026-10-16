@@ -48,7 +48,7 @@ class AccountSpec extends Specification {
         def created = service.create('alice', '12345678', NOW)
 
         then:
-        1 * accounts.findByUsername('alice') >> null
+        1 * accounts.findByUserAccount('alice') >> null
         1 * hasher.hash('12345678') >> 'hash'
         1 * accounts.create('alice', 'hash', Role.USER, true, NOW) >> alice()
         created.isMustChangePassword()
@@ -60,7 +60,7 @@ class AccountSpec extends Specification {
         service.create('alice', '12345678', NOW)
 
         then:
-        1 * accounts.findByUsername('alice') >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         0 * hasher.hash(_)
         0 * accounts.create(_, _, _, _, _)
         def error = thrown(NeocatException)
@@ -83,7 +83,7 @@ class AccountSpec extends Specification {
 
     def 'only super admin can grant admin, and cannot modify their own role'() {
         when:
-        service.changeRole(7L, Role.ADMIN, Role.ADMIN)
+        service.changeRole('alice', Role.ADMIN, Role.ADMIN)
 
         then:
         0 * accounts.save(_)
@@ -91,7 +91,7 @@ class AccountSpec extends Specification {
         forbidden.code() == FORBIDDEN
 
         when:
-        service.changeRole(7L, Role.ADMIN, Role.SUPER_ADMIN, 7L)
+        service.changeRole('alice', Role.ADMIN, Role.SUPER_ADMIN, 'alice')
 
         then:
         0 * accounts.save(_)
@@ -101,43 +101,43 @@ class AccountSpec extends Specification {
 
     def 'super admin can promote and demote another account'() {
         when:
-        def promoted = service.changeRole(7L, Role.ADMIN, Role.SUPER_ADMIN, 1L)
+        def promoted = service.changeRole('alice', Role.ADMIN, Role.SUPER_ADMIN, 'root')
 
         then:
-        1 * accounts.findById(7L) >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         1 * accounts.save({ it.getRole() == Role.ADMIN }) >> { args -> args[0] }
         promoted.getRole() == Role.ADMIN
     }
 
     def 'reset password forces change and invalidates all sessions'() {
         when:
-        def changed = service.resetPassword(7L, 'newpass123', NOW)
+        def changed = service.resetPassword('alice', 'newpass123', NOW)
 
         then:
-        1 * accounts.findById(7L) >> alice(false)
+        1 * accounts.findByUserAccount('alice') >> alice(false)
         1 * hasher.hash('newpass123') >> 'new-hash'
         1 * accounts.save({ it.isMustChangePassword() && it.getPasswordHash() == 'new-hash' }) >>
                 { args -> args[0] }
-        1 * sessions.invalidateAllOf(7L)
+        1 * sessions.invalidateAllOf('alice')
         changed.isMustChangePassword()
     }
 
     def 'disable revokes sessions and enable retains membership without restoring recipients'() {
         when:
-        def disabled = service.disable(7L, NOW)
+        def disabled = service.disable('alice', NOW)
 
         then:
-        1 * accounts.findById(7L) >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         1 * accounts.save({ it.getStatus() == AccountStatus.DISABLED }) >> { args -> args[0] }
-        1 * sessions.invalidateAllOf(7L)
+        1 * sessions.invalidateAllOf('alice')
         disabled.isPreservedMemberships()
         disabled.status() == AccountStatus.DISABLED
 
         when:
-        def enabled = service.enable(7L, NOW)
+        def enabled = service.enable('alice', NOW)
 
         then:
-        1 * accounts.findById(7L) >> alice().withStatus(AccountStatus.DISABLED)
+        1 * accounts.findByUserAccount('alice') >> alice().withStatus(AccountStatus.DISABLED)
         1 * accounts.save({ it.getStatus() == AccountStatus.ENABLED }) >> { args -> args[0] }
         0 * sessions.invalidateAllOf(_)
         !enabled.isRecipientsRestored()
@@ -149,39 +149,39 @@ class AccountSpec extends Specification {
         def service = new AccountService(accounts, sessions, hasher, history, publisher)
 
         when:
-        service.disable(7L, NOW)
+        service.disable('alice', NOW)
 
         then:
-        1 * accounts.findById(7L) >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         1 * accounts.save({ it.getStatus() == AccountStatus.DISABLED }) >> { args -> args[0] }
-        1 * sessions.invalidateAllOf(7L)
-        1 * publisher.publishEvent(new AccountStatusChanged(7L, false))
+        1 * sessions.invalidateAllOf('alice')
+        1 * publisher.publishEvent(new AccountStatusChanged('alice', false))
     }
 
     def 'wrong old password, same new password and short new password fail separately'() {
         when:
-        service.changePassword(7L, 'wrong', 'newpass123', NOW)
+        service.changePassword('alice', 'wrong', 'newpass123', NOW)
 
         then:
-        1 * accounts.findById(7L) >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         1 * hasher.matches('wrong', 'hash') >> false
         def wrongOld = thrown(NeocatException)
         wrongOld.code() == BAD_CREDENTIALS
 
         when:
-        service.changePassword(7L, '12345678', '12345678', NOW)
+        service.changePassword('alice', '12345678', '12345678', NOW)
 
         then:
-        1 * accounts.findById(7L) >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         1 * hasher.matches('12345678', 'hash') >> true
         def unchanged = thrown(NeocatException)
         unchanged.code() == PASSWORD_UNCHANGED
 
         when:
-        service.changePassword(7L, '12345678', 'short', NOW)
+        service.changePassword('alice', '12345678', 'short', NOW)
 
         then:
-        1 * accounts.findById(7L) >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         1 * hasher.matches('12345678', 'hash') >> true
         def tooShort = thrown(NeocatException)
         tooShort.code() == PASSWORD_TOO_SHORT
@@ -189,10 +189,10 @@ class AccountSpec extends Specification {
 
     def 'successful password change clears the first-login flag'() {
         when:
-        def changed = service.changePassword(7L, '12345678', 'newpass123', NOW)
+        def changed = service.changePassword('alice', '12345678', 'newpass123', NOW)
 
         then:
-        1 * accounts.findById(7L) >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         1 * hasher.matches('12345678', 'hash') >> true
         1 * hasher.hash('newpass123') >> 'new-hash'
         1 * accounts.save({ !it.isMustChangePassword() && it.getPasswordHash() == 'new-hash' }) >>
@@ -202,10 +202,10 @@ class AccountSpec extends Specification {
 
     def 'missing account on password reset uses user-not-found error'() {
         when:
-        service.resetPassword(9999L, 'newpass123', NOW)
+        service.resetPassword('ghost', 'newpass123', NOW)
 
         then:
-        1 * accounts.findById(9999L) >> null
+        1 * accounts.findByUserAccount('ghost') >> null
         def missing = thrown(NeocatException)
         missing.code() == USER_NOT_FOUND
     }
@@ -218,7 +218,7 @@ class AccountSpec extends Specification {
         auth.login('ghost', '12345678', NOW)
 
         then:
-        1 * accounts.findByUsername('ghost') >> null
+        1 * accounts.findByUserAccount('ghost') >> null
         def unknown = thrown(NeocatException)
         unknown.code() == BAD_CREDENTIALS
 
@@ -226,7 +226,7 @@ class AccountSpec extends Specification {
         auth.login('alice', '12345678', NOW)
 
         then:
-        1 * accounts.findByUsername('alice') >> alice().withStatus(AccountStatus.DISABLED)
+        1 * accounts.findByUserAccount('alice') >> alice().withStatus(AccountStatus.DISABLED)
         def disabled = thrown(NeocatException)
         disabled.code() == BAD_CREDENTIALS
 
@@ -234,7 +234,7 @@ class AccountSpec extends Specification {
         auth.login('alice', 'wrongpass', NOW)
 
         then:
-        1 * accounts.findByUsername('alice') >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         1 * hasher.matches('wrongpass', 'hash') >> false
         def invalid = thrown(NeocatException)
         invalid.code() == BAD_CREDENTIALS
@@ -243,15 +243,15 @@ class AccountSpec extends Specification {
     def 'successful login creates session and returns the password-change requirement'() {
         given:
         def auth = new AuthenticationService(accounts, sessions, hasher)
-        def session = new Session('sid', 7L, NOW.plusSeconds(1800))
+        def session = new Session('sid', 'alice', NOW.plusSeconds(1800))
 
         when:
         def result = auth.login('alice', '12345678', NOW)
 
         then:
-        1 * accounts.findByUsername('alice') >> alice()
+        1 * accounts.findByUserAccount('alice') >> alice()
         1 * hasher.matches('12345678', 'hash') >> true
-        1 * sessions.create(7L, NOW) >> session
+        1 * sessions.create('alice', NOW) >> session
         result.getSession() == session
         result.isMustChangePassword()
     }

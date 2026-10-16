@@ -8,8 +8,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Getter
 @AllArgsConstructor
 public class LoginRequest {
-    @Schema(description = "登录名", requiredMode = Schema.RequiredMode.REQUIRED)
-    private final String username;
+    @Schema(description = "账号标识（登录名）", requiredMode = Schema.RequiredMode.REQUIRED)
+    private final String userAccount;
 
     @Schema(description = "口令（明文只在传输层出现，服务端只存哈希）",
             requiredMode = Schema.RequiredMode.REQUIRED)

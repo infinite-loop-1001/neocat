@@ -22,12 +22,12 @@ public class AccessHistoryRepositoryAdapter implements AccessHistoryRepository {
         this.mapper = mapper;
     }
     @Override
-    public void record(long accountId, String serviceName, Instant at) {
-        // 主键为 (account_id, service_name)，因此同一服务重复访问只更新时间
-        mapper.upsert(accountId, serviceName, Timestamp.from(at));
+    public void record(String userAccount, String serviceName, Instant at) {
+        // 唯一键为 (user_account, service_name)，因此同一服务重复访问只更新时间
+        mapper.upsert(userAccount, serviceName, Timestamp.from(at));
     }
     @Override
-    public List<String> recentServices(long accountId, int limit) {
-        return mapper.selectRecentServices(accountId, Math.max(1, limit));
+    public List<String> recentServices(String userAccount, int limit) {
+        return mapper.selectRecentServices(userAccount, Math.max(1, limit));
     }
 }

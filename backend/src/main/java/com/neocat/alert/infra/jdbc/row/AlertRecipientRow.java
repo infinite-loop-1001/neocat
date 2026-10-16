@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class AlertRecipientRow {
 
-    private long accountId;
+    private String userAccount;
 
     private String channel;
 

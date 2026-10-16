@@ -26,7 +26,9 @@ public interface AlertRuleRepository {
 
     void delete(long ruleId);
 
-    void saveWindowState(AlertEvalCursor state);
+    void saveAlertEvalCursor(AlertEvalCursor state);
 
-    void clearWindowState(long ruleId);
+    AlertEvalCursor findAlertEvalCursor(long ruleId);
+
+    void clearAlertEvalCursor(long ruleId);
 }

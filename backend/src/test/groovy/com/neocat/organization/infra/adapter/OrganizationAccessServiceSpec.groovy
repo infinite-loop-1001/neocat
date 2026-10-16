@@ -26,10 +26,10 @@ class OrganizationAccessServiceSpec extends Specification {
         def service = new OrganizationAccessService(Stub(OrgNodeRepository), leaves)
 
         when:
-        def allowed = service.isEffectiveMember(12L, 3L)
+        def allowed = service.isEffectiveMember('keith.ji', 3L)
 
         then:
-        1 * leaves.leavesOf(12L) >> ([3L] as Set)
+        1 * leaves.leavesOf('keith.ji') >> ([3L] as Set)
         allowed
     }
 }

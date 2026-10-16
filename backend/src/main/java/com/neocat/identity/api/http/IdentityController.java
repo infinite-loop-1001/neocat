@@ -68,7 +68,7 @@ public class IdentityController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request,
                                                      HttpServletResponse response) {
-        LoginResult result = authentication.login(request.getUsername(), request.getPassword(), TimeProvider.now());
+        LoginResult result = authentication.login(request.getUserAccount(), request.getPassword(), TimeProvider.now());
 
         Cookie cookie = new Cookie(SessionInterceptor.SESSION_COOKIE, result.getSession().getId());
         cookie.setHttpOnly(true);
@@ -76,7 +76,7 @@ public class IdentityController {
         cookie.setMaxAge((int) Session.SLIDING_SECONDS);
         response.addCookie(cookie);
 
-        LoginTarget target = accounts.resolveLoginTarget(result.getAccount().getId(), availability);
+        LoginTarget target = accounts.resolveLoginTarget(result.getAccount().getUserAccount(), availability);
 
         return ResponseEntity.ok(IdentityConvert.login(result, target));
     }
@@ -111,7 +111,7 @@ public class IdentityController {
     public ResponseEntity<Success> changePassword(@RequestBody ChangePasswordRequest body,
                                                               HttpServletRequest request) {
         Account account = SessionInterceptor.currentAccount(request);
-        accounts.changePassword(account.getId(), body.getOldPassword(), body.getNewPassword(), TimeProvider.now());
+        accounts.changePassword(account.getUserAccount(), body.getOldPassword(), body.getNewPassword(), TimeProvider.now());
         return ResponseEntity.ok(new Success(true));
     }
 }

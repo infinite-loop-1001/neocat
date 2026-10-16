@@ -149,7 +149,7 @@ class RuntimeConfigSpec extends Specification {
         ApolloConfigGuard.FRAMEWORK_KEYS.each { environment.setProperty(it, 'x') }
         ApolloConfigGuard.DYNAMIC_CONFIG_TYPES.each { type -> type.declaredFields.each { field ->
             def type_ = field.getType()
-            def value = type_ == double.class ? '1.0' : type_ == boolean.class ? 'true' : '10'
+            def value = type_ == double.class ? '1.0' : (type_ == boolean.class || type_ == Boolean.class) ? 'true' : '10'
             environment.setProperty(keyOf(field), value)
         } }
         environment.setProperty('server.port', '8080')

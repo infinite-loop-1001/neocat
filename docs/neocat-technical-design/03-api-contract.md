@@ -66,9 +66,9 @@
 |---|---|---|---|
 | GET | `/api/platform/init-status` | 匿名 | `{ initialized: bool }` |
 | POST | `/api/platform/initialize` | 匿名（仅未初始化时） | `{ timezone, adminUsername, adminPassword }` |
-| POST | `/api/login` | 匿名 | `{ username, password }` → `{ user, mustChangePassword, entry }` |
+| POST | `/api/login` | 匿名 | `{ userAccount, password }` → `{ user, mustChangePassword, entry }` |
 | POST | `/api/logout` | 登录 | 仅注销当前会话 |
-| GET | `/api/me` | 登录 | `{ id, username, role, mustChangePassword }` |
+| GET | `/api/me` | 登录 | `{ userAccount, role, mustChangePassword }` |
 | POST | `/api/me/password` | 登录（含强制改密会话） | `{ oldPassword, newPassword }` |
 
 **登录成功入口 `entry`**
@@ -86,11 +86,11 @@
 | 方法 | 路径 | 权限 | 说明 |
 |---|---|---|---|
 | GET | `/api/users` | ADMIN | 列表（含角色、状态、是否需改密） |
-| POST | `/api/users` | ADMIN | `{ username, password }` → 创建 USER；密码 ≥ 8；用户名唯一 |
-| POST | `/api/users/{id}/password/reset` | ADMIN | `{ password }`；置强制改密；吊销该账号全部会话 |
-| POST | `/api/users/{id}/role` | SUPER_ADMIN | `{ role: "ADMIN" \| "USER" }` |
-| POST | `/api/users/{id}/disable` | ADMIN | 吊销会话 + 移除告警收件人；保留组织成员关系 |
-| POST | `/api/users/{id}/enable` | ADMIN | 恢复登录与组织成员继承；**不恢复**收件人 |
+| POST | `/api/users` | ADMIN | `{ userAccount, password }` → 创建 USER；密码 ≥ 8；账号标识唯一 |
+| POST | `/api/users/{userAccount}/password/reset` | ADMIN | `{ password }`；置强制改密；吊销该账号全部会话 |
+| POST | `/api/users/{userAccount}/role` | SUPER_ADMIN | `{ role: "ADMIN" \| "USER" }` |
+| POST | `/api/users/{userAccount}/disable` | ADMIN | 吊销会话 + 移除告警收件人；保留组织成员关系 |
+| POST | `/api/users/{userAccount}/enable` | ADMIN | 恢复登录与组织成员继承；**不恢复**收件人 |
 
 管理员不能授予 ADMIN（返回 `FORBIDDEN`）；超管不能修改自己（返回 `FORBIDDEN`）；一期不支持删除账号与改用户名。
 
@@ -104,8 +104,8 @@
 | GET | `/api/orgs/mine` | 登录 | 当前用户有权限的叶子列表（大盘入口） |
 | POST | `/api/orgs` | ADMIN | `{ name, parentId \| null }` |
 | POST | `/api/orgs/{id}/rename` | ADMIN | `{ name }` |
-| POST | `/api/orgs/{id}/members` | ADMIN | `{ userId }` |
-| DELETE | `/api/orgs/{id}/members/{userId}` | ADMIN | 移除成员 |
+| POST | `/api/orgs/{id}/members` | ADMIN | `{ userAccount }` |
+| DELETE | `/api/orgs/{id}/members/{userAccount}` | ADMIN | 移除成员 |
 | GET | `/api/orgs/{id}/deletion-preview` | ADMIN | `{ orgName, dashboards:[{id,name,cardCount}], alertRuleCount, memberCount }` |
 | DELETE | `/api/orgs/{id}` | ADMIN | `?confirmName=<组织名>`；不匹配 → `NAME_DUPLICATED` 语义拒绝 |
 
@@ -383,7 +383,7 @@ Metric 页面不从旧排名列表累加总量，使用以下独立契约。真�
     { "stat": "FAILURE_RATE", "comparator": "GT", "threshold": 0.05 },
     { "stat": "HITS", "comparator": "GTE", "threshold": 10 }
   ],
-  "recipients": [3, 8],
+  "recipients": ["keith.ji", "alice"],
   "channels": ["EMAIL", "DINGTALK"]
 }
 ```
