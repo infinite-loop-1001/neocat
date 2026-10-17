@@ -20,6 +20,8 @@ target/
 ### front ###
 front/node_modules/
 front/dist/
+front/.env.local
+front/.env.*.local
 
 ### Others ###
 data/

@@ -16,7 +16,7 @@ curl --fail 'http://<APOLLO_META>:8080/services/config?appId=neocat'  # 不把�
 # 核对 count/missing/last/time/snapshot 列和元数据 source，不能仅数表
 ```
 
-**重要的前端阻断项**：当前 `front/vite.config.ts` 仅配置 `server.port=5173`，**没有 `/api` 代理**；`front/src/api/client.ts` 真实模式发相对 `/api` 请求，直接运行 `VITE_USE_MOCK=false npm run dev` 会请求 Vite 5173 而非 Spring 8080。前端真实联调须先由开发在隔离分支给 Vite `server` 增加 `proxy: { '/api': { target: 'http://127.0.0.1:8080', changeOrigin: true } }` 并重启，或用**同源反向代理**同时转发页面和 `/api`（保持 Cookie 同源）；DevTools Network 确认 `/api/platform/init-status` 非 Vite HTML/404 且由后端响应后再开始 UI 用例。没有该前置条件，前端项记 BLOCKED，不能用 mock 截图冒充。
+**前端真实联调的代理前置已就绪**：`front/vite.config.ts` 的 `server.proxy['/api']` 已指向 `http://127.0.0.1:8080`（`changeOrigin: true`），`VITE_USE_MOCK=false npm run dev` 直接同源联调。后端不在本机时改 `target`，或用**同源反向代理**同时转发页面和 `/api`（保持 Cookie 同源）。开始 UI 用例前必须用 DevTools Network 确认 `/api/platform/init-status` 由后端响应（JSON），而不是 Vite HTML 或 500；后端未启动时该请求为 500，属预期。不能把 mock 截图当作联调证据。
 
 应用机从仓库根构建并启动后端（配置由 Apollo 客户端加载，必须提供 `-Dapollo.meta`/`APOLLO_META`）：
 

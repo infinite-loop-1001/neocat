@@ -119,9 +119,12 @@ Protobuf 字段号不一致**不会报错**，而是静默解析错位导致数�
   手写的行为方法保留原名（例如 `ParseOutcome.valid()`、`TraceTreeNode.messageId()`）。
 - **`-parameters` 编译参数是关键依赖。** 普通类的 `@RequestBody` 绑定靠它；删掉会让 JSON 字段
   静默变成 `null`，而 Groovy mock 单测**测不出**。两个 POM 里都不要移除。
-- **前端没有 `/api` 代理。** `front/vite.config.ts` 只设了 `server.port`。因此
-  `VITE_USE_MOCK=false npm run dev` 在补代理（或同源反向代理）之前是坏的。
-  前端默认走 mock（`VITE_USE_MOCK !== "false"`）。
+- **前端 `/api` 代理已补齐（`front/vite.config.ts`）。** `server.proxy['/api']` 指向
+  `http://127.0.0.1:8080`，`changeOrigin: true`；`VITE_USE_MOCK=false npm run dev` 可直接同源联调
+  （浏览器只见 5173，登录 Cookie 同源回传）。后端地址不同机时改 target 或用同源反向代理。
+  前端默认走 mock（`VITE_USE_MOCK !== "false"`）；关闭方式：`front/.env.local` 写
+  `VITE_USE_MOCK=false`（已 gitignore），或命令行 `VITE_USE_MOCK=false npm run dev`。
+  注意 `src/config.ts` 里必须保持字面量 `import.meta.env`，先赋给中间变量会让 Vite 的静态替换失效。
 - **普通 `package` 产物不可直接运行。** 可执行 jar 要显式 repackage：
   `mvn -f backend/pom.xml -DskipTests package org.springframework.boot:spring-boot-maven-plugin:3.3.13:repackage`。
 - **模块边界由测试强制。** `ModuleBoundarySpec` 校验 `allowedDependencies`、循环依赖、具名接口，
