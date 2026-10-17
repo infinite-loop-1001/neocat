@@ -96,6 +96,25 @@ Protobuf 字段号不一致**不会报错**，而是静默解析错位导致数�
 - **Apollo 是启动必需项。** `ApolloConfigGuard` 在缺任一必需键时启动失败。
   必需键 = `FRAMEWORK_KEYS` 加上 `ApolloConfigGuard.DYNAMIC_CONFIG_TYPES` 中 8 个类的每个
   `@ApolloStaticValue` 字段。**新增配置类必须登记进去**，否则不受校验。
+- **Apollo 启动配置与 Meta 地址分开管理。** `backend/src/main/resources/bootstrap.properties`
+  固定 `app.id=neocat`、`apollo.bootstrap.enabled=true`、`apollo.bootstrap.namespaces=application`
+  （多个 namespace 用逗号分隔），由 `application.properties` 通过 `spring.config.import` 显式导入。
+  Meta 地址不写入源码：启动时通过 JVM 参数 `-Dapollo.meta=http://<apollo-meta-host>:8080`
+  或环境变量 `APOLLO_META` 提供。IDEA 中填入 **VM options**，不是 Program arguments；
+  命令行示例：`java -Dapollo.meta=http://<apollo-meta-host>:8080 -jar backend/target/neocat-backend-0.1.0-SNAPSHOT.jar`
+  （需先按下文显式 repackage）。`-Dapollo.meta` 必须放在 `-jar` 之前。
+- **Apollo 环境在后端启动时指定，不随业务 HTTP 请求切换。** IDEA 的 **VM options** 示例：
+  `-Denv=DEV -Dapollo.meta=http://<dev-meta-host>:8080`；对应 Portal 的 `dev` 环境、
+  AppId `neocat`、默认 cluster `default`、namespace `application`。命令行示例：
+  `java -Denv=DEV -Dapollo.meta=http://<dev-meta-host>:8080 -jar backend/target/neocat-backend-0.1.0-SNAPSHOT.jar`。
+  当前 Apollo Client 2.4.0 在显式指定 `apollo.meta` 时直接使用该地址，不按 `env` 自动切换 Meta；
+  实际配置来自该服务连接的 ConfigDB。切换生产环境须同时指定 `-Denv=PRO` 和生产 Meta 地址，
+  只改 `env` 或在 Portal 增加环境名称并不会创建独立环境。`spring.profiles.active=dev` 是
+  Spring Profile，不等于 Apollo 的 `env=DEV`；业务请求无需添加 `env` 查询参数或请求头。
+  如果本地开发能访问 Meta，但 `/services/config` 返回的 `homepageUrl` 是不可达的容器地址，
+  应修正 ConfigService 注册地址；临时可用
+  `-Denv=DEV -Dapollo.config-service=http://<dev-configservice-host>:8080` 直接指定 ConfigService，
+  绕过 Meta 发现（不再从 Meta 刷新服务列表）。此方式同样由目标服务决定配置环境，不能靠 `env` 自动切换。
 - **领域对象是普通类 + Lombok，不再是 `record`。** 字段 `x` 暴露 `getX()`（`boolean` → `isX()`）。
   手写的行为方法保留原名（例如 `ParseOutcome.valid()`、`TraceTreeNode.messageId()`）。
 - **`-parameters` 编译参数是关键依赖。** 普通类的 `@RequestBody` 绑定靠它；删掉会让 JSON 字段

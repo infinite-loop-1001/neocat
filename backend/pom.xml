@@ -41,6 +41,7 @@
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
         <mybatis-starter.version>3.0.4</mybatis-starter.version>
         <clickhouse-jdbc.version>0.6.5</clickhouse-jdbc.version>
+        <lz4-java.version>1.8.0</lz4-java.version>
         <caffeine.version>3.1.8</caffeine.version>
         <mysql.version>8.4.0</mysql.version>
         <apollo.version>2.4.0</apollo.version>
@@ -163,7 +164,17 @@
             <groupId>com.clickhouse</groupId>
             <artifactId>clickhouse-jdbc</artifactId>
             <version>${clickhouse-jdbc.version}</version>
-            <classifier>all</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>org.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+            <version>${lz4-java.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
         </dependency>
 
         <!-- 进程内缓存：幂等窗口、目录缓存、卡片序列缓存 -->

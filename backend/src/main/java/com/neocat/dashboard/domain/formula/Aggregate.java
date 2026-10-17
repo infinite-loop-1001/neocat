@@ -1,6 +1,6 @@
 package com.neocat.dashboard.domain.formula;
 
-import com.clickhouse.client.internal.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 import com.neocat.query.domain.stat.Stat;
 
 import java.util.List;
