@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "test-case-writer": {
+      "source": "../../root/cu1-agent-configs/skills",
+      "sourceType": "local",
+      "computedHash": "48aaa33236bf2f96b531d6b864be2de8c61c72dddac046cc11f5de3f6a75ff32"
+    }
+  }
+}
