@@ -7,13 +7,13 @@
       </header>
 
       <label class="field-label" for="old">当前密码</label>
-      <input id="old" v-model="oldPassword" class="field" type="password" required />
+      <PasswordField id="old" v-model="oldPassword" autocomplete="current-password" required />
 
       <label class="field-label" for="next">新密码（至少 8 位）</label>
-      <input id="next" v-model="newPassword" class="field" type="password" required />
+      <PasswordField id="next" v-model="newPassword" autocomplete="new-password" required />
 
       <label class="field-label" for="confirm">确认新密码</label>
-      <input id="confirm" v-model="confirmPassword" class="field" type="password" required />
+      <PasswordField id="confirm" v-model="confirmPassword" autocomplete="new-password" required />
 
       <p v-if="error" class="form-error" role="alert">{{ error }}</p>
 
@@ -28,6 +28,7 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { api, ApiError } from "../api";
+import PasswordField from "../components/PasswordField.vue";
 
 const router = useRouter();
 const oldPassword = ref("");

@@ -419,6 +419,8 @@ Metric 页面不从旧排名列表累加总量，使用以下独立契约。真�
 | 路由 | 视图 | 主要接口 |
 |---|---|---|
 | `/login` | 登录 | `POST /api/login` |
+| `/initialize` | 首次开通（仅未初始化） | `GET /api/platform/init-status`、`POST /api/platform/initialize` |
+| `/initialization-error` | 初始化状态查询失败与重试 | 重试重新进入统一初始化检查 |
 | `/change-password` | 强制改密 | `POST /api/me/password` |
 | `/services` | 服务列表 | `GET /api/services` |
 | `/svc/:service/transaction` | Transaction Type 列表 | `/api/reports/transaction/types` |

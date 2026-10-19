@@ -21,6 +21,7 @@ export function setupComponent(file, props, dependencies = {}, id = "sfc-test", 
   const module = { exports: {} };
   const mountedHooks = [];
   const unmountedHooks = [];
+  const emitted = [];
   runInNewContext(code, {
     module,
     exports: module.exports,
@@ -46,11 +47,15 @@ export function setupComponent(file, props, dependencies = {}, id = "sfc-test", 
       throw new Error(`Unexpected dependency: ${name}`);
     },
   });
-  const state = module.exports.default.setup(props, { expose() {}, emit() {} });
+  const state = module.exports.default.setup(props, {
+    expose() {},
+    emit: (event, ...args) => { emitted.push([event, ...args]); },
+  });
   // 把生命周期钩子暴露给测试，同时保留组件 setup 的真实返回值。
   Object.defineProperties(state, {
     __mounted: { value: () => mountedHooks.forEach((fn) => fn()), enumerable: false },
     __unmounted: { value: () => unmountedHooks.forEach((fn) => fn()), enumerable: false },
+    __emitted: { value: emitted, enumerable: false },
   });
   return state;
 }

@@ -7,7 +7,7 @@
 
     <div class="admin-toolbar">
       <input v-model="newUsername" class="field" placeholder="用户名" />
-      <input v-model="newPassword" class="field" type="password" placeholder="临时密码（至少 8 位）" />
+      <PasswordField v-model="newPassword" placeholder="临时密码（至少 8 位）" autocomplete="new-password" />
       <button class="btn btn-primary" type="button" @click="create">创建账号</button>
       <p v-if="error" class="form-error" role="alert">{{ error }}</p>
     </div>
@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { api, ApiError } from "../api";
+import PasswordField from "../components/PasswordField.vue";
 import type { Account } from "../mock/model";
 
 const accounts = ref<Account[]>([]);

@@ -7,11 +7,13 @@
         <p class="login-sub">应用监控平台</p>
       </header>
 
+      <p v-if="setupMessage" class="login-sub" role="status">{{ setupMessage }}</p>
+
       <label class="field-label" for="username">用户名</label>
       <input id="username" v-model="username" class="field" autocomplete="username" required />
 
       <label class="field-label" for="password">密码</label>
-      <input id="password" v-model="password" class="field" type="password" autocomplete="current-password" required />
+      <PasswordField id="password" v-model="password" autocomplete="current-password" required />
 
       <p v-if="error" class="form-error" role="alert">{{ error }}</p>
 
@@ -23,11 +25,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { api, ApiError } from "../api";
+import PasswordField from "../components/PasswordField.vue";
 
 const router = useRouter();
+const route = useRoute();
+const setupMessage = computed(() => route.query.setup === "complete"
+  ? "平台初始化成功，请使用刚创建的超级管理员账号登录。"
+  : route.query.setup === "already" ? "平台已初始化，请使用已有账号登录；本次未创建新账号。" : "");
 const username = ref("");
 const password = ref("");
 const error = ref("");

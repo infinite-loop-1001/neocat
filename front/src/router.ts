@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { api } from "./api";
+import { createAccessGuard } from "./access-guard";
 
 /**
  * 路由表严格对应 PRD 能力集（技术方案 03-api-contract.md §8）。
@@ -15,6 +16,8 @@ export const router = createRouter({
   linkActiveClass: "is-active",
   linkExactActiveClass: "is-active",
   routes: [
+    { path: "/initialize", name: "initialize", component: () => import("./views/InitializeView.vue") },
+    { path: "/initialization-error", name: "initialization-error", component: () => import("./views/InitializationErrorView.vue") },
     { path: "/login", name: "login", component: () => import("./views/LoginView.vue") },
     { path: "/change-password", name: "change-password", component: () => import("./views/ChangePasswordView.vue") },
     {
@@ -47,19 +50,4 @@ export const router = createRouter({
   ],
 });
 
-router.beforeEach(async (to) => {
-  if (to.path === "/login") return true;
-  try {
-    const me = await api<{ mustChangePassword: boolean }>("/me");
-    // 强制改密会话只能进入改密页（PRD 01 §4.3）
-    if (me.mustChangePassword && to.path !== "/change-password") {
-      return "/change-password";
-    }
-    if (!me.mustChangePassword && to.path === "/change-password") {
-      return "/services";
-    }
-    return true;
-  } catch {
-    return "/login";
-  }
-});
+router.beforeEach(createAccessGuard(api));
