@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import com.neocat.organization.domain.tree.OrgNode;
 import com.neocat.organization.domain.tree.OrgNodeRepository;
 import com.neocat.common.error.exception.ResourceNotFoundException;
+import com.neocat.identity.api.internal.AccountDirectory;
 import com.neocat.organization.api.internal.EffectiveMembershipChanged;
 import org.springframework.context.ApplicationEventPublisher;
 import java.util.ArrayDeque;
@@ -13,11 +14,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.Objects;
 import static com.neocat.common.error.ErrorCode.ORG_NOT_FOUND;
+import static com.neocat.common.error.ErrorCode.USER_NOT_FOUND;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Service;
 import com.neocat.common.locking.MySqlLocked;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -39,23 +40,25 @@ public class OrgMembershipService {
 
     private final ApplicationEventPublisher events;
 
+    private final AccountDirectory accounts;
+
     public OrgMembershipService(OrgNodeRepository nodes, MembershipRepository memberships,
-                                 EffectiveLeafRepository effectiveLeaves) {
-        this(nodes, memberships, effectiveLeaves, null);
-    }
-    @Autowired
-    public OrgMembershipService(OrgNodeRepository nodes, MembershipRepository memberships,
-                                EffectiveLeafRepository effectiveLeaves, ApplicationEventPublisher events) {
+                                EffectiveLeafRepository effectiveLeaves, ApplicationEventPublisher events,
+                                AccountDirectory accounts) {
         this.nodes = nodes;
         this.memberships = memberships;
         this.effectiveLeaves = effectiveLeaves;
         this.events = events;
+        this.accounts = accounts;
     }
     /** §6 加入成员：任意节点可加人，随后立即重算该用户的有效叶子。 */
     @Transactional
     @MySqlLocked("metadata")
     public void addMember(long orgId, String userAccount) {
         requireNode(orgId);
+        if (!accounts.exists(userAccount)) {
+            throw new ResourceNotFoundException(USER_NOT_FOUND, userAccount);
+        }
         memberships.add(orgId, userAccount);
         recompute(userAccount);
     }

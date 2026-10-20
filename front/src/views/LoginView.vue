@@ -28,6 +28,7 @@
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, ApiError } from "../api";
+import { safeRedirect } from "../navigation-target";
 import PasswordField from "../components/PasswordField.vue";
 
 const router = useRouter();
@@ -39,6 +40,8 @@ const username = ref("");
 const password = ref("");
 const error = ref("");
 const busy = ref(false);
+// 守卫把原页面带进 query；登录后优先回到它。
+const redirectTo = computed(() => safeRedirect(route.query.redirect));
 
 async function submit() {
   error.value = "";
@@ -51,11 +54,17 @@ async function submit() {
 
     // 首次登录 / 重置后必须先改密（PRD 01 §4.3）
     if (result.mustChangePassword) {
-      await router.push("/change-password");
+      await router.push(
+        redirectTo.value
+          ? { path: "/change-password", query: { redirect: redirectTo.value } }
+          : "/change-password",
+      );
       return;
     }
-    // 有可用最近访问服务则进入该服务 Transaction，否则进入服务列表（PRD 01 §4.1）
-    if (result.entry.type === "SERVICE_TRANSACTION" && result.entry.service) {
+    // 刷新/直达链接回到原页面；否则按 PRD 01 §4.1 进入最近访问服务或服务列表
+    if (redirectTo.value) {
+      await router.push(redirectTo.value);
+    } else if (result.entry.type === "SERVICE_TRANSACTION" && result.entry.service) {
       await router.push(`/svc/${result.entry.service}/transaction`);
     } else {
       await router.push("/services");

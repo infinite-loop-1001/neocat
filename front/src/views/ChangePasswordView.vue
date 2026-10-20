@@ -25,17 +25,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { api, ApiError } from "../api";
+import { safeRedirect } from "../navigation-target";
 import PasswordField from "../components/PasswordField.vue";
 
 const router = useRouter();
+const route = useRoute();
 const oldPassword = ref("");
 const newPassword = ref("");
 const confirmPassword = ref("");
 const error = ref("");
 const busy = ref(false);
+const redirectTo = computed(() => safeRedirect(route.query.redirect));
 
 async function submit() {
   error.value = "";
@@ -49,7 +52,7 @@ async function submit() {
       method: "POST",
       body: { oldPassword: oldPassword.value, newPassword: newPassword.value },
     });
-    await router.push("/services");
+    await router.push(redirectTo.value ?? "/services");
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : "修改失败";
   } finally {

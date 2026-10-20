@@ -19,6 +19,7 @@ import type {
   AlertRule,
   Card,
   Dashboard,
+  MockOrgNode,
   OrgNode,
   Sample,
 } from "./model";
@@ -27,7 +28,7 @@ interface MockState {
   session: { userAccount: string; role: string } | null;
   mustChangePassword: boolean;
   accounts: Account[];
-  orgs: OrgNode[];
+  orgs: MockOrgNode[];
   myLeaves: number[];
   dashboards: Dashboard[];
   cards: Card[];
@@ -42,7 +43,7 @@ const state: MockState = {
   session: restored ? { userAccount: restored.userAccount, role: restored.role } : null,
   mustChangePassword: restored?.mustChangePassword ?? false,
   accounts: [...d.accounts],
-  orgs: [...d.orgs],
+  orgs: d.orgs.map((org) => ({ ...org, members: [...org.members] })),
   myLeaves: [...d.myLeaves],
   dashboards: [...d.dashboards],
   cards: [...d.cards],
@@ -56,11 +57,17 @@ export function resetMockState(): void {
   state.mustChangePassword = false;
   writeSession(null);
   state.accounts = [...d.accounts];
-  state.orgs = [...d.orgs];
+  state.orgs = d.orgs.map((org) => ({ ...org, members: [...org.members] }));
   state.myLeaves = [...d.myLeaves];
   state.dashboards = [...d.dashboards];
   state.cards = [...d.cards];
   state.alerts = [...d.alerts];
+}
+
+/** 对外返回的组织节点：成员关系只在独立端点暴露，与后端 OrgResponse 一致。 */
+function publicOrg(org: MockOrgNode) {
+  const { members: _members, ...rest } = org;
+  return { ...rest, memberCount: org.members.length };
 }
 
 /** 对外返回的账号视图：绝不包含口令（即使是 mock）。 */
@@ -247,10 +254,17 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
 
   // ── 组织 ─────────────────────────────────────────────────
   if (path === "/orgs" && method === "GET") {
-    return state.orgs as T;
+    return state.orgs.map(publicOrg) as T;
   }
   if (path === "/orgs/mine" && method === "GET") {
     return state.myLeaves as T;
+  }
+  if (/^\/orgs\/\d+\/members$/.test(path) && method === "GET") {
+    requireAdmin();
+    const id = Number(path.split("/")[2]);
+    const org = state.orgs.find((o) => o.id === id);
+    if (!org) throw new ApiError(404, E.ORG_NOT_FOUND, "组织不存在");
+    return [...org.members] as T;
   }
   if (path === "/orgs" && method === "POST") {
     requireAdmin();
@@ -271,18 +285,58 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
       }
       parent.leaf = false;
     }
-    const created: OrgNode = { id: ++state.seq.org, name, parentId, leaf: true, memberCount: 0 };
+    const created: MockOrgNode = { id: ++state.seq.org, name, parentId, leaf: true, members: [] };
     state.orgs.push(created);
-    return created as T;
+    return publicOrg(created) as T;
   }
   if (/^\/orgs\/\d+\/members$/.test(path) && method === "POST") {
     requireAdmin();
     const id = Number(path.split("/")[2]);
     const org = state.orgs.find((o) => o.id === id);
     if (!org) throw new ApiError(404, E.ORG_NOT_FOUND, "组织不存在");
-    org.memberCount += 1;
-    if (org.leaf) state.myLeaves = Array.from(new Set([...state.myLeaves, org.id]));
-    return org as T;
+    const userAccount = String(body.userAccount ?? "");
+    if (!state.accounts.some((account) => account.userAccount === userAccount)) {
+      throw new ApiError(404, E.USER_NOT_FOUND, "账号不存在");
+    }
+    if (!org.members.includes(userAccount)) {
+      org.members.push(userAccount);
+      org.members.sort();
+    }
+    if (org.leaf && userAccount === state.session?.userAccount) {
+      state.myLeaves = Array.from(new Set([...state.myLeaves, org.id]));
+    }
+    return publicOrg(org) as T;
+  }
+  if (/^\/orgs\/\d+\/members\/[^/]+$/.test(path) && method === "DELETE") {
+    requireAdmin();
+    const parts = path.split("/");
+    const id = Number(parts[2]);
+    const userAccount = decodeURIComponent(parts[4]);
+    const org = state.orgs.find((o) => o.id === id);
+    if (!org) throw new ApiError(404, E.ORG_NOT_FOUND, "组织不存在");
+    org.members = org.members.filter((m: string) => m !== userAccount);
+    // 撤权后该账号不再经由本节点继承叶子；自身是叶子且成员是当前账号时立即失效
+    if (userAccount === state.session?.userAccount) {
+      const inherited = state.orgs.some(
+        (o) => o.leaf && o.members.includes(userAccount),
+      );
+      if (!inherited) {
+        state.myLeaves = state.myLeaves.filter((leafId) => leafId !== id);
+      }
+    }
+    return { ok: true } as T;
+  }
+  if (/^\/orgs\/\d+\/rename$/.test(path) && method === "POST") {
+    requireAdmin();
+    const id = Number(path.split("/")[2]);
+    const org = state.orgs.find((o) => o.id === id);
+    if (!org) throw new ApiError(404, E.ORG_NOT_FOUND, "组织不存在");
+    const name = String(body.name ?? "");
+    if (state.orgs.some((o) => o.id !== id && o.name === name && o.parentId === org.parentId)) {
+      throw new ApiError(409, E.NAME_DUPLICATED, "同一父节点下已存在同名组织");
+    }
+    org.name = name;
+    return publicOrg(org) as T;
   }
   if (/^\/orgs\/\d+\/deletion-preview$/.test(path) && method === "GET") {
     requireAdmin();
@@ -298,7 +352,7 @@ export async function mockRequest<T>(url: string, init: { method: string; body?:
         cardCount: state.cards.filter((c) => c.dashboardId === x.id).length,
       })),
       alertRuleCount: state.alerts.filter((r) => r.orgId === id).length,
-      memberCount: org.memberCount,
+      memberCount: org.members.length,
     } as T;
   }
   if (/^\/orgs\/\d+$/.test(path) && method === "DELETE") {

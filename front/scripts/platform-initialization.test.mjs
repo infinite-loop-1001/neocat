@@ -5,6 +5,7 @@ import { test } from "node:test";
 import { transformSync } from "esbuild";
 import * as vueRouter from "vue-router";
 import { createAccessGuard } from "../src/access-guard.ts";
+import { safeRedirect } from "../src/navigation-target.ts";
 import { loadInitializationStatus } from "../src/api/platform-initialization.ts";
 import { ApiError } from "../src/api/error.ts";
 import { ERROR_CODE } from "../src/api/error-codes.ts";
@@ -304,6 +305,7 @@ test("开通结果提示不携带凭据，正常登录仍进入强制改密", as
   const state = setupComponent("../src/views/LoginView.vue", {}, {
     "vue-router": { useRoute: () => route, useRouter: () => ({ push: async (to) => navigations.push(to) }) },
     "../api": { ApiError, api: async (...args) => { calls.push(args); return { mustChangePassword: true }; } },
+    "../navigation-target": { safeRedirect },
   });
   assert.match(state.setupMessage.value, /初始化成功/);
   state.username.value = "it.super";
@@ -315,6 +317,7 @@ test("开通结果提示不携带凭据，正常登录仍进入强制改密", as
   const already = setupComponent("../src/views/LoginView.vue", {}, {
     "vue-router": { useRoute: () => ({ query: { setup: "already" } }), useRouter: () => ({}) },
     "../api": { ApiError, api: async () => {} },
+    "../navigation-target": { safeRedirect },
   });
   assert.match(already.setupMessage.value, /本次未创建新账号/);
 });

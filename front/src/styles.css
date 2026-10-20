@@ -506,6 +506,10 @@ h3 {
 
 .password-toggle {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
   border: 1px solid var(--border-strong);
   border-left: 0;
   border-radius: var(--radius);
@@ -513,9 +517,13 @@ h3 {
   color: var(--fg-2);
   font-family: inherit;
   font-size: var(--text-xs);
-  padding: 0 var(--space-3);
+  padding: 0;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.password-toggle .icon {
+  display: block;
 }
 
 .password-toggle:hover:not(:disabled) {
@@ -1448,8 +1456,7 @@ h3 {
 
 /* ── 组织树 ─────────────────────────────────────────────── */
 
-.org-tree,
-.org-children {
+.org-tree {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1457,10 +1464,13 @@ h3 {
   gap: var(--space-1);
 }
 
-.org-children {
-  margin-left: var(--space-8);
-  border-left: 1px solid var(--border-soft);
-  padding-left: var(--space-4);
+.org-row {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.org-root-name {
+  max-width: 280px;
 }
 
 .org-node {
@@ -1469,14 +1479,185 @@ h3 {
   gap: var(--space-3);
   padding: var(--space-2);
   border: 1px solid var(--border-soft);
+  margin-left: calc(var(--org-depth, 0) * var(--space-8));
 }
 
 .org-node.is-leaf {
   border-left: 3px solid var(--success);
 }
 
-.org-node .actions {
+.org-node-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   margin-left: auto;
+}
+
+.org-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--fg-2);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  padding: 0 var(--space-1);
+  min-width: 20px;
+}
+
+.org-toggle:hover {
+  color: var(--fg);
+}
+
+.node-menu {
+  position: relative;
+}
+
+.node-menu-panel {
+  position: absolute;
+  right: 0;
+  top: 26px;
+  z-index: 20;
+  display: grid;
+  min-width: 132px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.node-menu-panel button {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.node-menu-panel button:hover {
+  background: var(--surface);
+}
+
+.icon-danger {
+  color: var(--danger);
+}
+
+/* 成员抽屉：跟着节点缩进，展开后才占高度 */
+.org-drawer {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  margin-left: calc(var(--org-depth, 0) * var(--space-8) + var(--space-6));
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--border-soft);
+}
+
+.member-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.member-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.member-remove {
+  padding: 0 var(--space-2);
+}
+
+/* 只有第一个操作按钮把右侧按钮组推到最右，中间不留大空隙 */
+.member-list li > .member-remove:first-of-type {
+  margin-left: auto;
+}
+
+.account-picker {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border-soft);
+}
+
+.account-picker li label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.account-picker li label:hover {
+  background: var(--surface);
+}
+
+/* ── 弹窗 ───────────────────────────────────────────────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgb(22 22 22 / 40%);
+  padding: var(--space-4);
+}
+
+.modal {
+  width: min(520px, 100%);
+  max-height: calc(100vh - var(--space-8));
+  overflow-y: auto;
+  display: grid;
+  gap: var(--space-3);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  padding: var(--space-4);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  border-top: 1px solid var(--border-soft);
+  padding-top: var(--space-3);
+}
+
+@media (max-width: 744px) {
+  .org-node {
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+    margin-left: calc(var(--org-depth, 0) * var(--space-4));
+  }
+
+  .org-drawer {
+    margin-left: calc(var(--org-depth, 0) * var(--space-4) + var(--space-2));
+  }
+
+  .org-node-actions {
+    gap: var(--space-2);
+  }
+
+  .node-menu-panel {
+    right: 0;
+  }
+
+  .member-list li {
+    flex-wrap: wrap;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: calc(100vh - var(--space-6));
+  }
 }
 
 /* ── 卡片编辑器 ─────────────────────────────────────────── */

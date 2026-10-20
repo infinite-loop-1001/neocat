@@ -47,6 +47,8 @@ export const router = createRouter({
         { path: "admin/platform", name: "admin-platform", component: () => import("./views/PlatformView.vue") },
       ],
     },
+    // 未知路径兜底到服务列表，避免刷新或旧链接停在空白页
+    { path: "/:pathMatch(.*)*", redirect: "/services" },
   ],
 });
 

@@ -21,12 +21,18 @@ export interface Account {
   mustChangePassword: boolean;
 }
 
+/** 组织节点接口形态：与后端 OrgResponse 一致，成员账号走独立端点。 */
 export interface OrgNode {
   id: number;
   name: string;
   parentId: number | null;
   leaf: boolean;
   memberCount: number;
+}
+
+/** 仅存在于 mock：数据集内部保存的直接成员账号；memberCount 由成员列表推导，避免两处漂移。 */
+export interface MockOrgNode extends Omit<OrgNode, "memberCount"> {
+  members: string[];
 }
 
 export interface ServiceRow {

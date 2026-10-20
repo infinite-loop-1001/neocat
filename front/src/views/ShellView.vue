@@ -125,7 +125,8 @@ async function load() {
     me.value = account.userAccount;
     role.value = account.role;
   } catch {
-    await router.push("/login");
+    // 会话失效时记住当前页，登录后回到原处而不是落回首页
+    await router.push({ path: "/login", query: { redirect: route.fullPath } });
     return;
   }
   services.value = await api<ServiceRow[]>("/services");

@@ -16,7 +16,7 @@ import type {
   Dashboard,
   DependencyRow,
   MetricSeriesRow,
-  OrgNode,
+  MockOrgNode,
   PlatformProfile,
   Sample,
   ServiceRow,
@@ -278,11 +278,11 @@ export const accounts: Account[] = [
   { userAccount: "carol", password: DEV_PASSWORD, role: "USER", status: "DISABLED", mustChangePassword: false },
 ];
 
-export const orgs: OrgNode[] = [
-  { id: 1, name: "总部", parentId: null, leaf: false, memberCount: 2 },
-  { id: 2, name: "支付部", parentId: 1, leaf: false, memberCount: 1 },
-  { id: 3, name: "支付组", parentId: 2, leaf: true, memberCount: 1 },
-  { id: 4, name: "订单组", parentId: 1, leaf: true, memberCount: 1 },
+export const orgs: MockOrgNode[] = [
+  { id: 1, name: "总部", parentId: null, leaf: false, members: ["root", "alice"] },
+  { id: 2, name: "支付部", parentId: 1, leaf: false, members: ["alice"] },
+  { id: 3, name: "支付组", parentId: 2, leaf: true, members: ["bob"] },
+  { id: 4, name: "订单组", parentId: 1, leaf: true, members: ["alice"] },
 ];
 
 /** 当前用户是叶子 3 与 4 的有效成员（3 通过祖先 2 继承）。 */

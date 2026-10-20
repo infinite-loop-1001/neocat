@@ -47,7 +47,16 @@ test("显示/隐藏按钮是 type=button 且带可读标签，不会提交表单
   assert.match(template.source, /type="button"/);
   assert.match(template.source, /:aria-label="visible \? '隐藏密码' : '显示密码'"/);
   assert.match(template.source, /@click="toggle"/);
-  assert.match(template.source, /\{\{ visible \? "隐藏" : "显示" \}\}/);
+});
+
+test("显隐按钮用图标而不是汉字，宽度不随文案变化", () => {
+  const template = compileComponentTemplate("../src/components/PasswordField.vue");
+  assert.deepEqual(template.compiled.errors, []);
+  assert.match(template.source, /<svg[\s\S]*?<\/svg>/, "按钮内是矢量图标");
+  assert.doesNotMatch(template.source, /\{\{\s*visible\s*\?\s*"隐藏"\s*:\s*"显示"\s*\}\}/, "不再渲染中文文案");
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.password-toggle\s*\{[^}]*display:\s*inline-flex/);
+  assert.match(css, /\.password-toggle\s*\{[^}]*justify-content:\s*center/);
 });
 
 test("禁用时按钮一并禁用，避免与提交中的表单状态不一致", () => {

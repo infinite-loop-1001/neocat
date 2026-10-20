@@ -90,10 +90,11 @@ class ModuleBoundarySpec extends Specification {
     }
 
     def "依赖图与设计文档一致：基础域只依赖 common"() {
-        expect: "organization / platform / catalog / trace 不引用其他业务模块"
+        expect: "platform / catalog / trace 不引用其他业务模块；organization 只通过 identity 具名接口校验账号"
         ["organization", "platform", "catalog", "trace"].each { name ->
             def deps = dependenciesOf(name)
-            assert deps.every { it == "common" }:
+            def allowed = name == "organization" ? ["common", "identity"] as Set : ["common"] as Set
+            assert deps.every { allowed.contains(it) }:
                     "$name 的依赖超出预期：$deps"
         }
     }

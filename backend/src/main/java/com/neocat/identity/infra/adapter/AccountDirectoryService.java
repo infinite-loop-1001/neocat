@@ -21,6 +21,11 @@ public class AccountDirectoryService implements AccountDirectory {
     }
 
     @Override
+    public boolean exists(String userAccount) {
+        return Objects.nonNull(accounts.findByUserAccount(userAccount));
+    }
+
+    @Override
     public boolean enabled(String userAccount) {
         var account = accounts.findByUserAccount(userAccount);
         return Objects.nonNull(account) && account.enabled();

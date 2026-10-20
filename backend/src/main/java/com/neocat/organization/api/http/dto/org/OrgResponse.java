@@ -20,6 +20,6 @@ public class OrgResponse {
     @Schema(description = "是否为叶子节点；只有叶子能承载大盘与组织告警")
     private final boolean leaf;
 
-    @Schema(description = "有效成员数（含祖先继承）")
+    @Schema(description = "该节点的直接成员数；祖先继承权限不计入此节点关系")
     private final int memberCount;
 }

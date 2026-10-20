@@ -4,17 +4,24 @@ import com.neocat.organization.domain.tree.OrgNode
 import com.neocat.organization.domain.tree.OrgNodeRepository
 
 import com.neocat.common.error.NeocatException
+import com.neocat.identity.api.internal.AccountDirectory
 import spock.lang.Specification
 import com.neocat.organization.api.internal.EffectiveMembershipChanged
 import org.springframework.context.ApplicationEventPublisher
 
 import static com.neocat.common.error.ErrorCode.ORG_NOT_FOUND
+import static com.neocat.common.error.ErrorCode.USER_NOT_FOUND
 
 class EffectiveLeafSpec extends Specification {
     OrgNodeRepository nodes = Stub()
     MembershipRepository memberships = Mock()
     EffectiveLeafRepository leaves = Mock()
-    OrgMembershipService service = new OrgMembershipService(nodes, memberships, leaves)
+    AccountDirectory accounts = Stub()
+    OrgMembershipService service = new OrgMembershipService(nodes, memberships, leaves, null, accounts)
+
+    def setup() {
+        accounts.exists('keith.ji') >> true
+    }
 
     static List<OrgNode> tree() {
         [new OrgNode(1L, '总部', null), new OrgNode(2L, '支付部', 1L),
@@ -109,10 +116,24 @@ class EffectiveLeafSpec extends Specification {
         error.code() == ORG_NOT_FOUND
     }
 
+    def 'unknown account is rejected before any membership write'() {
+        given:
+        nodes.findById(3L) >> tree()[2]
+        accounts.exists('missing') >> false
+
+        when:
+        service.addMember(3L, 'missing')
+
+        then:
+        def error = thrown(NeocatException)
+        0 * memberships.add(_, _)
+        error.code() == USER_NOT_FOUND
+    }
+
     def 'only truly lost effective leaves emit synchronous revocation events'() {
         given:
         def publisher = Mock(ApplicationEventPublisher)
-        def service = new OrgMembershipService(nodes, memberships, leaves, publisher)
+        def service = new OrgMembershipService(nodes, memberships, leaves, publisher, accounts)
         nodes.findAll() >> tree()
 
         when:

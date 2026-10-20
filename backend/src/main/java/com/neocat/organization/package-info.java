@@ -7,7 +7,7 @@
  */
 @ApplicationModule(
         displayName = "Organization",
-        allowedDependencies = {"common", "common :: locking", "common :: error", "common :: http", "common :: config", "common :: time", "common :: queue"})
+        allowedDependencies = {"common", "common :: locking", "common :: error", "common :: http", "common :: config", "common :: time", "common :: queue", "identity :: internal"})
 package com.neocat.organization;
 
 import org.springframework.modulith.ApplicationModule;

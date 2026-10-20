@@ -100,11 +100,12 @@
 
 | 方法 | 路径 | 权限 | 说明 |
 |---|---|---|---|
-| GET | `/api/orgs` | 登录 | 组织树（含 leaf 标记、成员数）；无组织权限者只看到管理入口为空 |
+| GET | `/api/orgs` | 登录 | 组织树（含 leaf 标记、直接成员数）；无组织权限者只看到管理入口为空 |
 | GET | `/api/orgs/mine` | 登录 | 当前用户有权限的叶子列表（大盘入口） |
 | POST | `/api/orgs` | ADMIN | `{ name, parentId \| null }` |
 | POST | `/api/orgs/{id}/rename` | ADMIN | `{ name }` |
 | POST | `/api/orgs/{id}/members` | ADMIN | `{ userAccount }` |
+| GET | `/api/orgs/{id}/members` | ADMIN | 该节点直接成员账号标识列表 |
 | DELETE | `/api/orgs/{id}/members/{userAccount}` | ADMIN | 移除成员 |
 | GET | `/api/orgs/{id}/deletion-preview` | ADMIN | `{ orgName, dashboards:[{id,name,cardCount}], alertRuleCount, memberCount }` |
 | DELETE | `/api/orgs/{id}` | ADMIN | `?confirmName=<组织名>`；不匹配 → `NAME_DUPLICATED` 语义拒绝 |

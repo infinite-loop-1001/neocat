@@ -1,6 +1,7 @@
 package com.neocat.organization.api.http;
 
 import com.neocat.common.error.exception.AuthorizationException;
+import com.neocat.common.error.exception.ResourceNotFoundException;
 import com.neocat.common.error.ErrorCode;
 import com.neocat.common.http.context.RequestActor;
 import com.neocat.organization.api.http.convert.OrgConvert;
@@ -16,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
 import com.neocat.organization.api.http.dto.deletion.DeletionResponse;
 import com.neocat.organization.api.http.dto.member.MemberDraft;
@@ -45,7 +47,7 @@ public class OrgAdminController {
     }
 
     @Operation(operationId = "listOrgs", summary = "查询组织树",
-            description = "返回全部节点及 leaf 标记与成员数；无组织权限的账号只看到空的管理入口。")
+            description = "返回全部节点及 leaf 标记与直接成员数；成员账号通过成员列表端点查询。")
     @ApiResponse(responseCode = "200", description = "组织节点列表")
     @GetMapping("/orgs")
     public ResponseEntity<List<OrgResponse>> orgs() {
@@ -92,6 +94,18 @@ public class OrgAdminController {
         return ResponseEntity.ok(new Success(true));
     }
 
+    @Operation(operationId = "listOrgMembers", summary = "查询组织节点直接成员",
+            description = "返回该节点直接关联的账号标识；祖先继承成员不重复展开到当前节点。")
+    @ApiResponse(responseCode = "200", description = "直接成员账号标识列表")
+    @GetMapping("/orgs/{id}/members")
+    public ResponseEntity<List<String>> members(HttpServletRequest request, @PathVariable long id) {
+        requireAdmin(request);
+        if (Objects.isNull(nodes.findById(id))) {
+            throw new ResourceNotFoundException(ErrorCode.ORG_NOT_FOUND, id);
+        }
+        return ResponseEntity.ok(membership.effectiveMembers(id).stream().sorted().toList());
+    }
+
     @Operation(operationId = "removeOrgMember", summary = "移除组织节点成员",
             description = "同时撤销其由该节点继承的叶子大盘与组织告警权限。")
     @ApiResponse(responseCode = "200", description = "已移除：{ ok: true }")
@@ -132,7 +146,8 @@ public class OrgAdminController {
     }
 
     private OrgResponse response(OrgNode node) {
+        var members = membership.effectiveMembers(node.getId());
         return OrgConvert.node(node, CollectionUtils.isEmpty(nodes.childrenOf(node.getId())),
-                membership.effectiveMembers(node.getId()).size());
+                members.size());
     }
 }
