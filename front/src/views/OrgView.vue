@@ -91,9 +91,6 @@
               </button>
             </li>
           </ul>
-          <button class="btn btn-ghost" type="button" @click="openMemberDialog(row.node.id)">
-            添加成员
-          </button>
         </div>
       </li>
     </ul>

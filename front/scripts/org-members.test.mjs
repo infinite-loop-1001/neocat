@@ -130,6 +130,20 @@ test("成员列表默认收起，点击节点后展开成抽屉，不再为每�
   assert.deepEqual(state.membersOf(1), ["alice"]);
 });
 
+test("添加成员只保留节点 + 菜单入口，抽屉不再显示重复按钮", () => {
+  const { source, compiled } = compileComponentTemplate("../src/views/OrgView.vue");
+  assert.deepEqual(compiled.errors, []);
+  const menu = source.match(/class="node-menu-panel">([\s\S]*?)<\/span>/)?.[1];
+  assert.ok(menu, "节点应保留 + 操作菜单");
+  assert.match(menu, /@click="openChildDialog\(row\.node\.id\)">新增子节点/);
+  assert.match(menu, /@click="openMemberDialog\(row\.node\.id\)">添加成员/);
+  assert.equal(
+    (source.match(/@click="openMemberDialog\(row\.node\.id\)"/g) ?? []).length,
+    1,
+    "添加成员入口只在节点菜单出现一次，不在抽屉重复展示",
+  );
+});
+
 test("节点上的 + 菜单提供新增子节点与添加成员，弹窗内完成提交", async () => {
   const calls = [];
   const state = orgView(stubApi({

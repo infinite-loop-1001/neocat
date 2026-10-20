@@ -1482,10 +1482,6 @@ h3 {
   margin-left: calc(var(--org-depth, 0) * var(--space-8));
 }
 
-.org-node.is-leaf {
-  border-left: 3px solid var(--success);
-}
-
 .org-node-actions {
   display: flex;
   align-items: center;
